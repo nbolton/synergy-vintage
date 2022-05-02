@@ -823,8 +823,7 @@ CInputFilter::operator=(const CInputFilter& x)
 		CPrimaryClient* oldClient = m_primaryClient;
 		setPrimaryClient(NULL);
 
-		CRuleList newRules(x.m_ruleList);
-		m_ruleList.swap(newRules);
+		m_ruleList = x.m_ruleList;
 
 		setPrimaryClient(oldClient);
 	}

@@ -15,7 +15,7 @@
 #ifndef CPRIMARYCLIENT_H
 #define CPRIMARYCLIENT_H
 
-#include "IClient.h"
+#include "CBaseClientProxy.h"
 #include "ProtocolTypes.h"
 
 class CScreen;
@@ -26,7 +26,7 @@ The primary screen does not have a client associated with it.  This
 class provides a pseudo-client to allow the primary screen to be
 treated as if it was a client.
 */
-class CPrimaryClient : public IClient {
+class CPrimaryClient : public CBaseClientProxy {
 public:
 	/*!
 	\c name is the name of the server and \p screen is primary screen.
@@ -135,10 +135,8 @@ public:
 	virtual void		screensaver(bool activate);
 	virtual void		resetOptions();
 	virtual void		setOptions(const COptionsList& options);
-	virtual CString		getName() const;
 
 private:
-	CString				m_name;
 	CScreen*			m_screen;
 	bool				m_clipboardDirty[kClipboardEnd];
 	SInt32				m_fakeInputCount;

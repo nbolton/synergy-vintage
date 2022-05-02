@@ -253,6 +253,8 @@
 		68871692073EBF7000C5ABE7 /* IArchTime.h in Headers */ = {isa = PBXBuildFile; fileRef = 68871683073EBF7000C5ABE7 /* IArchTime.h */; };
 		68871693073EBF7000C5ABE7 /* XArch.h in Headers */ = {isa = PBXBuildFile; fileRef = 68871684073EBF7000C5ABE7 /* XArch.h */; };
 		6887169B073EC03800C5ABE7 /* MacOSXPrecomp.h in Headers */ = {isa = PBXBuildFile; fileRef = 68871699073EC02100C5ABE7 /* MacOSXPrecomp.h */; };
+		688925A909DF64B6002EB18C /* CBaseClientProxy.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 688925A709DF64B6002EB18C /* CBaseClientProxy.cpp */; };
+		688925AA09DF64B6002EB18C /* CBaseClientProxy.h in Headers */ = {isa = PBXBuildFile; fileRef = 688925A809DF64B6002EB18C /* CBaseClientProxy.h */; };
 		68968F5D073EC484004B2F9B /* CArchDaemonNone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68968F5A073EC484004B2F9B /* CArchDaemonNone.cpp */; };
 		68968F5E073EC484004B2F9B /* CArchTaskBarXWindows.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68968F5B073EC484004B2F9B /* CArchTaskBarXWindows.cpp */; };
 		68968F5F073EC484004B2F9B /* CArchTaskBarXWindows.h in Headers */ = {isa = PBXBuildFile; fileRef = 68968F5C073EC484004B2F9B /* CArchTaskBarXWindows.h */; };
@@ -778,6 +780,8 @@
 		68871683073EBF7000C5ABE7 /* IArchTime.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = IArchTime.h; path = lib/arch/IArchTime.h; sourceTree = "<group>"; };
 		68871684073EBF7000C5ABE7 /* XArch.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = XArch.h; path = lib/arch/XArch.h; sourceTree = "<group>"; };
 		68871699073EC02100C5ABE7 /* MacOSXPrecomp.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = MacOSXPrecomp.h; path = lib/common/MacOSXPrecomp.h; sourceTree = "<group>"; };
+		688925A709DF64B6002EB18C /* CBaseClientProxy.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CBaseClientProxy.cpp; path = lib/server/CBaseClientProxy.cpp; sourceTree = "<group>"; };
+		688925A809DF64B6002EB18C /* CBaseClientProxy.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CBaseClientProxy.h; path = lib/server/CBaseClientProxy.h; sourceTree = "<group>"; };
 		68968F5A073EC484004B2F9B /* CArchDaemonNone.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CArchDaemonNone.cpp; path = lib/arch/CArchDaemonNone.cpp; sourceTree = "<group>"; };
 		68968F5B073EC484004B2F9B /* CArchTaskBarXWindows.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CArchTaskBarXWindows.cpp; path = lib/arch/CArchTaskBarXWindows.cpp; sourceTree = "<group>"; };
 		68968F5C073EC484004B2F9B /* CArchTaskBarXWindows.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CArchTaskBarXWindows.h; path = lib/arch/CArchTaskBarXWindows.h; sourceTree = "<group>"; };
@@ -915,6 +919,8 @@
 		4C537F2B064E29C900D3815C /* Server */ = {
 			isa = PBXGroup;
 			children = (
+				688925A709DF64B6002EB18C /* CBaseClientProxy.cpp */,
+				688925A809DF64B6002EB18C /* CBaseClientProxy.h */,
 				4C537F32064E2A0F00D3815C /* CClientListener.cpp */,
 				4C537F33064E2A0F00D3815C /* CClientListener.h */,
 				4C537F34064E2A0F00D3815C /* CClientProxy.cpp */,
@@ -1225,6 +1231,7 @@
 				4C537F53064E2A0F00D3815C /* CPrimaryClient.h in Headers */,
 				4C537F55064E2A0F00D3815C /* CServer.h in Headers */,
 				4C7D7CE4066319560097CA11 /* common.h in Headers */,
+				688925AA09DF64B6002EB18C /* CBaseClientProxy.h in Headers */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1835,6 +1842,7 @@
 				689D73340956490500FFAB1D /* CInputFilter.cpp in Sources */,
 				4C537F52064E2A0F00D3815C /* CPrimaryClient.cpp in Sources */,
 				4C537F54064E2A0F00D3815C /* CServer.cpp in Sources */,
+				688925A909DF64B6002EB18C /* CBaseClientProxy.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

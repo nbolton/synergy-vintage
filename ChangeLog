@@ -1,3 +1,146 @@
+2006/04/02 12:16:23 crs
+lib/platform/CXWindowsKeyState.cpp
+
+Fixed non-XKB handling of Mode_switch.  There were two problems.
+First the XkbLockGroup function was being called even for non-XKB
+layouts.  (And was being included in the compile even if the XKB
+headers were not available!)  Second, modifiers were assumed to
+exist only the group in which a keysym was found and when looking
+for modifiers for a key we only check modifiers in the same group.
+So keys that needed Mode_switch (in group 1) would check to see if
+Mode_switch was explictly mapped in group 1.  It never is so that
+would never work.  Now we handle implicitly mapped modifiers.  I
+hadn't noticed this problem because my system (like most others)
+uses XKB and when I forced non-XKB, the keys I tested worked anyway
+through Multi_key.
+
+----------
+2006/04/01 22:25:33 crs
+lib/platform/CXWindowsKeyState.cpp
+lib/platform/CXWindowsKeyState.h
+lib/platform/CXWindowsScreen.cpp
+
+Fixed autorepeat on X11.  Was autorepeating all keys sent from
+server.  Now autorepeating only those keys which are locally
+configured in X to autorepeat.
+
+----------
+2006/04/01 21:37:24 crs
+lib/platform/CMSWindowsKeyState.cpp
+
+Fixed autorepeat on win32 clients.  Was synthesizing a key release
+for each repeat.  Win32 wants only repeat press events.
+
+----------
+2006/04/01 21:36:50 crs
+cmd/launcher/CScreensLinks.cpp
+
+Fixed two bugs in screens and link dialog.  First, the link controls
+were not updated when reopening the dialog.  Second, a change in any
+link edit control would be discarded if the user pressed enter.
+
+----------
+2006/04/01 21:35:10 crs
+cmd/launcher/CHotkeyOptions.cpp
+
+Fixed crash when creating a new hotkey but picking a key or mouse
+button combination before clicking OK.
+
+----------
+2006/04/01 21:30:43 crs
+configure.in
+lib/arch/CArchNetworkBSD.cpp
+lib/common/common.h
+
+Removed use of alloca() from unix and portable code.  It's still
+in win32 code but i don't have to play guessing games about
+whether it's there or not on that platform.
+
+----------
+2006/04/01 17:53:27 crs
+synergy.xcode/project.pbxproj
+
+Added new files to Xcode project.
+
+----------
+2006/04/01 17:41:59 crs
+lib/client/CServerProxy.cpp
+lib/net/CTCPSocket.cpp
+lib/server/CClientProxy1_0.cpp
+
+Added more debugging output for network problems.
+
+----------
+2006/04/01 17:01:56 crs
+lib/platform/COSXKeyState.cpp
+
+Fixed keymapping on OSX.  Was checking keyboard tables for all
+modifier combinations, including right-handed modifiers.  It
+turns out OSX doesn't set up the tables correctly for those
+modifiers and acts if they have no effect.  Since OSX never
+generates right-handed modifiers this isn't too surprising.
+
+----------
+2006/04/01 15:32:19 crs
+lib/server/CBaseClientProxy.cpp
+lib/server/CBaseClientProxy.h
+lib/server/CClientProxy.cpp
+lib/server/CClientProxy.h
+lib/server/CPrimaryClient.cpp
+lib/server/CPrimaryClient.h
+lib/server/CServer.cpp
+lib/server/CServer.h
+lib/server/Makefile.am
+lib/server/server.dsp
+
+Added new class to allow the server to keep information that every
+screen has.  The first such info is the cursor position when last
+jumping from the screen.  Using a hotkey to jump to a screen now
+puts the cursor where it was the last time the user jumped from
+that screen.
+
+----------
+2006/04/01 14:51:22 crs
+lib/server/CInputFilter.cpp
+
+Fixed bug in reloading configurations.  Was losing hotkeys.
+
+----------
+2006/04/01 14:49:41 crs
+lib/platform/CXWindowsKeyState.cpp
+
+Fixed bug when recollecting the keyboard map on non-XKB keyboards.
+Wasn't reseting a key map.  It's unlikely anyone ever hit this bug.
+
+----------
+2006/04/01 13:39:09 crs
+lib/platform/CXWindowsClipboard.cpp
+lib/platform/CXWindowsScreen.cpp
+lib/platform/CXWindowsScreenSaver.cpp
+
+Fixed several uses of CXWindowsUtil::CErrorLock that take a flag.
+Was checking the flag before destroying the lock object.  That
+doesn't reliably work because the X protocol is asynchronous.  The
+lock object ensures that the flag is correctly set in its d'tor by
+synchronizing with the server.  The X11 hotkey (un)registration was
+one place where this was done.  There were places in the X11
+screensaver and clipboard handling, too.
+
+----------
+2006/04/01 12:55:17 crs
+lib/synergy/CKeyState.cpp
+
+Fixed failure to clear the state of which keys are pressed in
+fakeAllKeysUp().  This fixes problems with synergy clients
+thinking some keys are still down, causing weird key behavior.
+
+----------
+2006/04/01 12:53:31 crs
+lib/common/Version.h
+
+Changed version to 1.3.1.
+
+----------
 2006/03/21 21:54:16 crs
 lib/platform/CXWindowsUtil.cpp
 

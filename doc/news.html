@@ -9,6 +9,23 @@
 </head>
 <body class="main">
 <p>
+<span class="date">Apr-02-2006</span> - Synergy 1.3.1 released
+</p><p>
+Made following changes:
+<ul>
+<li>Hot key screen switching now restores last cursor position
+<li>Fixed loss of hot keys when reloading configuration
+<li>Fixed autorepeating on win32 (no longer sending repeating key releases)
+<li>Fixed autorepeating on X11 (non-repeating keys were repeating)
+<li>Fixed AltGr issues on X11
+<li>Fixed modifier mapping bug on OS X client (caused wrong characters)
+<li>Fixed one way for modifiers to get stuck active on all platforms
+<li>Fixed bugs in win32 GUI
+<li>Removed alloca() from unix code (should fix FreeBSD build)
+<li>Added more debugging output for network problems
+<li>Fixed failure to detect some errors on X11
+</ul>
+</p><p>
 <span class="date">Mar-22-2006</span> - Synergy 1.3.0 released
 </p><p>
 Made following additions:

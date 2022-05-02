@@ -1191,6 +1191,13 @@ CMSWindowsKeyState::fakeKey(const Keystroke& keystroke)
 		LOG((CLOG_DEBUG1 "  %03x (%08x) %s", keystroke.m_data.m_button.m_button, keystroke.m_data.m_button.m_client, keystroke.m_data.m_button.m_press ? "down" : "up"));
 		KeyButton button = keystroke.m_data.m_button.m_button;
 
+		// windows doesn't send key ups for key repeats
+		if (keystroke.m_data.m_button.m_repeat &&
+			!keystroke.m_data.m_button.m_press) {
+			LOG((CLOG_DEBUG1 "  discard key repeat release"));
+			break;
+		}
+
 		// get the virtual key for the button
 		UINT vk = keystroke.m_data.m_button.m_client;
 

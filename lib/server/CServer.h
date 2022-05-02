@@ -26,9 +26,9 @@
 #include "stdset.h"
 #include "stdvector.h"
 
+class CBaseClientProxy;
 class CEventQueueTimer;
 class CPrimaryClient;
-class IClient;
 class CInputFilter;
 
 //! Synergy server
@@ -101,7 +101,7 @@ public:
 	Adds \p client to the server.  The client is adopted and will be
 	destroyed when the client disconnects or is disconnected.
 	*/
-	void				adoptClient(IClient* client);
+	void				adoptClient(CBaseClientProxy* client);
 
 	//! Disconnect clients
 	/*!
@@ -178,7 +178,7 @@ public:
 
 private:
 	// get canonical name of client
-	CString				getName(const IClient*) const;
+	CString				getName(const CBaseClientProxy*) const;
 
 	// get the sides of the primary screen that have neighbors
 	UInt32				getActivePrimarySides() const;
@@ -193,32 +193,32 @@ private:
 	bool				isLockedToScreen() const;
 
 	// returns the jump zone of the client
-	SInt32				getJumpZoneSize(IClient*) const;
+	SInt32				getJumpZoneSize(CBaseClientProxy*) const;
 
 	// change the active screen
-	void				switchScreen(IClient*,
+	void				switchScreen(CBaseClientProxy*,
 							SInt32 x, SInt32 y, bool forScreenSaver);
 
 	// jump to screen
-	void				jumpToScreen(IClient*);
+	void				jumpToScreen(CBaseClientProxy*);
 
 	// convert pixel position to fraction, using x or y depending on the
 	// direction.
-	float				mapToFraction(IClient*, EDirection,
+	float				mapToFraction(CBaseClientProxy*, EDirection,
 							SInt32 x, SInt32 y) const;
 
 	// convert fraction to pixel position, writing only x or y depending
 	// on the direction.
-	void				mapToPixel(IClient*, EDirection, float f,
+	void				mapToPixel(CBaseClientProxy*, EDirection, float f,
 							SInt32& x, SInt32& y) const;
 
 	// returns true if the client has a neighbor anywhere along the edge
 	// indicated by the direction.
-	bool				hasAnyNeighbor(IClient*, EDirection) const;
+	bool				hasAnyNeighbor(CBaseClientProxy*, EDirection) const;
 
 	// lookup neighboring screen, mapping the coordinate independent of
 	// the direction to the neighbor's coordinate space.
-	IClient*			getNeighbor(IClient*, EDirection,
+	CBaseClientProxy*	getNeighbor(CBaseClientProxy*, EDirection,
 							SInt32& x, SInt32& y) const;
 
 	// lookup neighboring screen.  given a position relative to the
@@ -226,18 +226,18 @@ private:
 	// if the position is sufficiently far from the source then we
 	// cross multiple screens.  if there is no suitable screen then
 	// return NULL and x,y are not modified.
-	IClient*			mapToNeighbor(IClient*, EDirection,
+	CBaseClientProxy*	mapToNeighbor(CBaseClientProxy*, EDirection,
 							SInt32& x, SInt32& y) const;
 
 	// adjusts x and y or neither to avoid ending up in a jump zone
 	// after entering the client in the given direction.
-	void				avoidJumpZone(IClient*, EDirection,
+	void				avoidJumpZone(CBaseClientProxy*, EDirection,
 							SInt32& x, SInt32& y) const;
 
 	// test if a switch is permitted.  this includes testing user
 	// options like switch delay and tracking any state required to
 	// implement them.  returns true iff a switch is permitted.
-	bool				isSwitchOkay(IClient* dst, EDirection,
+	bool				isSwitchOkay(CBaseClientProxy* dst, EDirection,
 							SInt32 x, SInt32 y, SInt32 xActive, SInt32 yActive);
 
 	// update switch state due to a mouse move at \p x, \p y that
@@ -273,14 +273,14 @@ private:
 
 	// returns the corner (EScreenSwitchCornerMasks) where x,y is on the
 	// given client.  corners have the given size.
-	UInt32				getCorner(IClient*,
+	UInt32				getCorner(CBaseClientProxy*,
 							SInt32 x, SInt32 y, SInt32 size) const;
 
 	// stop relative mouse moves
 	void				stopRelativeMoves();
 
 	// send screen options to \c client
-	void				sendOptions(IClient* client) const;
+	void				sendOptions(CBaseClientProxy* client) const;
 
 	// process options from configuration
 	void				processOptions();
@@ -309,7 +309,7 @@ private:
 	void				handleFakeInputEndEvent(const CEvent&, void*);
 
 	// event processing
-	void				onClipboardChanged(IClient* sender,
+	void				onClipboardChanged(CBaseClientProxy* sender,
 							ClipboardID id, UInt32 seqNum);
 	void				onScreensaver(bool activated);
 	void				onKeyDown(KeyID, KeyModifierMask, KeyButton,
@@ -324,13 +324,13 @@ private:
 	void				onMouseWheel(SInt32 xDelta, SInt32 yDelta);
 
 	// add client to list and attach event handlers for client
-	bool				addClient(IClient*);
+	bool				addClient(CBaseClientProxy*);
 
 	// remove client from list and detach event handlers for client
-	bool				removeClient(IClient*);
+	bool				removeClient(CBaseClientProxy*);
 
 	// close a client
-	void				closeClient(IClient*, const char* msg);
+	void				closeClient(CBaseClientProxy*, const char* msg);
 
 	// close clients not in \p config
 	void				closeClients(const CConfig& config);
@@ -340,11 +340,11 @@ private:
 	void				closeAllClients();
 
 	// remove clients from internal state
-	void				removeActiveClient(IClient*);
-	void				removeOldClient(IClient*);
+	void				removeActiveClient(CBaseClientProxy*);
+	void				removeOldClient(CBaseClientProxy*);
 
 	// force the cursor off of \p client
-	void				forceLeaveClient(IClient* client);
+	void				forceLeaveClient(CBaseClientProxy* client);
 
 private:
 	class CClipboardInfo {
@@ -362,17 +362,17 @@ private:
 	CPrimaryClient*		m_primaryClient;
 
 	// all clients (including the primary client) indexed by name
-	typedef std::map<CString, IClient*> CClientList;
-	typedef std::set<IClient*> CClientSet;
+	typedef std::map<CString, CBaseClientProxy*> CClientList;
+	typedef std::set<CBaseClientProxy*> CClientSet;
 	CClientList			m_clients;
 	CClientSet			m_clientSet;
 
 	// all old connections that we're waiting to hangup
-	typedef std::map<IClient*, CEventQueueTimer*> COldClients;
+	typedef std::map<CBaseClientProxy*, CEventQueueTimer*> COldClients;
 	COldClients			m_oldClients;
 
 	// the client with focus
-	IClient*			m_active;
+	CBaseClientProxy*	m_active;
 
 	// the sequence number of enter messages
 	UInt32				m_seqNum;
@@ -398,13 +398,13 @@ private:
 	CClipboardInfo		m_clipboards[kClipboardEnd];
 
 	// state saved when screen saver activates
-	IClient*			m_activeSaver;
+	CBaseClientProxy*	m_activeSaver;
 	SInt32				m_xSaver, m_ySaver;
 
 	// common state for screen switch tests.  all tests are always
 	// trying to reach the same screen in the same direction.
 	EDirection			m_switchDir;
-	IClient*			m_switchScreen;
+	CBaseClientProxy*	m_switchScreen;
 
 	// state for delayed screen switching
 	double				m_switchWaitDelay;

@@ -182,6 +182,7 @@ CXWindowsScreen::enable()
 		XKeyboardState keyControl;
 		XGetKeyboardControl(m_display, &keyControl);
 		m_autoRepeat = (keyControl.global_auto_repeat == AutoRepeatModeOn);
+		m_keyState->setAutoRepeat(keyControl);
 
 		// move hider window under the cursor center
 		XMoveWindow(m_display, m_window, m_xCenter, m_yCenter);
@@ -243,6 +244,7 @@ CXWindowsScreen::enter()
 		XKeyboardState keyControl;
 		XGetKeyboardControl(m_display, &keyControl);
 		m_autoRepeat = (keyControl.global_auto_repeat == AutoRepeatModeOn);
+		m_keyState->setAutoRepeat(keyControl);
 
 		// turn off auto-repeat.  we do this so fake key press events don't
 		// cause the local server to generate their own auto-repeats of
@@ -521,131 +523,133 @@ CXWindowsScreen::registerHotKey(KeyID key, KeyModifierMask mask)
 	// we need to grab the modifier key in combination with all the other
 	// requested modifiers.
 	bool err = false;
-	CXWindowsUtil::CErrorLock lock(m_display, &err);
-	if (key == kKeyNone) {
-		static const KeyModifierMask s_hotKeyModifiers[] = {
-			KeyModifierShift,
-			KeyModifierControl,
-			KeyModifierAlt,
-			KeyModifierMeta,
-			KeyModifierSuper
-		};
+	{
+		CXWindowsUtil::CErrorLock lock(m_display, &err);
+		if (key == kKeyNone) {
+			static const KeyModifierMask s_hotKeyModifiers[] = {
+				KeyModifierShift,
+				KeyModifierControl,
+				KeyModifierAlt,
+				KeyModifierMeta,
+				KeyModifierSuper
+			};
 
-		XModifierKeymap* modKeymap = XGetModifierMapping(m_display);
-		for (size_t j = 0; j < sizeof(s_hotKeyModifiers) /
-								sizeof(s_hotKeyModifiers[0]) && !err; ++j) {
-			// skip modifier if not in mask
-			if ((mask & s_hotKeyModifiers[j]) == 0) {
-				continue;
-			}
+			XModifierKeymap* modKeymap = XGetModifierMapping(m_display);
+			for (size_t j = 0; j < sizeof(s_hotKeyModifiers) /
+									sizeof(s_hotKeyModifiers[0]) && !err; ++j) {
+				// skip modifier if not in mask
+				if ((mask & s_hotKeyModifiers[j]) == 0) {
+					continue;
+				}
 
-			// skip with error if we can't map remaining modifiers
-			unsigned int modifiers2;
-			KeyModifierMask mask2 = (mask & ~s_hotKeyModifiers[j]);
-			if (!m_keyState->mapModifiersToX(mask2, modifiers2)) {
-				err = true;
-				continue;
-			}
+				// skip with error if we can't map remaining modifiers
+				unsigned int modifiers2;
+				KeyModifierMask mask2 = (mask & ~s_hotKeyModifiers[j]);
+				if (!m_keyState->mapModifiersToX(mask2, modifiers2)) {
+					err = true;
+					continue;
+				}
 
-			// compute modifier index for modifier.  there should be
-			// exactly one X modifier missing
-			int index;
-			switch (modifiers ^ modifiers2) {
-			case ShiftMask:
-				index = ShiftMapIndex;
-				break;
+				// compute modifier index for modifier.  there should be
+				// exactly one X modifier missing
+				int index;
+				switch (modifiers ^ modifiers2) {
+				case ShiftMask:
+					index = ShiftMapIndex;
+					break;
 
-			case LockMask:
-				index = LockMapIndex;
-				break;
+				case LockMask:
+					index = LockMapIndex;
+					break;
 
-			case ControlMask:
-				index = ControlMapIndex;
-				break;
+				case ControlMask:
+					index = ControlMapIndex;
+					break;
 
-			case Mod1Mask:
-				index = Mod1MapIndex;
-				break;
+				case Mod1Mask:
+					index = Mod1MapIndex;
+					break;
 
-			case Mod2Mask:
-				index = Mod2MapIndex;
-				break;
+				case Mod2Mask:
+					index = Mod2MapIndex;
+					break;
 
-			case Mod3Mask:
-				index = Mod3MapIndex;
-				break;
+				case Mod3Mask:
+					index = Mod3MapIndex;
+					break;
 
-			case Mod4Mask:
-				index = Mod4MapIndex;
-				break;
+				case Mod4Mask:
+					index = Mod4MapIndex;
+					break;
 
-			case Mod5Mask:
-				index = Mod5MapIndex;
-				break;
+				case Mod5Mask:
+					index = Mod5MapIndex;
+					break;
 
-			default:
-				err = true;
-				continue;
-			}
+				default:
+					err = true;
+					continue;
+				}
 
-			// grab each key for the modifier
-			const KeyCode* modifiermap =
-				modKeymap->modifiermap + index * modKeymap->max_keypermod;
-			for (int k = 0; k < modKeymap->max_keypermod && !err; ++k) {
-				KeyCode code = modifiermap[k];
-				if (modifiermap[k] != 0) {
-					XGrabKey(m_display, code, modifiers2, m_root,
-								False, GrabModeAsync, GrabModeAsync);
-					if (!err) {
-						hotKeys.push_back(std::make_pair(code, modifiers2));
-						m_hotKeyToIDMap[CHotKeyItem(code, modifiers2)] = id;
+				// grab each key for the modifier
+				const KeyCode* modifiermap =
+					modKeymap->modifiermap + index * modKeymap->max_keypermod;
+				for (int k = 0; k < modKeymap->max_keypermod && !err; ++k) {
+					KeyCode code = modifiermap[k];
+					if (modifiermap[k] != 0) {
+						XGrabKey(m_display, code, modifiers2, m_root,
+									False, GrabModeAsync, GrabModeAsync);
+						if (!err) {
+							hotKeys.push_back(std::make_pair(code, modifiers2));
+							m_hotKeyToIDMap[CHotKeyItem(code, modifiers2)] = id;
+						}
 					}
 				}
 			}
-		}
-		XFreeModifiermap(modKeymap);
-	}
-
-	// a non-modifier key must be insensitive to CapsLock, NumLock and
-	// ScrollLock, so we have to grab the key with every combination of
-	// those.
-	else {
-		// collect available toggle modifiers
-		unsigned int modifier;
-		unsigned int toggleModifiers[3];
-		size_t numToggleModifiers = 0;
-		if (m_keyState->mapModifiersToX(KeyModifierCapsLock, modifier)) {
-			toggleModifiers[numToggleModifiers++] = modifier;
-		}
-		if (m_keyState->mapModifiersToX(KeyModifierNumLock, modifier)) {
-			toggleModifiers[numToggleModifiers++] = modifier;
-		}
-		if (m_keyState->mapModifiersToX(KeyModifierScrollLock, modifier)) {
-			toggleModifiers[numToggleModifiers++] = modifier;
+			XFreeModifiermap(modKeymap);
 		}
 
+		// a non-modifier key must be insensitive to CapsLock, NumLock and
+		// ScrollLock, so we have to grab the key with every combination of
+		// those.
+		else {
+			// collect available toggle modifiers
+			unsigned int modifier;
+			unsigned int toggleModifiers[3];
+			size_t numToggleModifiers = 0;
+			if (m_keyState->mapModifiersToX(KeyModifierCapsLock, modifier)) {
+				toggleModifiers[numToggleModifiers++] = modifier;
+			}
+			if (m_keyState->mapModifiersToX(KeyModifierNumLock, modifier)) {
+				toggleModifiers[numToggleModifiers++] = modifier;
+			}
+			if (m_keyState->mapModifiersToX(KeyModifierScrollLock, modifier)) {
+				toggleModifiers[numToggleModifiers++] = modifier;
+			}
 
-		for (CXWindowsKeyState::CKeycodeList::iterator j = keycodes.begin();
-								j != keycodes.end() && !err; ++j) {
-			for (size_t i = 0; i < (1u << numToggleModifiers); ++i) {
-				// add toggle modifiers for index i
-				unsigned int tmpModifiers = modifiers;
-				if ((i & 1) != 0) {
-					tmpModifiers |= toggleModifiers[0];
-				}
-				if ((i & 2) != 0) {
-					tmpModifiers |= toggleModifiers[1];
-				}
-				if ((i & 4) != 0) {
-					tmpModifiers |= toggleModifiers[2];
-				}
 
-				// add grab
-				XGrabKey(m_display, *j, tmpModifiers, m_root,
-									False, GrabModeAsync, GrabModeAsync);
-				if (!err) {
-					hotKeys.push_back(std::make_pair(*j, tmpModifiers));
-					m_hotKeyToIDMap[CHotKeyItem(*j, tmpModifiers)] = id;
+			for (CXWindowsKeyState::CKeycodeList::iterator j = keycodes.begin();
+									j != keycodes.end() && !err; ++j) {
+				for (size_t i = 0; i < (1u << numToggleModifiers); ++i) {
+					// add toggle modifiers for index i
+					unsigned int tmpModifiers = modifiers;
+					if ((i & 1) != 0) {
+						tmpModifiers |= toggleModifiers[0];
+					}
+					if ((i & 2) != 0) {
+						tmpModifiers |= toggleModifiers[1];
+					}
+					if ((i & 4) != 0) {
+						tmpModifiers |= toggleModifiers[2];
+					}
+
+					// add grab
+					XGrabKey(m_display, *j, tmpModifiers, m_root,
+										False, GrabModeAsync, GrabModeAsync);
+					if (!err) {
+						hotKeys.push_back(std::make_pair(*j, tmpModifiers));
+						m_hotKeyToIDMap[CHotKeyItem(*j, tmpModifiers)] = id;
+					}
 				}
 			}
 		}
@@ -680,11 +684,14 @@ CXWindowsScreen::unregisterHotKey(UInt32 id)
 
 	// unregister with OS
 	bool err = false;
-	CXWindowsUtil::CErrorLock lock(m_display, &err);
-	HotKeyList& hotKeys = i->second;
-	for (HotKeyList::iterator j = hotKeys.begin(); j != hotKeys.end(); ++j) {
-		XUngrabKey(m_display, j->first, j->second, m_root);
-		m_hotKeyToIDMap.erase(CHotKeyItem(j->first, j->second));
+	{
+		CXWindowsUtil::CErrorLock lock(m_display, &err);
+		HotKeyList& hotKeys = i->second;
+		for (HotKeyList::iterator j = hotKeys.begin();
+								j != hotKeys.end(); ++j) {
+			XUngrabKey(m_display, j->first, j->second, m_root);
+			m_hotKeyToIDMap.erase(CHotKeyItem(j->first, j->second));
+		}
 	}
 	if (err) {
 		LOG((CLOG_WARN "failed to unregister hotkey id=%d", id));

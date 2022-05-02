@@ -36,7 +36,6 @@
 #		define SYSAPI_UNIX 1
 #		define WINAPI_CARBON 1
 
-#		define HAVE_ALLOCA_H 1
 #		define HAVE_CXX_BOOL 1
 #		define HAVE_CXX_CASTS 1
 #		define HAVE_CXX_EXCEPTIONS 1

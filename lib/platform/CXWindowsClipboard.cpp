@@ -902,16 +902,18 @@ CXWindowsClipboard::insertReply(CReply* reply)
 	if (newWindow) {
 		// note errors while we adjust event masks
 		bool error = false;
-		CXWindowsUtil::CErrorLock lock(m_display, &error);
+		{
+			CXWindowsUtil::CErrorLock lock(m_display, &error);
 
-		// get and save the current event mask
-		XWindowAttributes attr;
-		XGetWindowAttributes(m_display, reply->m_requestor, &attr);
-		m_eventMasks[reply->m_requestor] = attr.your_event_mask;
+			// get and save the current event mask
+			XWindowAttributes attr;
+			XGetWindowAttributes(m_display, reply->m_requestor, &attr);
+			m_eventMasks[reply->m_requestor] = attr.your_event_mask;
 
-		// add the events we want
-		XSelectInput(m_display, reply->m_requestor, attr.your_event_mask |
-								StructureNotifyMask | PropertyChangeMask);
+			// add the events we want
+			XSelectInput(m_display, reply->m_requestor, attr.your_event_mask |
+									StructureNotifyMask | PropertyChangeMask);
+		}
 
 		// if we failed then the window has already been destroyed
 		if (error) {

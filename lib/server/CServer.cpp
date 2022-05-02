@@ -191,7 +191,7 @@ CServer::~CServer()
 	disconnect();
 	for (COldClients::iterator index = m_oldClients.begin();
 							index != m_oldClients.begin(); ++index) {
-		IClient* client = index->first;
+		CBaseClientProxy* client = index->first;
 		EVENTQUEUE->deleteTimer(index->second);
 		EVENTQUEUE->removeHandler(CEvent::kTimer, client);
 		EVENTQUEUE->removeHandler(CClientProxy::getDisconnectedEvent(), client);
@@ -243,7 +243,7 @@ CServer::setConfig(const CConfig& config)
 	// tell all (connected) clients about current options
 	for (CClientList::const_iterator index = m_clients.begin();
 								index != m_clients.end(); ++index) {
-		IClient* client = index->second;
+		CBaseClientProxy* client = index->second;
 		sendOptions(client);
 	}
 
@@ -251,7 +251,7 @@ CServer::setConfig(const CConfig& config)
 }
 
 void
-CServer::adoptClient(IClient* client)
+CServer::adoptClient(CBaseClientProxy* client)
 {
 	assert(client != NULL);
 
@@ -363,7 +363,7 @@ CServer::getLockCursorToScreenEvent()
 }
 
 CString
-CServer::getName(const IClient* client) const
+CServer::getName(const CBaseClientProxy* client) const
 {
 	CString name = m_config.getCanonicalName(client->getName());
 	if (name.empty()) {
@@ -419,7 +419,7 @@ CServer::isLockedToScreen() const
 }
 
 SInt32
-CServer::getJumpZoneSize(IClient* client) const
+CServer::getJumpZoneSize(CBaseClientProxy* client) const
 {
 	if (client == m_primaryClient) {
 		return m_primaryClient->getJumpZoneSize();
@@ -430,7 +430,8 @@ CServer::getJumpZoneSize(IClient* client) const
 }
 
 void
-CServer::switchScreen(IClient* dst, SInt32 x, SInt32 y, bool forScreensaver)
+CServer::switchScreen(CBaseClientProxy* dst,
+				SInt32 x, SInt32 y, bool forScreensaver)
 {
 	assert(dst != NULL);
 #ifndef NDEBUG
@@ -500,22 +501,22 @@ CServer::switchScreen(IClient* dst, SInt32 x, SInt32 y, bool forScreensaver)
 }
 
 void
-CServer::jumpToScreen(IClient* newScreen)
+CServer::jumpToScreen(CBaseClientProxy* newScreen)
 {
 	assert(newScreen != NULL);
 
-	// warp to the center of the new client
-	// XXX -- would be better to save and restore the last position
-	SInt32 ax, ay, aw, ah;
-	newScreen->getShape(ax, ay, aw, ah);
-	SInt32 x = ax + (aw >> 1);
-	SInt32 y = ay + (ah >> 1);
+	// record the current cursor position on the active screen
+	m_active->setJumpCursorPos(m_x, m_y);
+
+	// get the last cursor position on the target screen
+	SInt32 x, y;
+	newScreen->getJumpCursorPos(x, y);
 	
 	switchScreen(newScreen, x, y, false);
 }
 
 float
-CServer::mapToFraction(IClient* client,
+CServer::mapToFraction(CBaseClientProxy* client,
 				EDirection dir, SInt32 x, SInt32 y) const
 {
 	SInt32 sx, sy, sw, sh;
@@ -537,7 +538,7 @@ CServer::mapToFraction(IClient* client,
 }
 
 void
-CServer::mapToPixel(IClient* client,
+CServer::mapToPixel(CBaseClientProxy* client,
 				EDirection dir, float f, SInt32& x, SInt32& y) const
 {
 	SInt32 sx, sy, sw, sh;
@@ -560,15 +561,16 @@ CServer::mapToPixel(IClient* client,
 }
 
 bool
-CServer::hasAnyNeighbor(IClient* client, EDirection dir) const
+CServer::hasAnyNeighbor(CBaseClientProxy* client, EDirection dir) const
 {
 	assert(client != NULL);
 
 	return m_config.hasNeighbor(getName(client), dir);
 }
 
-IClient*
-CServer::getNeighbor(IClient* src, EDirection dir, SInt32& x, SInt32& y) const
+CBaseClientProxy*
+CServer::getNeighbor(CBaseClientProxy* src,
+				EDirection dir, SInt32& x, SInt32& y) const
 {
 	// note -- must be locked on entry
 
@@ -614,8 +616,8 @@ CServer::getNeighbor(IClient* src, EDirection dir, SInt32& x, SInt32& y) const
 	}
 }
 
-IClient*
-CServer::mapToNeighbor(IClient* src,
+CBaseClientProxy*
+CServer::mapToNeighbor(CBaseClientProxy* src,
 				EDirection srcSide, SInt32& x, SInt32& y) const
 {
 	// note -- must be locked on entry
@@ -623,14 +625,14 @@ CServer::mapToNeighbor(IClient* src,
 	assert(src != NULL);
 
 	// get the first neighbor
-	IClient* dst = getNeighbor(src, srcSide, x, y);
+	CBaseClientProxy* dst = getNeighbor(src, srcSide, x, y);
 	if (dst == NULL) {
 		return NULL;
 	}
 
 	// get the source screen's size
 	SInt32 dx, dy, dw, dh;
-	IClient* lastGoodScreen = src;
+	CBaseClientProxy* lastGoodScreen = src;
 	lastGoodScreen->getShape(dx, dy, dw, dh);
 
 	// find destination screen, adjusting x or y (but not both).  the
@@ -722,7 +724,8 @@ CServer::mapToNeighbor(IClient* src,
 }
 
 void
-CServer::avoidJumpZone(IClient* dst, EDirection dir, SInt32& x, SInt32& y) const
+CServer::avoidJumpZone(CBaseClientProxy* dst,
+				EDirection dir, SInt32& x, SInt32& y) const
 {
 	// we only need to avoid jump zones on the primary screen
 	if (dst != m_primaryClient) {
@@ -769,8 +772,9 @@ CServer::avoidJumpZone(IClient* dst, EDirection dir, SInt32& x, SInt32& y) const
 }
 
 bool
-CServer::isSwitchOkay(IClient* newScreen, EDirection dir, SInt32 x, SInt32 y,
-								SInt32 xActive, SInt32 yActive)
+CServer::isSwitchOkay(CBaseClientProxy* newScreen,
+				EDirection dir, SInt32 x, SInt32 y,
+				SInt32 xActive, SInt32 yActive)
 {
 	LOG((CLOG_DEBUG1 "try to leave \"%s\" on %s", getName(m_active).c_str(), CConfig::dirName(dir)));
 
@@ -977,7 +981,8 @@ CServer::isSwitchWaitStarted() const
 }
 
 UInt32
-CServer::getCorner(IClient* client, SInt32 x, SInt32 y, SInt32 size) const
+CServer::getCorner(CBaseClientProxy* client,
+				SInt32 x, SInt32 y, SInt32 size) const
 {
 	assert(client != NULL);
 
@@ -1051,7 +1056,7 @@ CServer::stopRelativeMoves()
 }
 
 void
-CServer::sendOptions(IClient* client) const
+CServer::sendOptions(CBaseClientProxy* client) const
 {
 	COptionsList optionsList;
 
@@ -1127,16 +1132,23 @@ void
 CServer::handleShapeChanged(const CEvent&, void* vclient)
 {
 	// ignore events from unknown clients
-	IClient* client = reinterpret_cast<IClient*>(vclient);
+	CBaseClientProxy* client = reinterpret_cast<CBaseClientProxy*>(vclient);
 	if (m_clientSet.count(client) == 0) {
 		return;
 	}
 
+	LOG((CLOG_INFO "screen \"%s\" shape changed", getName(client).c_str()));
+
+	// update jump coordinate
+	SInt32 x, y;
+	client->getCursorPos(x, y);
+	client->setJumpCursorPos(x, y);
+
 	// update the mouse coordinates
 	if (client == m_active) {
-		client->getCursorPos(m_x, m_y);
+		m_x = x;
+		m_y = y;
 	}
-	LOG((CLOG_INFO "screen \"%s\" shape changed", getName(client).c_str()));
 
 	// handle resolution change to primary screen
 	if (client == m_primaryClient) {
@@ -1153,7 +1165,7 @@ void
 CServer::handleClipboardGrabbed(const CEvent& event, void* vclient)
 {
 	// ignore events from unknown clients
-	IClient* grabber = reinterpret_cast<IClient*>(vclient);
+	CBaseClientProxy* grabber = reinterpret_cast<CBaseClientProxy*>(vclient);
 	if (m_clientSet.count(grabber) == 0) {
 		return;
 	}
@@ -1185,7 +1197,7 @@ CServer::handleClipboardGrabbed(const CEvent& event, void* vclient)
 	// grabber that it's clipboard isn't dirty.
 	for (CClientList::iterator index = m_clients.begin();
 								index != m_clients.end(); ++index) {
-		IClient* client = index->second;
+		CBaseClientProxy* client = index->second;
 		if (client == grabber) {
 			client->setClipboardDirty(info->m_id, false);
 		}
@@ -1199,7 +1211,7 @@ void
 CServer::handleClipboardChanged(const CEvent& event, void* vclient)
 {
 	// ignore events from unknown clients
-	IClient* sender = reinterpret_cast<IClient*>(vclient);
+	CBaseClientProxy* sender = reinterpret_cast<CBaseClientProxy*>(vclient);
 	if (m_clientSet.count(sender) == 0) {
 		return;
 	}
@@ -1303,7 +1315,7 @@ CServer::handleClientDisconnected(const CEvent&, void* vclient)
 {
 	// client has disconnected.  it might be an old client or an
 	// active client.  we don't care so just handle it both ways.
-	IClient* client = reinterpret_cast<IClient*>(vclient);
+	CBaseClientProxy* client = reinterpret_cast<CBaseClientProxy*>(vclient);
 	removeActiveClient(client);
 	removeOldClient(client);
 	delete client;
@@ -1313,7 +1325,7 @@ void
 CServer::handleClientCloseTimeout(const CEvent&, void* vclient)
 {
 	// client took too long to disconnect.  just dump it.
-	IClient* client = reinterpret_cast<IClient*>(vclient);
+	CBaseClientProxy* client = reinterpret_cast<CBaseClientProxy*>(vclient);
 	LOG((CLOG_NOTE "forced disconnection of client \"%s\"", getName(client).c_str()));
 	removeOldClient(client);
 	delete client;
@@ -1342,7 +1354,8 @@ CServer::handleSwitchInDirectionEvent(const CEvent& event, void*)
 
 	// jump to screen in chosen direction from center of this screen
 	SInt32 x = m_x, y = m_y;
-	IClient* newScreen = getNeighbor(m_active, info->m_direction, x, y);
+	CBaseClientProxy* newScreen =
+		getNeighbor(m_active, info->m_direction, x, y);
 	if (newScreen == NULL) {
 		LOG((CLOG_DEBUG1 "no neighbor %s", CConfig::dirName(info->m_direction)));
 	}
@@ -1398,7 +1411,8 @@ CServer::handleFakeInputEndEvent(const CEvent&, void*)
 }
 
 void
-CServer::onClipboardChanged(IClient* sender, ClipboardID id, UInt32 seqNum)
+CServer::onClipboardChanged(CBaseClientProxy* sender,
+				ClipboardID id, UInt32 seqNum)
 {
 	CClipboardInfo& clipboard = m_clipboards[id];
 
@@ -1428,7 +1442,7 @@ CServer::onClipboardChanged(IClient* sender, ClipboardID id, UInt32 seqNum)
 	// tell all clients except the sender that the clipboard is dirty
 	for (CClientList::const_iterator index = m_clients.begin();
 								index != m_clients.end(); ++index) {
-		IClient* client = index->second;
+		CBaseClientProxy* client = index->second;
 		client->setClipboardDirty(id, client != sender);
 	}
 
@@ -1458,7 +1472,7 @@ CServer::onScreensaver(bool activated)
 		// changed resolutions while the screen saver was running.
 		if (m_activeSaver != NULL && m_activeSaver != m_primaryClient) {
 			// check position
-			IClient* screen = m_activeSaver;
+			CBaseClientProxy* screen = m_activeSaver;
 			SInt32 x, y, w, h;
 			screen->getShape(x, y, w, h);
 			SInt32 zoneSize = getJumpZoneSize(screen);
@@ -1486,7 +1500,7 @@ CServer::onScreensaver(bool activated)
 	// send message to all clients
 	for (CClientList::const_iterator index = m_clients.begin();
 								index != m_clients.end(); ++index) {
-		IClient* client = index->second;
+		CBaseClientProxy* client = index->second;
 		client->screensaver(activated);
 	}
 }
@@ -1632,7 +1646,7 @@ CServer::onMouseMovePrimary(SInt32 x, SInt32 y)
 	}
 
 	// get jump destination
-	IClient* newScreen = mapToNeighbor(m_active, dir, x, y);
+	CBaseClientProxy* newScreen = mapToNeighbor(m_active, dir, x, y);
 
 	// should we switch or not?
 	if (isSwitchOkay(newScreen, dir, x, y, xc, yc)) {
@@ -1691,7 +1705,7 @@ CServer::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
 
 	// find direction of neighbor and get the neighbor
 	bool jump = true;
-	IClient* newScreen;
+	CBaseClientProxy* newScreen;
 	do {
 		// clamp position to screen
 		SInt32 xc = m_x, yc = m_y;
@@ -1817,7 +1831,7 @@ CServer::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
 }
 
 bool
-CServer::addClient(IClient* client)
+CServer::addClient(CBaseClientProxy* client)
 {
 	CString name = getName(client);
 	if (m_clients.count(name) != 0) {
@@ -1842,6 +1856,11 @@ CServer::addClient(IClient* client)
 	m_clientSet.insert(client);
 	m_clients.insert(std::make_pair(name, client));
 
+	// initialize client data
+	SInt32 x, y;
+	client->getCursorPos(x, y);
+	client->setJumpCursorPos(x, y);
+
 	// tell primary client about the active sides
 	m_primaryClient->reconfigure(getActivePrimarySides());
 
@@ -1849,7 +1868,7 @@ CServer::addClient(IClient* client)
 }
 
 bool
-CServer::removeClient(IClient* client)
+CServer::removeClient(CBaseClientProxy* client)
 {
 	// return false if not in list
 	CClientSet::iterator i = m_clientSet.find(client);
@@ -1873,7 +1892,7 @@ CServer::removeClient(IClient* client)
 }
 
 void
-CServer::closeClient(IClient* client, const char* msg)
+CServer::closeClient(CBaseClientProxy* client, const char* msg)
 {
 	assert(client != m_primaryClient);
 	assert(msg != NULL);
@@ -1913,7 +1932,7 @@ CServer::closeClients(const CConfig& config)
 {
 	// collect the clients that are connected but are being dropped
 	// from the configuration (or who's canonical name is changing).
-	typedef std::set<IClient*> CRemovedClients;
+	typedef std::set<CBaseClientProxy*> CRemovedClients;
 	CRemovedClients removed;
 	for (CClientList::iterator index = m_clients.begin();
 								index != m_clients.end(); ++index) {
@@ -1934,7 +1953,7 @@ CServer::closeClients(const CConfig& config)
 }
 
 void
-CServer::removeActiveClient(IClient* client)
+CServer::removeActiveClient(CBaseClientProxy* client)
 {
 	if (removeClient(client)) {
 		forceLeaveClient(client);
@@ -1946,7 +1965,7 @@ CServer::removeActiveClient(IClient* client)
 }
 
 void
-CServer::removeOldClient(IClient* client)
+CServer::removeOldClient(CBaseClientProxy* client)
 {
 	COldClients::iterator i = m_oldClients.find(client);
 	if (i != m_oldClients.end()) {
@@ -1961,9 +1980,10 @@ CServer::removeOldClient(IClient* client)
 }
 
 void
-CServer::forceLeaveClient(IClient* client)
+CServer::forceLeaveClient(CBaseClientProxy* client)
 {
-	IClient* active = (m_activeSaver != NULL) ? m_activeSaver : m_active;
+	CBaseClientProxy* active =
+		(m_activeSaver != NULL) ? m_activeSaver : m_active;
 	if (active == client) {
 		// record new position (center of primary screen)
 		m_primaryClient->getCursorCenter(m_x, m_y);

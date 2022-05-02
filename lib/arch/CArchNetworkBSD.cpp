@@ -31,9 +31,6 @@
 
 #if HAVE_POLL
 #	include <poll.h>
-#	if HAVE_ALLOCA_H
-#		include <alloca.h>
-#	endif
 #else
 #	if HAVE_SYS_SELECT_H
 #		include <sys/select.h>
@@ -45,13 +42,6 @@
 
 #if !HAVE_INET_ATON
 #	include <stdio.h>
-#endif
-
-#if HAVE_ALLOCA_H
-#	define freea(x_)
-#else
-#	define alloca(x_) malloc(x_)
-#	define freea(x_) free(x_)
 #endif
 
 static const int s_family[] = {
@@ -291,8 +281,7 @@ CArchNetworkBSD::pollSocket(CPollEntry pe[], int num, double timeout)
 	}
 
 	// allocate space for translated query
-	struct pollfd* pfd = reinterpret_cast<struct pollfd*>(
-								alloca((1 + num) * sizeof(struct pollfd)));
+	struct pollfd* pfd = new struct pollfd[1 + num];
 
 	// translate query
 	for (int i = 0; i < num; ++i) {
@@ -338,10 +327,10 @@ CArchNetworkBSD::pollSocket(CPollEntry pe[], int num, double timeout)
 		if (errno == EINTR) {
 			// interrupted system call
 			ARCH->testCancelThread();
-			freea(pfd);
+			delete[] pfd;
 			return 0;
 		}
-		freea(pfd);
+		delete[] pfd;
 		throwError(errno);
 	}
 
@@ -362,7 +351,7 @@ CArchNetworkBSD::pollSocket(CPollEntry pe[], int num, double timeout)
 		}
 	}
 
-	freea(pfd);
+	delete[] pfd;
 	return n;
 }
 

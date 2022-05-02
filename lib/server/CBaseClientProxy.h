@@ -12,70 +12,44 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CCLIENTPROXY_H
-#define CCLIENTPROXY_H
+#ifndef CBASECLIENTPROXY_H
+#define CBASECLIENTPROXY_H
 
-#include "CBaseClientProxy.h"
-#include "CEvent.h"
+#include "IClient.h"
 #include "CString.h"
 
-class IStream;
-
-//! Generic proxy for client
-class CClientProxy : public CBaseClientProxy {
+//! Generic proxy for client or primary
+class CBaseClientProxy : public IClient {
 public:
 	/*!
 	\c name is the name of the client.
 	*/
-	CClientProxy(const CString& name, IStream* adoptedStream);
-	~CClientProxy();
+	CBaseClientProxy(const CString& name);
+	~CBaseClientProxy();
 
 	//! @name manipulators
 	//@{
 
-	//! Disconnect
+	//! Save cursor position
 	/*!
-	Ask the client to disconnect, using \p msg as the reason.
+	Save the position of the cursor when jumping from client.
 	*/
-	void				close(const char* msg);
+	void				setJumpCursorPos(SInt32 x, SInt32 y);
 
 	//@}
 	//! @name accessors
 	//@{
 
-	//! Get stream
+	//! Get cursor position
 	/*!
-	Returns the stream passed to the c'tor.
+	Get the position of the cursor when last jumping from client.
 	*/
-	IStream*			getStream() const;
-
-	//! Get ready event type
-	/*!
-	Returns the ready event type.  This is sent when the client has
-	completed the initial handshake.  Until it is sent, the client is
-	not fully connected.
-	*/
-	static CEvent::Type	getReadyEvent();
-
-	//! Get disconnect event type
-	/*!
-	Returns the disconnect event type.  This is sent when the client
-	disconnects or is disconnected.  The target is getEventTarget().
-	*/
-	static CEvent::Type	getDisconnectedEvent();
-
-	//! Get clipboard changed event type
-	/*!
-	Returns the clipboard changed event type.  This is sent whenever the
-	contents of the clipboard has changed.  The data is a pointer to a
-	IScreen::CClipboardInfo.
-	*/
-	static CEvent::Type	getClipboardChangedEvent();
+	void				getJumpCursorPos(SInt32& x, SInt32& y) const;
 
 	//@}
 
 	// IScreen
-	virtual void*		getEventTarget() const;
+	virtual void*		getEventTarget() const = 0;
 	virtual bool		getClipboard(ClipboardID id, IClipboard*) const = 0;
 	virtual void		getShape(SInt32& x, SInt32& y,
 							SInt32& width, SInt32& height) const = 0;
@@ -101,13 +75,11 @@ public:
 	virtual void		screensaver(bool activate) = 0;
 	virtual void		resetOptions() = 0;
 	virtual void		setOptions(const COptionsList& options) = 0;
+	virtual CString		getName() const;
 
 private:
-	IStream*			m_stream;
-
-	static CEvent::Type	s_readyEvent;
-	static CEvent::Type	s_disconnectedEvent;
-	static CEvent::Type	s_clipboardChangedEvent;
+	CString				m_name;
+	SInt32				m_x, m_y;
 };
 
 #endif

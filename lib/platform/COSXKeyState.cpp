@@ -866,7 +866,8 @@ COSXKeyState::CKCHRKeyResource::isValid() const
 UInt32
 COSXKeyState::CKCHRKeyResource::getNumModifierCombinations() const
 {
-	return 256;
+	// only 32 (not 256) because the righthanded modifier bits are ignored
+	return 32;
 }
 
 UInt32
@@ -1002,7 +1003,8 @@ COSXKeyState::CUCHRKeyResource::isValid() const
 UInt32
 COSXKeyState::CUCHRKeyResource::getNumModifierCombinations() const
 {
-	return 256;
+	// only 32 (not 256) because the righthanded modifier bits are ignored
+	return 32;
 }
 
 UInt32

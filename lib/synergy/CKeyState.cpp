@@ -673,6 +673,7 @@ CKeyState::fakeAllKeysUp()
 		}
 	}
 	fakeKeys(keys, 1);
+	memset(&m_serverKeys, 0, sizeof(m_serverKeys));
 	m_activeModifiers.clear();
 	m_mask = pollActiveModifiers();
 }

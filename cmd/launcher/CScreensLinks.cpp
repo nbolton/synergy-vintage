@@ -87,6 +87,7 @@ CScreensLinks::init(HWND hwnd)
 	resizeErrorBoxes();
 
 	m_selectedLink = -1;
+	m_editedLink   = CEdgeLink();
 	m_edgeLinks.clear();
 	updateScreens(hwnd, "");
 	updateScreensControls(hwnd);
@@ -116,6 +117,7 @@ CScreensLinks::doDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDOK:
+			SetFocus(getItem(hwnd, IDOK));
 			if (save(hwnd)) {
 				EndDialog(hwnd, 0);
 			}

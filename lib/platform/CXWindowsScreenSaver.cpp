@@ -88,18 +88,18 @@ CXWindowsScreenSaver::CXWindowsScreenSaver(
 #endif
 
 	// watch top-level windows for changes
+	bool error = false;
 	{
-		bool error = false;
 		CXWindowsUtil::CErrorLock lock(m_display, &error);
 		Window root = DefaultRootWindow(m_display);
 		XWindowAttributes attr;
 		XGetWindowAttributes(m_display, root, &attr);
 		m_rootEventMask = attr.your_event_mask;
 		XSelectInput(m_display, root, m_rootEventMask | SubstructureNotifyMask);
-		if (error) {
-			LOG((CLOG_DEBUG "didn't set root event mask"));
-			m_rootEventMask = 0;
-		}
+	}
+	if (error) {
+		LOG((CLOG_DEBUG "didn't set root event mask"));
+		m_rootEventMask = 0;
 	}
 
 	// get the built-in settings
@@ -347,9 +347,11 @@ CXWindowsScreenSaver::setXScreenSaver(Window window)
 
 		// see if xscreensaver is active
 		bool error = false;
-		CXWindowsUtil::CErrorLock lock(m_display, &error);
 		XWindowAttributes attr;
-		XGetWindowAttributes(m_display, m_xscreensaver, &attr);
+		{
+			CXWindowsUtil::CErrorLock lock(m_display, &error);
+			XGetWindowAttributes(m_display, m_xscreensaver, &attr);
+		}
 		setXScreenSaverActive(!error && attr.map_state != IsUnmapped);
 
 		// save current DPMS state;  xscreensaver may have changed it.
@@ -419,8 +421,10 @@ CXWindowsScreenSaver::sendXScreenSaverCommand(Atom cmd, long arg1, long arg2)
 
 	LOG((CLOG_DEBUG "send xscreensaver command: %d %d %d", (long)cmd, arg1, arg2));
 	bool error = false;
-	CXWindowsUtil::CErrorLock lock(m_display, &error);
-	XSendEvent(m_display, m_xscreensaver, False, 0, &event);
+	{
+		CXWindowsUtil::CErrorLock lock(m_display, &error);
+		XSendEvent(m_display, m_xscreensaver, False, 0, &event);
+	}
 	if (error) {
 		findXScreenSaver();
 	}
@@ -466,18 +470,23 @@ CXWindowsScreenSaver::clearWatchForXScreenSaver()
 void
 CXWindowsScreenSaver::addWatchXScreenSaver(Window window)
 {
-	bool error = false;
-	CXWindowsUtil::CErrorLock lock(m_display, &error);
-
 	// get window attributes
+	bool error = false;
 	XWindowAttributes attr;
-	XGetWindowAttributes(m_display, window, &attr);
+	{
+		CXWindowsUtil::CErrorLock lock(m_display, &error);
+		XGetWindowAttributes(m_display, window, &attr);
+	}
 
 	// if successful and window uses override_redirect (like xscreensaver
 	// does) then watch it for property changes.  
 	if (!error && attr.override_redirect == True) {
-		XSelectInput(m_display, window,
+		error = false;
+		{
+			CXWindowsUtil::CErrorLock lock(m_display, &error);
+			XSelectInput(m_display, window,
 								attr.your_event_mask | PropertyChangeMask);
+		}
 		if (!error) {
 			// if successful then add the window to our list
 			m_watchWindows.insert(std::make_pair(window, attr.your_event_mask));

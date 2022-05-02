@@ -22,7 +22,7 @@
 //
 
 CPrimaryClient::CPrimaryClient(const CString& name, CScreen* screen) :
-	m_name(name),
+	CBaseClientProxy(name),
 	m_screen(screen),
 	m_fakeInputCount(0)
 {
@@ -254,10 +254,4 @@ void
 CPrimaryClient::setOptions(const COptionsList& options)
 {
 	m_screen->setOptions(options);
-}
-
-CString
-CPrimaryClient::getName() const
-{
-	return m_name;
 }

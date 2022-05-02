@@ -566,6 +566,11 @@ CHotkeyOptions::CConditionDialog::doModal(HWND parent,
 	s_condition         = NULL;
 	s_lastGoodCondition = NULL;
 
+	// user effectively cancelled if the condition is NULL
+	if (condition == NULL) {
+		n = 0;
+	}
+
 	return (n == 1);
 }
 

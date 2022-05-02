@@ -60,6 +60,12 @@ public:
 	*/
 	void				setActiveGroup(SInt32 group);
 
+	//! Set the auto-repeat state
+	/*!
+	Sets the auto-repeat state.
+	*/
+	void				setAutoRepeat(const XKeyboardState&);
+
 	//@}
 	//! @name accessors
 	//@{
@@ -141,6 +147,9 @@ private:
 
 	// map KeyID to all keycodes that can synthesize that KeyID
 	KeyToKeyCodeMap		m_keyCodeFromKey;
+
+	// autorepeat state
+	XKeyboardState		m_keyboardState;
 };
 
 #endif

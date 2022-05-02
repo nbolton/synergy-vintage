@@ -113,7 +113,7 @@ CServerProxy::handleData(const CEvent&, void*)
 			break;
 
 		case kUnknown:
-			LOG((CLOG_ERR "invalid message from server"));
+			LOG((CLOG_ERR "invalid message from server: %c%c%c%c", code[0], code[1], code[2], code[3]));
 			m_client->disconnect("invalid message from server");
 			return;
 
