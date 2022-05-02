@@ -5,6 +5,17 @@ For vintage computer enthusiasts, Synergy Vintage aims to keep the origins of
 Vintage on operating systems available from 2001 to 2005; Windows (95, 98, ME, 
 or 2000), Mac OS X (Jaguar to Tiger), and Linux (e.g. Red Hat 7).
 
+![Animated gif of Synergy in 2001](https://raw.githubusercontent.com/nbolton/synergy-vintage/main/doc/images/warp.gif)
+
+> With Synergy, all the computers on your desktop form a single virtual screen. 
+> You use the mouse and keyboard of only one of the computers while you use all 
+> of the monitors on all of the computers. You tell Synergy how many screens you 
+> have and their positions relative to one another. Synergy then detects when the 
+> mouse moves off the edge of a screen and jumps it instantly to the neighboring 
+> screen. The keyboard works normally on each screen; input goes to whichever 
+> screen has the cursor. 
+> [Read more](https://github.com/nbolton/synergy-vintage/wiki/About).
+
 ## Downloads
 
 - [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.1.10/Synergy-v1.1.10-debug-MacOS-10.3.zip)
