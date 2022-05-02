@@ -61,6 +61,6 @@ The transition from Synergy Vintage to Synergy Classic is marked by the
 introduction of the Qt GUI circa 2009. The last recorded version of the 
 Qt GUI is 
 [1.3.5](https://github.com/symless/synergy-core/releases/tag/1.3.5). 
-Tast recorded version of Synergy without Qt is 
+The last recorded version of Synergy without Qt is 
 [1.3.1](https://github.com/nbolton/synergy-vintage/releases/tag/1.3.1),
 and this is what Synergy Vintage is based on.
