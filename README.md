@@ -20,7 +20,7 @@ Make all your computers feel like a single device. Move between them seamlessly 
 
 ## Downloads
 
-### v1.3.1
+### v1.3.1 (2nd April 2006)
 
 Backwards compatible with v1.1.10.
 
@@ -35,7 +35,7 @@ For the Mac OS X download of 1.3.1, it's built on Mac OS X Tiger 10.4 using the
 any version of Mac OS X 10.3, but is unlikely to work with older versions of 
 Mac OS X (such as 10.2 and below).
 
-### v1.1.10
+### v1.1.10 (12th November 2004)
 
 - Windows (coming soon)
 - [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-MacOSX-10.4.zip)
