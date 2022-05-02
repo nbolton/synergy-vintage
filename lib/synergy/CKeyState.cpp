@@ -266,6 +266,13 @@ CKeyState::isKeyDown(KeyButton button) const
 	return ((m_keys[button & kButtonMask] & kDown) != 0);
 }
 
+bool
+CKeyState::isServerKeyDown(KeyButton id) const
+{
+	KeyButton button = m_serverKeyMap[id & kButtonMask];
+	return (button != 0 && isKeyDown(button));
+}
+
 KeyModifierMask
 CKeyState::getActiveModifiers() const
 {

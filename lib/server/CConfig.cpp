@@ -798,7 +798,7 @@ CConfig::getOptionValue(OptionID id, OptionValue value)
 			result += " +bottom-left";
 		}
 		if ((value & kBottomRightMask) != 0) {
-			result += " +bottom-left";
+			result += " +bottom-right";
 		}
 		return result;
 	}

@@ -105,6 +105,35 @@ public:
 	static CString		atomsToString(Display* display,
 							const Atom* atom, UInt32 num);
 
+	//! Prepare a property of atoms for use
+	/*!
+	64-bit systems may need to modify a property's data if it's a
+	list of Atoms before using it.
+	*/
+	static void			convertAtomProperty(CString& data);
+
+	//! Append an Atom to property data
+	/*!
+	Converts \p atom to a 32-bit on-the-wire format and appends it to
+	\p data.
+	*/
+	static void			appendAtomData(CString& data, Atom atom);
+
+	//! Replace an Atom in property data
+	/*!
+	Converts \p atom to a 32-bit on-the-wire format and replaces the atom
+	at index \p index in \p data.
+	*/
+	static void			replaceAtomData(CString& data,
+							UInt32 index, Atom atom);
+
+	//! Append an Time to property data
+	/*!
+	Converts \p time to a 32-bit on-the-wire format and appends it to
+	\p data.
+	*/
+	static void			appendTimeData(CString& data, Time time);
+
 	//! X11 error handler
 	/*!
 	This class sets an X error handler in the c'tor and restores the

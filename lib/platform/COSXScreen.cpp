@@ -42,6 +42,13 @@ enum {
 };
 #endif
 
+// This isn't in any Apple SDK that I know of as of yet.
+enum {
+	kSynergyEventMouseScroll = 11,
+	kSynergyMouseScrollAxisX = 'saxx',
+	kSynergyMouseScrollAxisY = 'saxy'
+};
+
 //
 // COSXScreen
 //
@@ -383,43 +390,7 @@ COSXScreen::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 void
 COSXScreen::fakeMouseWheel(SInt32 delta) const
 {
-	// synergy uses a wheel step size of 120.  the mac uses a step size of 1.
-	delta /= 120;
-	if (delta == 0) {
-		return;
-	}
-
-	CFPropertyListRef pref = ::CFPreferencesCopyValue(
-							CFSTR("com.apple.scrollwheel.scaling") , 
-							kCFPreferencesAnyApplication, 
-							kCFPreferencesCurrentUser,
-							kCFPreferencesAnyHost);
-
-	int32_t wheelIncr = 1;
-
-	if (pref != NULL) {
-		CFTypeID id = CFGetTypeID(pref);
-		if (id == CFNumberGetTypeID()) {
-			CFNumberRef value = static_cast<CFNumberRef>(pref);
-
-			double scaling;
-			if (CFNumberGetValue(value, kCFNumberDoubleType, &scaling)) {
-				wheelIncr = (int32_t)(8 * scaling);
-				if (wheelIncr == 0) {
-					wheelIncr = 1;
-				}
-			}
-		}
-		CFRelease(pref);
-	}
-
-	// note that we ignore the magnitude of the delta.  i think this is to
-	// avoid local wheel acceleration.
-	if (delta < 0) {
-		wheelIncr = -wheelIncr;
-	}
-
-	CGPostScrollWheelEvent(1, wheelIncr);
+	CGPostScrollWheelEvent(1, mapScrollWheelFromSynergy(delta));
 }
 
 void
@@ -728,9 +699,43 @@ COSXScreen::handleSystemEvent(const CEvent& event, void*)
 					sizeof(delta),
 					NULL,
 					&delta);
-				onMouseWheel(120 * (SInt32)delta);
+				onMouseWheel(mapScrollWheelToSynergy((SInt32)delta));
 			}
 			break;
+		}
+
+		case kSynergyEventMouseScroll:
+		{
+			OSStatus r;
+			long xScroll;
+			long yScroll;
+
+			// get scroll amount
+			r = GetEventParameter(*carbonEvent,
+					kSynergyMouseScrollAxisX,
+					typeLongInteger,
+					NULL,
+					sizeof(xScroll),
+					NULL,
+					&xScroll);
+			if (r != noErr) {
+				xScroll = 0;
+			}
+			r = GetEventParameter(*carbonEvent,
+					kSynergyMouseScrollAxisY,
+					typeLongInteger,
+					NULL,
+					sizeof(yScroll),
+					NULL,
+					&yScroll);
+			if (r != noErr) {
+				yScroll = 0;
+			}
+
+			// currently we only handle y-axis scroll
+			if (yScroll != 0) {
+				onMouseWheel(mapScrollWheelToSynergy(yScroll));
+			}
 		}
 		}
 		break;
@@ -959,7 +964,56 @@ COSXScreen::mapMacButtonToSynergy(UInt16 macButton) const
 		return kButtonMiddle;
 	}
 	
-	return kButtonNone;
+	return static_cast<ButtonID>(macButton);
+}
+
+SInt32
+COSXScreen::mapScrollWheelToSynergy(SInt32 x) const
+{
+	// return accelerated scrolling but not exponentially scaled as it is
+	// on the mac.
+	double d = (1.0 + getScrollSpeed()) * x / getScrollSpeedFactor();
+	return static_cast<SInt32>(120.0 * d);
+}
+
+SInt32
+COSXScreen::mapScrollWheelFromSynergy(SInt32 x) const
+{
+	// use server's acceleration with a little boost since other platforms
+	// take one wheel step as a larger step than the mac does.
+	return static_cast<SInt32>(3.0 * x / 120.0);
+}
+
+double
+COSXScreen::getScrollSpeed() const
+{
+	double scaling = 0.0;
+
+	CFPropertyListRef pref = ::CFPreferencesCopyValue(
+							CFSTR("com.apple.scrollwheel.scaling") , 
+							kCFPreferencesAnyApplication, 
+							kCFPreferencesCurrentUser,
+							kCFPreferencesAnyHost);
+	if (pref != NULL) {
+		CFTypeID id = CFGetTypeID(pref);
+		if (id == CFNumberGetTypeID()) {
+			CFNumberRef value = static_cast<CFNumberRef>(pref);
+			if (CFNumberGetValue(value, kCFNumberDoubleType, &scaling)) {
+				if (scaling < 0.0) {
+					scaling = 0.0;
+				}
+			}
+		}
+		CFRelease(pref);
+	}
+
+	return scaling;
+}
+
+double
+COSXScreen::getScrollSpeedFactor() const
+{
+	return pow(10.0, getScrollSpeed());
 }
 
 KeyModifierMask

@@ -14,14 +14,18 @@
 NULL =
 
 MSWINDOWS_SOURCE_FILES =	\
+	CAddScreen.cpp			\
 	CAdvancedOptions.cpp	\
 	CAutoStart.cpp			\
 	CGlobalOptions.cpp		\
+	CScreensLinks.cpp		\
 	LaunchUtil.cpp			\
 	launcher.cpp			\
+	CAddScreen.h			\
 	CAdvancedOptions.h		\
 	CAutoStart.h			\
 	CGlobalOptions.h		\
+	CScreensLinks.h			\
 	LaunchUtil.h			\
 	resource.h				\
 	launcher.rc				\

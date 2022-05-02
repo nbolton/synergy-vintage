@@ -157,6 +157,9 @@ private:
 	// update screen size cache
 	void				updateScreenShape();
 
+	// event handler to fix the clipboard viewer chain
+	void				handleFixClipboardViewer(const CEvent&, void*);
+
 	// enable/disable special key combinations so we can catch/pass them
 	void				enableSpecialKeys(bool) const;
 
@@ -244,6 +247,8 @@ private:
 	HWND				m_window;
 	HWND				m_nextClipboardWindow;
 	bool				m_ownClipboard;
+	CEventQueueTimer*	m_fixClipboardViewer;
+	bool				m_fixingClipboardViewer;
 
 	// one desk per desktop and a cond var to communicate with it
 	CMSWindowsDesks*	m_desks;

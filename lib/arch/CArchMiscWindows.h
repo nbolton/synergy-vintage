@@ -86,6 +86,12 @@ public:
 	//! Open and return a registry key, closing the parent key
 	static HKEY			openKey(HKEY parent, const TCHAR* const* keyPath);
 
+	//! Open/create and return a registry key, closing the parent key
+	static HKEY			addKey(HKEY parent, const TCHAR* child);
+
+	//! Open/create and return a registry key, closing the parent key
+	static HKEY			addKey(HKEY parent, const TCHAR* const* keyPath);
+
 	//! Close a key
 	static void			closeKey(HKEY);
 
@@ -144,6 +150,13 @@ public:
 	static void			removeBusyState(DWORD busyModes);
 
 private:
+	//! Open and return a registry key, closing the parent key
+	static HKEY			openKey(HKEY parent, const TCHAR* child, bool create);
+
+	//! Open and return a registry key, closing the parent key
+	static HKEY			openKey(HKEY parent, const TCHAR* const* keyPath,
+							bool create);
+
 	//! Read a string value from the registry
 	static std::string	readBinaryOrString(HKEY, const TCHAR* name, DWORD type);
 

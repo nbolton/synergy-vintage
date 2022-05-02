@@ -772,7 +772,7 @@ CArchMultithreadPosix::threadSignalHandler(void*)
 	for (;;) {
 		// wait
 #if HAVE_POSIX_SIGWAIT
-		int signal;
+		int signal = 0;
 		sigwait(&sigset, &signal);
 #else
 		sigwait(&sigset);

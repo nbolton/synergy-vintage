@@ -107,7 +107,9 @@ SectionEnd
 ; Uninstaller
 
 Section "Uninstall"
-  
+  ; Stop and uninstall the daemons
+  ExecWait '"$INSTDIR\synergy.exe" /uninstall'
+
   ; Remove autorun registry keys for synergy
   DeleteRegKey HKLM "SYSTEM\CurrentControlSet\Services\Synergy Server"
   DeleteRegKey HKLM "SYSTEM\CurrentControlSet\Services\Synergy Client"

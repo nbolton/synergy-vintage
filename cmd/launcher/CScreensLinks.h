@@ -1,6 +1,6 @@
 /*
  * synergy -- mouse and keyboard sharing utility
- * Copyright (C) 2002 Chris Schoeneman
+ * Copyright (C) 2003 Chris Schoeneman
  * 
  * This package is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
@@ -12,19 +12,21 @@
  * GNU General Public License for more details.
  */
 
-#ifndef CAUTOSTART_H
-#define CAUTOSTART_H
+#ifndef CSCREENSLINKS_H
+#define CSCREENSLINKS_H
 
+#include "CConfig.h"
+#include "ProtocolTypes.h"
 #include "CString.h"
 
 #define WINDOWS_LEAN_AND_MEAN
 #include <windows.h>
 
-//! Auto start dialog for Microsoft Windows launcher
-class CAutoStart {
+//! Screens and links dialog for Microsoft Windows launcher
+class CScreensLinks {
 public:
-	CAutoStart(HWND parent, bool isServer, const CString& cmdLine);
-	~CAutoStart();
+	CScreensLinks(HWND parent, CConfig*);
+	~CScreensLinks();
 
 	//! @name manipulators
 	//@{
@@ -35,49 +37,41 @@ public:
 	*/
 	void				doModal();
 
-	//! Reinstall daemon
-	/*!
-	Reinstalls the currently installed daemon.
-	*/
-	static void			reinstallDaemon(bool isClient, const CString& cmdLine);
-
-	//! Uninstalls daemon
-	/*!
-	Uninstalls all installed client (\p client is \c true) or server daemons.
-	*/
-	static void			uninstallDaemons(bool client);
-
 	//@}
 	//! @name accessors
 	//@{
 
-	//! Tests if any daemons are installed
-	/*!
-	Returns \c true if any daemons are installed.
-	*/
-	static bool			isDaemonInstalled();
 
 	//@}
 
 private:
-	void				update();
-	bool				onInstall(bool allUsers);
-	bool				onUninstall(bool allUsers);
+	void				init(HWND hwnd);
+	bool				save(HWND hwnd);
+
+	CString				getSelectedScreen(HWND hwnd) const;
+	void				addScreen(HWND hwnd);
+	void				editScreen(HWND hwnd);
+	void				removeScreen(HWND hwnd);
+	void				changeNeighbor(HWND hwnd,
+							HWND combo, EDirection direction);
+
+	void				updateScreens(HWND hwnd, const CString& name);
+	void				updateScreensControls(HWND hwnd);
+	void				updateLinksControls(HWND hwnd);
+	void				updateLink(HWND hwnd,
+							const CString& screen, EDirection direction);
 
 	// message handling
 	BOOL				doDlgProc(HWND, UINT, WPARAM, LPARAM);
 	static BOOL CALLBACK dlgProc(HWND, UINT, WPARAM, LPARAM);
 
 private:
-	static CAutoStart*	s_singleton;
+	static CScreensLinks*	s_singleton;
 
 	HWND				m_parent;
-	bool				m_isServer;
-	CString				m_cmdLine;
-	CString				m_name;
-	HWND				m_hwnd;
-	bool				m_install;
-	CString				m_errorMessage;
+	CConfig*			m_mainConfig;
+	CConfig				m_scratchConfig;
+	CConfig*			m_config;
 };
 
 #endif

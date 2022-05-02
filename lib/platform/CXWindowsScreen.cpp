@@ -45,6 +45,9 @@
 #		include <X11/extensions/Xinerama.h>
 		}
 #	endif
+#	if HAVE_XKB_EXTENSION
+#		include <X11/XKBlib.h>
+#	endif
 #endif
 #include "CArch.h"
 
@@ -123,7 +126,8 @@ CXWindowsScreen::CXWindowsScreen(const char* displayName, bool isPrimary) :
 	m_sequenceNumber(0),
 	m_screensaver(NULL),
 	m_screensaverNotify(false),
-	m_xtestIsXineramaUnaware(true)
+	m_xtestIsXineramaUnaware(true),
+	m_xkb(false)
 {
 	assert(s_screen == NULL);
 
@@ -615,7 +619,7 @@ CXWindowsScreen::fakeMouseWheel(SInt32 delta) const
 }
 
 Display*
-CXWindowsScreen::openDisplay(const char* displayName) const
+CXWindowsScreen::openDisplay(const char* displayName)
 {
 	// get the DISPLAY
 	if (displayName == NULL) {
@@ -642,6 +646,21 @@ CXWindowsScreen::openDisplay(const char* displayName) const
 			throw XScreenOpenFailure();
 		}
 	}
+
+#if HAVE_XKB_EXTENSION
+	{
+		int major = XkbMajorVersion, minor = XkbMinorVersion;
+		if (XkbLibraryVersion(&major, &minor)) {
+			int opcode, firstError;
+			if (XkbQueryExtension(display, &opcode, &m_xkbEventBase,
+								&firstError, &major, &minor)) {
+				m_xkb = true;
+				XkbSelectEvents(display, XkbUseCoreKbd,
+								XkbMapNotifyMask, XkbMapNotifyMask);
+			}
+		}
+	}
+#endif
 
 	return display;
 }
@@ -924,19 +943,7 @@ CXWindowsScreen::handleSystemEvent(const CEvent& event, void*)
 		break;
 
 	case MappingNotify:
-		if (XPending(m_display) > 0) {
-			XEvent tmpEvent;
-			XPeekEvent(m_display, &tmpEvent);
-			if (tmpEvent.type == MappingNotify) {
-				// discard this MappingNotify since another follows.
-				// we tend to get a bunch of these in a row.
-				return;
-			}
-		}
-
-		// keyboard mapping changed
-		XRefreshKeyboardMapping(&xevent->xmapping);
-		m_keyState->updateKeys();
+		refreshKeyboard(xevent);
 		break;
 
 	case LeaveNotify:
@@ -1036,6 +1043,11 @@ CXWindowsScreen::handleSystemEvent(const CEvent& event, void*)
 		return;
 
 	default:
+#if HAVE_XKB_EXTENSION
+		if (m_xkb && xevent->type == m_xkbEventBase + XkbMapNotify) {
+			refreshKeyboard(xevent);
+		}
+#endif
 		break;
 	}
 }
@@ -1608,3 +1620,26 @@ CXWindowsScreen::grabMouseAndKeyboard()
 	LOG((CLOG_DEBUG1 "grabbed pointer and keyboard"));
 	return true;
 }
+
+void
+CXWindowsScreen::refreshKeyboard(XEvent* event)
+{
+	if (XPending(m_display) > 0) {
+		XEvent tmpEvent;
+		XPeekEvent(m_display, &tmpEvent);
+		if (tmpEvent.type == event->type) {
+			// discard this event since another follows.
+			// we tend to get a bunch of these in a row.
+			return;
+		}
+	}
+
+	// keyboard mapping changed
+#if HAVE_XKB_EXTENSION
+	XkbRefreshKeyboardMapping((XkbMapNotifyEvent*)event);
+#else
+	XRefreshKeyboardMapping(&event->xmapping);
+#endif
+	m_keyState->updateKeys();
+}
+

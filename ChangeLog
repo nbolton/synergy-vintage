@@ -1,3 +1,179 @@
+2005/11/12 11:43:54 crs
+lib/platform/CMSWindowsScreen.cpp
+
+Disabled code to periodically reinstall synergy in the clipboard
+chain.  It was causing an infinite recursion in the WM_DRAWCLIPBOARD
+message handler.
+
+----------
+2005/11/12 11:28:25 crs
+lib/platform/CMSWindowsScreenSaver.cpp
+
+Changed a couple of logging messages to DEBUG2 from DEBUG.
+
+----------
+2005/11/12 11:27:55 crs
+cmd/launcher/CAutoStart.cpp
+cmd/launcher/CAutoStart.h
+cmd/launcher/launcher.cpp
+
+Fixed saving of autostart configuration in win32 launcher.  It
+was erroring out when the user did not have permission to write
+to that portion of the registry.  Now it will only write the
+configuration if synergy is installed for autostart.  This is
+still not quite right since it'll still error out if some other
+user with sufficient permission has installed the autostart and
+this user doesn't have enough permission.
+
+----------
+2005/11/12 11:22:34 crs
+lib/common/Version.h
+
+Changed version to 1.2.6.
+
+----------
+2005/11/01 19:58:21 crs
+acinclude.m4
+
+Restored pthread signal configuration checks accidentally removed
+in previous version.
+
+----------
+2005/10/12 21:37:58 crs
+doc/running.html
+
+Updated setup documentation.
+
+----------
+2005/10/11 21:12:18 crs
+lib/arch/CArchMultithreadPosix.cpp
+
+Fixed warning in posix multithread code.
+
+----------
+2005/10/11 20:59:29 crs
+acinclude.m4
+
+Updated autoconf script for detecting pthreads.
+
+----------
+2005/10/06 21:45:01 crs
+configure.in
+lib/platform/CXWindowsScreen.cpp
+lib/platform/CXWindowsScreen.h
+
+Added initial XKB code.  This only checks for the extension in
+the configuration, queries the extension at runtime and handles
+mapping notify events.  Still need to use the extension to get
+the keyboard map.
+
+----------
+2005/10/02 17:40:56 crs
+lib/platform/CXWindowsClipboard.cpp
+lib/platform/CXWindowsClipboard.h
+lib/platform/CXWindowsUtil.cpp
+lib/platform/CXWindowsUtil.h
+
+Fixed X11 clipboard handling on 64-bit systems.  Also fixed a
+problem with detecting when a clipboard owner says a format is
+unavailable.
+
+----------
+2005/10/01 19:26:57 crs
+lib/server/CServer.cpp
+
+Fixed unnecessary comparison to NULL that chokes some compilers.
+
+----------
+2005/10/01 19:23:38 crs
+cmd/launcher/CAdvancedOptions.cpp
+cmd/launcher/CAutoStart.cpp
+cmd/launcher/CAutoStart.h
+cmd/launcher/launcher.cpp
+cmd/launcher/launcher.rc
+cmd/launcher/resource.h
+dist/nullsoft/synergy.nsi
+lib/arch/CArchDaemonWindows.cpp
+lib/arch/CArchMiscWindows.cpp
+lib/arch/CArchMiscWindows.h
+lib/platform/CMSWindowsDesks.cpp
+lib/platform/CMSWindowsScreen.cpp
+lib/platform/CMSWindowsScreen.h
+lib/platform/CMSWindowsScreenSaver.cpp
+lib/platform/CSynergyHook.cpp
+lib/synergy/CKeyState.cpp
+lib/synergy/CKeyState.h
+lib/synergy/CPlatformScreen.cpp
+lib/synergy/CPlatformScreen.h
+lib/synergy/CScreen.cpp
+lib/synergy/IKeyState.h
+lib/synergy/IPlatformScreen.h
+
+Fixed several win32 bugs.  Removed the 'Save' button from the
+launcher;  configuration is now saved transparently.  Autostart
+configuration is now saved transparently whenever it changes
+and autostart is enabled.  Configuration is now saved when the
+debug logging level changes.
+
+Now releasing synthetically pressed keys when leaving the client.
+The existing code was checking for key down using a local key
+button id then trying to release it using the same id as a server
+key button id.
+
+Now looking up a local button id for key events that have a scan
+code of 0.  These are sent by some programs that synthesize events.
+
+Now periodically reinstalling the clipboard chain viewer.  It appears
+that the chain is breaking sometimes (probably due a badly behaved
+or killed app) but there's no way to detect that so this is a
+workaround.
+
+Now stopping and deleting the autostart services during uninstall.
+
+----------
+2005/10/01 18:55:59 crs
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+
+Added support for apple's mighty mouse.  We now correctly handle
+button 4 (and 5 if it exists).  We now detect the mighty mouse's
+scroll ball and convert vertical motion into scroll wheel events.
+Also changed handling of scroll wheel scaling;  the mac works
+differently from other platforms so it's not perfect.
+
+----------
+2005/10/01 15:01:15 crs
+cmd/launcher/Makefile.am
+
+Added new files to makefiles.
+
+----------
+2005/09/26 20:58:53 crs
+lib/server/CConfig.cpp
+
+Fixed bug in output of configuration files.  Was writing bottom-right
+corner as "bottom-left" instead of "bottom-right".
+
+----------
+2005/09/26 20:55:24 crs
+cmd/launcher/CAddScreen.cpp
+cmd/launcher/CAddScreen.h
+cmd/launcher/CScreensLinks.cpp
+cmd/launcher/CScreensLinks.h
+cmd/launcher/launcher.cpp
+cmd/launcher/launcher.dsp
+cmd/launcher/launcher.rc
+cmd/launcher/resource.h
+
+Refactored code in win32 launcher GUI.
+
+----------
+2005/08/22 19:40:34 crs
+lib/common/Version.h
+
+Changed version to 1.2.5.
+
+----------
 2005/08/07 10:32:54 crs
 doc/autostart.html
 

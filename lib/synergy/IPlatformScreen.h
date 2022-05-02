@@ -167,6 +167,7 @@ public:
 	virtual void		fakeToggle(KeyModifierMask modifier) = 0;
 	virtual bool		fakeCtrlAltDel() = 0;
 	virtual bool		isKeyDown(KeyButton) const = 0;
+	virtual bool		isServerKeyDown(KeyButton) const = 0;
 	virtual KeyModifierMask
 						getActiveModifiers() const = 0;
 	virtual KeyModifierMask

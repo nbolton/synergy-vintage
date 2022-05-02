@@ -498,7 +498,7 @@ CScreen::releaseKeys()
 	// keys.  we don't want to synthesize a release on a key the user
 	// is still physically pressing.
 	for (KeyButton i = 1; i < IKeyState::kNumButtons; ++i) {
-		if (m_screen->isKeyDown(i)) {
+		if (m_screen->isServerKeyDown(i)) {
 			m_screen->fakeKeyUp(i);
 		}
 	}

@@ -75,6 +75,12 @@ CPlatformScreen::isKeyDown(KeyButton button) const
 	return getKeyState()->isKeyDown(button);
 }
 
+bool
+CPlatformScreen::isServerKeyDown(KeyButton button) const
+{
+	return getKeyState()->isServerKeyDown(button);
+}
+
 KeyModifierMask
 CPlatformScreen::getActiveModifiers() const
 {

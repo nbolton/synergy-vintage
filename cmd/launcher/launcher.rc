@@ -52,55 +52,40 @@ END
 // Dialog
 //
 
-IDD_MAIN DIALOG DISCARDABLE  32768, 0, 300, 262
+IDD_MAIN DIALOG DISCARDABLE  32768, 0, 300, 199
 STYLE DS_MODALFRAME | WS_MINIMIZEBOX | WS_CAPTION | WS_SYSMENU
 CAPTION "Synergy"
 CLASS "GoSynergy"
 FONT 8, "MS Sans Serif"
 BEGIN
-    LTEXT           "Choose to start either the Client or Server and provide the requested information.  Then click Test to check your settings or Start to save your settings and start Synergy.",
+    LTEXT           "Choose to share or use a shared keyboard and mouse, provide the requested information, then click Test to check your settings or Start to save your settings and start Synergy.",
                     IDC_STATIC,7,7,286,19
-    GROUPBOX        "",IDC_STATIC,7,29,286,31
-    GROUPBOX        "",IDC_STATIC,7,67,286,103
-    GROUPBOX        "Options",IDC_STATIC,7,177,286,56
-    CONTROL         "&Client",IDC_MAIN_CLIENT_RADIO,"Button",
-                    BS_AUTORADIOBUTTON | WS_GROUP | WS_TABSTOP,11,29,33,10
-    CONTROL         "Server",IDC_MAIN_SERVER_RADIO,"Button",
-                    BS_AUTORADIOBUTTON,11,67,37,10
-    LTEXT           "Server &Host Name:",IDC_MAIN_CLIENT_SERVER_NAME_LABEL,
-                    12,41,61,8
-    EDITTEXT        IDC_MAIN_CLIENT_SERVER_NAME_EDIT,79,39,106,12,
+    GROUPBOX        "",IDC_STATIC,7,29,286,36
+    GROUPBOX        "",IDC_STATIC,7,72,286,36
+    GROUPBOX        "Options",IDC_STATIC,7,115,286,56
+    CONTROL         "&Use another computer's shared keyboard and mouse (client)",
+                    IDC_MAIN_CLIENT_RADIO,"Button",BS_AUTORADIOBUTTON | 
+                    WS_GROUP | WS_TABSTOP,11,29,205,10
+    CONTROL         "Share this computer's keyboard and mouse (server)",
+                    IDC_MAIN_SERVER_RADIO,"Button",BS_AUTORADIOBUTTON,11,72,
+                    177,10
+    LTEXT           "Other Computer's &Host Name:",
+                    IDC_MAIN_CLIENT_SERVER_NAME_LABEL,12,46,94,8
+    EDITTEXT        IDC_MAIN_CLIENT_SERVER_NAME_EDIT,111,44,106,12,
                     ES_AUTOHSCROLL
-    LTEXT           "&Screens:",IDC_MAIN_SERVER_SCREENS_LABEL,12,79,29,8
-    LISTBOX         IDC_MAIN_SERVER_SCREENS_LIST,12,91,106,36,
-                    LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Add",IDC_MAIN_SERVER_ADD_BUTTON,12,132,50,14
-    PUSHBUTTON      "&Edit",IDC_MAIN_SERVER_EDIT_BUTTON,68,132,50,14
-    PUSHBUTTON      "&Remove",IDC_MAIN_SERVER_REMOVE_BUTTON,12,150,50,14
-    LTEXT           "&Layout:",IDC_MAIN_SERVER_LAYOUT_LABEL,138,79,24,8
-    LTEXT           "Left:",IDC_MAIN_SERVER_LEFT_LABEL,144,93,15,8
-    COMBOBOX        IDC_MAIN_SERVER_LEFT_COMBO,175,91,111,75,
-                    CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Right:",IDC_MAIN_SERVER_RIGHT_LABEL,144,109,20,8
-    COMBOBOX        IDC_MAIN_SERVER_RIGHT_COMBO,175,107,112,75,
-                    CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Above:",IDC_MAIN_SERVER_TOP_LABEL,144,125,24,8
-    COMBOBOX        IDC_MAIN_SERVER_TOP_COMBO,175,123,112,75,
-                    CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    LTEXT           "Below:",IDC_MAIN_SERVER_BOTTOM_LABEL,144,141,22,8
-    COMBOBOX        IDC_MAIN_SERVER_BOTTOM_COMBO,175,139,112,75,
-                    CBS_DROPDOWNLIST | CBS_SORT | WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "&Options...",IDC_MAIN_OPTIONS,12,191,50,14
-    PUSHBUTTON      "Adva&nced...",IDC_MAIN_ADVANCED,68,191,50,14
-    LTEXT           "Automatic Startup:",IDC_STATIC,138,193,59,8
-    PUSHBUTTON      "Con&figure...",IDC_MAIN_AUTOSTART,202,191,50,14
-    LTEXT           "Lo&gging Level:",IDC_STATIC,12,216,48,8
-    COMBOBOX        IDC_MAIN_DEBUG,68,213,61,60,CBS_DROPDOWNLIST | 
+    LTEXT           "&Screens && Links:",IDC_MAIN_SERVER_SCREENS_LABEL,12,89,
+                    54,8
+    PUSHBUTTON      "Configure...",IDC_MAIN_SCREENS,71,86,50,14
+    PUSHBUTTON      "&Options...",IDC_MAIN_OPTIONS,12,129,50,14
+    PUSHBUTTON      "Adva&nced...",IDC_MAIN_ADVANCED,68,129,50,14
+    LTEXT           "Automatic Startup:",IDC_STATIC,138,131,59,8
+    PUSHBUTTON      "Con&figure...",IDC_MAIN_AUTOSTART,202,129,50,14
+    LTEXT           "Lo&gging Level:",IDC_STATIC,12,154,48,8
+    COMBOBOX        IDC_MAIN_DEBUG,68,151,61,60,CBS_DROPDOWNLIST | 
                     WS_VSCROLL | WS_TABSTOP
-    PUSHBUTTON      "Sa&ve",IDC_MAIN_SAVE,75,241,50,14
-    DEFPUSHBUTTON   "&Test",IDC_MAIN_TEST,131,241,50,14
-    PUSHBUTTON      "Start",IDOK,187,241,50,14
-    PUSHBUTTON      "Quit",IDCANCEL,243,241,50,14
+    DEFPUSHBUTTON   "&Test",IDC_MAIN_TEST,131,179,50,14
+    PUSHBUTTON      "Start",IDOK,187,179,50,14
+    PUSHBUTTON      "Quit",IDCANCEL,243,179,50,14
 END
 
 IDD_ADD DIALOG DISCARDABLE  0, 0, 192, 254
@@ -251,6 +236,34 @@ BEGIN
     PUSHBUTTON      "Cancel",IDCANCEL,173,165,50,14
 END
 
+IDD_SCREENS_LINKS DIALOG DISCARDABLE  0, 0, 282, 117
+STYLE DS_MODALFRAME | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "Screens & Links"
+FONT 8, "MS Sans Serif"
+BEGIN
+    LTEXT           "&Screens:",IDC_STATIC,7,7,29,8
+    LISTBOX         IDC_SCREENS_SCREENS,7,18,106,36,LBS_SORT | 
+                    LBS_NOINTEGRALHEIGHT | WS_VSCROLL | WS_TABSTOP
+    PUSHBUTTON      "+",IDC_SCREENS_ADD_SCREEN,7,57,17,14
+    PUSHBUTTON      "-",IDC_SCREENS_REMOVE_SCREEN,28,57,17,14
+    PUSHBUTTON      "Edit",IDC_SCREENS_EDIT_SCREEN,49,57,24,14
+    LTEXT           "&Links:",IDC_STATIC,129,7,20,8
+    LTEXT           "Left:",IDC_STATIC,135,21,15,8
+    COMBOBOX        IDC_SCREENS_LEFT_COMBO,163,20,112,75,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Right:",IDC_STATIC,135,37,20,8
+    COMBOBOX        IDC_SCREENS_RIGHT_COMBO,163,36,112,75,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Above:",IDC_STATIC,135,53,24,8
+    COMBOBOX        IDC_SCREENS_TOP_COMBO,163,52,112,75,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    LTEXT           "Below:",IDC_STATIC,135,69,22,8
+    COMBOBOX        IDC_SCREENS_BOTTOM_COMBO,163,68,112,75,CBS_DROPDOWNLIST | 
+                    CBS_SORT | WS_VSCROLL | WS_TABSTOP
+    DEFPUSHBUTTON   "OK",IDOK,170,96,50,14
+    PUSHBUTTON      "Cancel",IDCANCEL,225,96,50,14
+END
+
 
 /////////////////////////////////////////////////////////////////////////////
 //
@@ -265,7 +278,7 @@ BEGIN
         LEFTMARGIN, 7
         RIGHTMARGIN, 293
         TOPMARGIN, 7
-        BOTTOMMARGIN, 255
+        BOTTOMMARGIN, 192
     END
 
     IDD_ADD, DIALOG
@@ -306,6 +319,14 @@ BEGIN
         RIGHTMARGIN, 223
         TOPMARGIN, 7
         BOTTOMMARGIN, 179
+    END
+
+    IDD_SCREENS_LINKS, DIALOG
+    BEGIN
+        LEFTMARGIN, 7
+        RIGHTMARGIN, 275
+        TOPMARGIN, 7
+        BOTTOMMARGIN, 110
     END
 END
 #endif    // APSTUDIO_INVOKED
@@ -371,7 +392,7 @@ BEGIN
     IDS_UNINSTALLED_USER    "Removed auto-start.  Synergy will not automatically start each time you log in."
     IDS_INVALID_SERVER_NAME "Server name `%{1}' is invalid."
     IDS_TITLE               "Synergy - Version %{1}"
-    IDS_SERVER_IS_CLIENT    "Please enter the computer name of the synergy server, not\nthe name of this computer, in the Server Host Name field."
+    IDS_SERVER_IS_CLIENT    "Please enter the name of the computer sharing a\nkeyboard and mouse, not the name of this computer,\nin the Other Computer's Host Name field."
     IDS_ADD_SCREEN          "Add Screen"
     IDS_EDIT_SCREEN         "Edit Screen %{1}"
     IDS_ERROR_CODE          "Error code: %{1}"
@@ -379,6 +400,22 @@ BEGIN
                             "You have sufficient access rights to install and uninstall Auto Start for all users or for just yourself."
     IDS_INVALID_INTERFACE_NAME "The interface '%{1}' is invalid: %{2}"
     IDS_INVALID_CORNER_SIZE "The dead corner size %{1} is invalid;  it must be 0 or higher."
+    IDS_NEW_LINK            "[New Link]"
+    IDS_SIDE_LEFT           "left of"
+    IDS_SIDE_RIGHT          "right of"
+    IDS_SIDE_TOP            "above"
+    IDS_SIDE_BOTTOM         "below"
+END
+
+STRINGTABLE DISCARDABLE 
+BEGIN
+    IDS_LINK_FORMAT         "%{4}%{5} is %{3} %{1}%{2}"
+    IDS_LINK_INTERVAL_FORMAT "(%{1},%{2})"
+    IDS_EDGE_LEFT           "left"
+    IDS_EDGE_RIGHT          "right"
+    IDS_EDGE_TOP            "top"
+    IDS_EDGE_BOTTOM         "bottom"
+    IDS_AUTOSTART_SAVE_FAILED "Failed to save autostart configuration: %{1}"
 END
 
 #endif    // English (U.S.) resources

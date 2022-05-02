@@ -105,6 +105,14 @@ public:
 	*/
 	virtual bool		isKeyDown(KeyButton) const = 0;
 
+	//! Test if server key is pressed
+	/*!
+	Returns true iff the given key is down according to the server.
+	The \c id is a server button id.  Half-duplex toggles always
+	return false.
+	*/
+	virtual bool		isServerKeyDown(KeyButton id) const = 0;
+
 	//! Get the active modifiers
 	/*!
 	Returns the modifiers that are currently active according to our

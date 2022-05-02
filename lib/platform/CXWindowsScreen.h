@@ -112,7 +112,7 @@ private:
 		KeyCode			m_keycode;
 	};
 
-	Display*			openDisplay(const char* displayName) const;
+	Display*			openDisplay(const char* displayName);
 	void				saveShape();
 	Window				openWindow() const;
 	void				openIM();
@@ -132,6 +132,8 @@ private:
 	unsigned int		mapButtonToX(ButtonID id) const;
 
 	void				warpCursorNoFlush(SInt32 x, SInt32 y);
+
+	void				refreshKeyboard(XEvent*);
 
 	static Bool			findKeyEvent(Display*, XEvent* xevent, XPointer arg);
 
@@ -189,6 +191,10 @@ private:
 	// a screen other than screen 0.
 	bool				m_xtestIsXineramaUnaware;
 	bool				m_xinerama;
+
+	// XKB extension stuff
+	bool				m_xkb;
+	int					m_xkbEventBase;
 
 	// pointer to (singleton) screen.  this is only needed by
 	// ioErrorHandler().

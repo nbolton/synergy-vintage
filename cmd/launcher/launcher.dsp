@@ -95,6 +95,10 @@ LINK32=link.exe
 # PROP Default_Filter "cpp;c;cxx;rc;def;r;odl;idl;hpj;bat"
 # Begin Source File
 
+SOURCE=.\CAddScreen.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\CAdvancedOptions.cpp
 # End Source File
 # Begin Source File
@@ -104,6 +108,10 @@ SOURCE=.\CAutoStart.cpp
 # Begin Source File
 
 SOURCE=.\CGlobalOptions.cpp
+# End Source File
+# Begin Source File
+
+SOURCE=.\CScreensLinks.cpp
 # End Source File
 # Begin Source File
 
@@ -123,6 +131,10 @@ SOURCE=.\LaunchUtil.cpp
 # PROP Default_Filter "h;hpp;hxx;hm;inl"
 # Begin Source File
 
+SOURCE=.\CAddScreen.h
+# End Source File
+# Begin Source File
+
 SOURCE=.\CAdvancedOptions.h
 # End Source File
 # Begin Source File
@@ -132,6 +144,10 @@ SOURCE=.\CAutoStart.h
 # Begin Source File
 
 SOURCE=.\CGlobalOptions.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\CScreensLinks.h
 # End Source File
 # Begin Source File
 

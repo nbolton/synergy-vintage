@@ -1375,27 +1375,82 @@ CXWindowsUtil::decomposeKeySymWithCompose(KeySym keysym, KeySyms& decomposed)
 CString
 CXWindowsUtil::atomToString(Display* display, Atom atom)
 {
+	if (atom == 0) {
+		return "None";
+	}
+
+	bool error = false;
+	CXWindowsUtil::CErrorLock lock(display, &error);
 	char* name = XGetAtomName(display, atom);
-	CString msg = CStringUtil::print("%s (%d)", name, (int)atom);
-	XFree(name);
-	return msg;
+	if (error) {
+		return CStringUtil::print("<UNKNOWN> (%d)", (int)atom);
+	}
+	else {
+		CString msg = CStringUtil::print("%s (%d)", name, (int)atom);
+		XFree(name);
+		return msg;
+	}
 }
 
 CString
 CXWindowsUtil::atomsToString(Display* display, const Atom* atom, UInt32 num)
 {
 	char** names = new char*[num];
+	bool error = false;
+	CXWindowsUtil::CErrorLock lock(display, &error);
 	XGetAtomNames(display, const_cast<Atom*>(atom), (int)num, names);
 	CString msg;
-	for (UInt32 i = 0; i < num; ++i) {
-		msg += CStringUtil::print("%s (%d), ", names[i], (int)atom[i]);
-		XFree(names[i]);
+	if (error) {
+		for (UInt32 i = 0; i < num; ++i) {
+			msg += CStringUtil::print("<UNKNOWN> (%d), ", (int)atom[i]);
+		}
+	}
+	else {
+		for (UInt32 i = 0; i < num; ++i) {
+			msg += CStringUtil::print("%s (%d), ", names[i], (int)atom[i]);
+			XFree(names[i]);
+		}
 	}
 	delete[] names;
 	if (msg.size() > 2) {
 		msg.erase(msg.size() - 2);
 	}
 	return msg;
+}
+
+void
+CXWindowsUtil::convertAtomProperty(CString& data)
+{
+	// as best i can tell, 64-bit systems don't pack Atoms into properties
+	// as 32-bit numbers but rather as the 64-bit numbers they are.  that
+	// seems wrong but we have to cope.  sometimes we'll get a list of
+	// atoms that's 8*n+4 bytes long, missing the trailing 4 bytes which
+	// should all be 0.  since we're going to reference the Atoms as
+	// 64-bit numbers we have to ensure the last number is a full 64 bits.
+	if (sizeof(Atom) != 4 && ((data.size() / 4) & 1) != 0) {
+		UInt32 zero = 0;
+		data.append(reinterpret_cast<char*>(&zero), sizeof(zero));
+	}
+}
+
+void
+CXWindowsUtil::appendAtomData(CString& data, Atom atom)
+{
+	data.append(reinterpret_cast<char*>(&atom), sizeof(Atom));
+}
+
+void
+CXWindowsUtil::replaceAtomData(CString& data, UInt32 index, Atom atom)
+{
+	data.replace(index * sizeof(Atom), sizeof(Atom),
+								reinterpret_cast<const char*>(&atom),
+								sizeof(Atom));
+}
+
+void
+CXWindowsUtil::appendTimeData(CString& data, Time time)
+{
+	data.append(reinterpret_cast<char*>(&time), sizeof(Time));
 }
 
 Bool

@@ -114,6 +114,30 @@ CArchMiscWindows::getDaemonQuitMessage()
 HKEY
 CArchMiscWindows::openKey(HKEY key, const TCHAR* keyName)
 {
+	return openKey(key, keyName, false);
+}
+
+HKEY
+CArchMiscWindows::openKey(HKEY key, const TCHAR* const* keyNames)
+{
+	return openKey(key, keyNames, false);
+}
+
+HKEY
+CArchMiscWindows::addKey(HKEY key, const TCHAR* keyName)
+{
+	return openKey(key, keyName, true);
+}
+
+HKEY
+CArchMiscWindows::addKey(HKEY key, const TCHAR* const* keyNames)
+{
+	return openKey(key, keyNames, true);
+}
+
+HKEY
+CArchMiscWindows::openKey(HKEY key, const TCHAR* keyName, bool create)
+{
 	// ignore if parent is NULL
 	if (key == NULL) {
 		return NULL;
@@ -123,7 +147,7 @@ CArchMiscWindows::openKey(HKEY key, const TCHAR* keyName)
 	HKEY newKey;
 	LONG result = RegOpenKeyEx(key, keyName, 0,
 								KEY_WRITE | KEY_QUERY_VALUE, &newKey);
-	if (result != ERROR_SUCCESS) {
+	if (result != ERROR_SUCCESS && create) {
 		DWORD disp;
 		result = RegCreateKeyEx(key, keyName, 0, TEXT(""),
 								0, KEY_WRITE | KEY_QUERY_VALUE,
@@ -140,11 +164,11 @@ CArchMiscWindows::openKey(HKEY key, const TCHAR* keyName)
 }
 
 HKEY
-CArchMiscWindows::openKey(HKEY key, const TCHAR* const* keyNames)
+CArchMiscWindows::openKey(HKEY key, const TCHAR* const* keyNames, bool create)
 {
 	for (size_t i = 0; key != NULL && keyNames[i] != NULL; ++i) {
 		// open next key
-		key = openKey(key, keyNames[i]);
+		key = openKey(key, keyNames[i], create);
 	}
 	return key;
 }

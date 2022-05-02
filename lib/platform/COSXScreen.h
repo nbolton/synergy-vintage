@@ -102,10 +102,22 @@ private:
 	// map mac mouse button to synergy buttons
 	ButtonID			mapMacButtonToSynergy(UInt16) const;
 
+	// map mac scroll wheel value to a synergy scroll wheel value
+	SInt32				mapScrollWheelToSynergy(SInt32) const;
+
+	// map synergy scroll wheel value to a mac scroll wheel value
+	SInt32				mapScrollWheelFromSynergy(SInt32) const;
+
+	// get the current scroll wheel speed
+	double				getScrollSpeed() const;
+
+	// get the current scroll wheel speed
+	double				getScrollSpeedFactor() const;
+
 	// map mac modifier mask to synergy modifier mask
 	KeyModifierMask		mapMacModifiersToSynergy(EventRef event) const;
-	
-	/// Resolution switch callback
+
+	// Resolution switch callback
 	static pascal void	displayManagerCallback(void* inUserData,
 							SInt16 inMessage, void* inNotifyData);
 	

@@ -54,8 +54,8 @@
 #define WM_NCXBUTTONDOWN	0x00AB
 #define WM_NCXBUTTONUP		0x00AC
 #define WM_NCXBUTTONDBLCLK	0x00AD
-#define MOUSEEVENTF_XDOWN	0x0100
-#define MOUSEEVENTF_XUP		0x0200
+#define MOUSEEVENTF_XDOWN	0x0080
+#define MOUSEEVENTF_XUP		0x0100
 #define XBUTTON1			0x0001
 #define XBUTTON2			0x0002
 #endif
@@ -97,6 +97,7 @@ CMSWindowsScreen::CMSWindowsScreen(bool isPrimary) :
 	m_window(NULL),
 	m_nextClipboardWindow(NULL),
 	m_ownClipboard(false),
+	m_fixClipboardViewer(NULL),
 	m_desks(NULL),
 	m_hookLibrary(NULL),
 	m_init(NULL),
@@ -188,6 +189,14 @@ CMSWindowsScreen::enable()
 	// install our clipboard snooper
 	m_nextClipboardWindow = SetClipboardViewer(m_window);
 
+	// windows or other apps routinely break the clipboard viewer
+	// chain.  since there's no way to detect that we set up a timer
+	// to reconnect ourself to the chain periodically.
+	m_fixClipboardViewer = EVENTQUEUE->newTimer(1.0, NULL);
+	EVENTQUEUE->adoptHandler(CEvent::kTimer, m_fixClipboardViewer,
+							new TMethodEventJob<CMSWindowsScreen>(this,
+								&CMSWindowsScreen::handleFixClipboardViewer));
+
 	// track the active desk and (re)install the hooks
 	m_desks->enable();
 
@@ -230,6 +239,13 @@ CMSWindowsScreen::disable()
 		EVENTQUEUE->removeHandler(CEvent::kTimer, m_fixTimer);
 		EVENTQUEUE->deleteTimer(m_fixTimer);
 		m_fixTimer = NULL;
+	}
+
+	// uninstall fix clipboard viewer timer
+	if (m_fixClipboardViewer != NULL) {
+		EVENTQUEUE->removeHandler(CEvent::kTimer, m_fixClipboardViewer);
+		EVENTQUEUE->deleteTimer(m_fixClipboardViewer);
+		m_fixClipboardViewer = NULL;
 	}
 
 	// stop snooping the clipboard
@@ -820,8 +836,6 @@ CMSWindowsScreen::onEvent(HWND, UINT msg,
 		break;
 
 	case WM_DRAWCLIPBOARD:
-		LOG((CLOG_DEBUG "clipboard was taken"));
-
 		// first pass on the message
 		if (m_nextClipboardWindow != NULL) {
 			SendMessage(m_nextClipboardWindow, msg, wParam, lParam);
@@ -836,7 +850,6 @@ CMSWindowsScreen::onEvent(HWND, UINT msg,
 			LOG((CLOG_DEBUG "clipboard chain: new next: 0x%08x", m_nextClipboardWindow));
 		}
 		else if (m_nextClipboardWindow != NULL) {
-			LOG((CLOG_DEBUG "clipboard chain: forward: %d 0x%08x 0x%08x", msg, wParam, lParam));
 			SendMessage(m_nextClipboardWindow, msg, wParam, lParam);
 		}
 		return true;
@@ -897,6 +910,17 @@ CMSWindowsScreen::onKey(WPARAM wParam, LPARAM lParam)
 	bool down        = ((lParam & 0xc0000000u) == 0x00000000u);
 	bool up          = ((lParam & 0x80000000u) == 0x80000000u);
 	bool wasDown     = isKeyDown(button);
+
+	// if the button is zero then guess what the button should be.
+	// these are badly synthesized key events and logitech software
+	// that maps mouse buttons to keys is known to do this.
+	// alternatively, we could just throw these events out.
+	if (button == 0) {
+		button = m_keyState->virtualKeyToButton(wParam & 0xffu);
+		if (button == 0) {
+			return true;
+		}
+	}
 
 	// the windows keys are a royal pain on the windows 95 family.
 	// the system eats the key up events if and only if the windows
@@ -1190,7 +1214,6 @@ CMSWindowsScreen::onClipboardChange()
 	// now notify client that somebody changed the clipboard (unless
 	// we're the owner).
 	if (!CMSWindowsClipboard::isOwnedBySynergy()) {
-		LOG((CLOG_DEBUG "clipboard changed: foreign owned"));
 		if (m_ownClipboard) {
 			LOG((CLOG_DEBUG "clipboard changed: lost ownership"));
 			m_ownClipboard = false;
@@ -1198,7 +1221,7 @@ CMSWindowsScreen::onClipboardChange()
 			sendClipboardEvent(getClipboardGrabbedEvent(), kClipboardSelection);
 		}
 	}
-	else {
+	else if (!m_ownClipboard) {
 		LOG((CLOG_DEBUG "clipboard changed: synergy owned"));
 		m_ownClipboard = true;
 	}
@@ -1273,6 +1296,22 @@ CMSWindowsScreen::updateScreenShape()
 
 	// tell the desks
 	m_desks->setShape(m_x, m_y, m_w, m_h, m_xCenter, m_yCenter, m_multimon);
+}
+
+void
+CMSWindowsScreen::handleFixClipboardViewer(const CEvent&, void*)
+{
+	// XXX -- disable this code for now.  somehow it can cause an infinite
+	// recursion in the WM_DRAWCLIPBOARD handler.  either we're sending
+	// the message to our own window or some window farther down the chain
+	// forwards the message to our window or a window farther up the chain.
+	// i'm not sure how that could happen.  the m_nextClipboardWindow = NULL
+	// was not in the code that infinite loops and may fix the bug but i
+	// doubt it.
+	return;
+	ChangeClipboardChain(m_window, m_nextClipboardWindow);
+	m_nextClipboardWindow = NULL;
+	m_nextClipboardWindow = SetClipboardViewer(m_window);
 }
 
 void
