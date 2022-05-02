@@ -2,7 +2,7 @@
 
 For vintage computer enthusiasts, Synergy Vintage aims to keep the origins of 
 [Synergy](https://github.com/symless/synergy-core) alive. You can use Synergy 
-Vintage on operating systems available from 1995 to 2005; Windows (95, 98, ME, 
+Vintage on operating systems available from 1995 to 2006; Windows (95, 98, ME, 
 2000, and XP), Mac OS X (Jaguar to Tiger), and Linux (e.g. Red Hat 7).
 
 ![Animated gif of Synergy in 2001](https://raw.githubusercontent.com/nbolton/synergy-vintage/main/doc/images/warp.gif)
