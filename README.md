@@ -26,8 +26,9 @@ and Adam Feder then at Cosmo Software, Inc., a subsidiary of
 Though, versions as early as 
 [v0.9.8](https://web.archive.org/web/20021102070634/http://sourceforge.net/project/showfiles.php?group_id=59275)
 were published in November 2002, those binaries and source archives are sadly 
-long gone. The earliest version we have on record is v1.0.14 from the 24th of 
-August, 2003.
+long gone. The earliest version we have on record is 
+[v1.0.14](https://github.com/nbolton/synergy-vintage/releases/tag/1.0.14)
+from the 24th of August, 2003.
 
 ## Last Vintage
 
