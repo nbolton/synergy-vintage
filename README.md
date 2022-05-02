@@ -55,10 +55,11 @@ long gone. The earliest version we have on record is
 [v1.0.14](https://github.com/nbolton/synergy-vintage/releases/tag/1.0.14)
 from the 24th of August, 2003.
 
-## Last Vintage
+## Post-Vintage
 
-The transition from Synergy Vintage to Synergy Classic is when the Qt GUI was 
-introduced. The last recorded version of the Qt GUI is 
+The transition from Synergy Vintage to Synergy Classic is marked by the 
+introduction of the Qt GUI circa 2009. The last recorded version of the 
+Qt GUI is 
 [1.3.5](https://github.com/symless/synergy-core/releases/tag/1.3.5). 
 Tast recorded version of Synergy without Qt is 
 [1.3.1](https://github.com/nbolton/synergy-vintage/releases/tag/1.3.1),
