@@ -18,8 +18,8 @@ or 2000), Mac OS X (Jaguar to Tiger), and Linux (e.g. Red Hat 7).
 
 ## Downloads
 
-- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.1.10/Synergy-v1.1.10-debug-MacOS-10.3.zip)
 - [Windows](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-Windows-9x.zip)
+- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.1.10/Synergy-v1.1.10-debug-MacOS-10.3.zip)
 - Linux (coming soon)
 
 The Mac OS X version is 1.1.10, and the Windows version is 1.3.1.
