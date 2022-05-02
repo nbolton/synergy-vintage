@@ -7,6 +7,8 @@ Vintage on operating systems available from 1995 to 2005; Windows (95, 98, ME,
 
 ![Animated gif of Synergy in 2001](https://raw.githubusercontent.com/nbolton/synergy-vintage/main/doc/images/warp.gif)
 
+Make all your computers feel like a single device. Move between them seamlessly while staying focused on your task.
+
 > With Synergy, all the computers on your desktop form a single virtual screen. 
 > You use the mouse and keyboard of only one of the computers while you use all 
 > of the monitors on all of the computers. You tell Synergy how many screens you 
