@@ -18,17 +18,30 @@ Vintage on operating systems available from 1995 to 2005; Windows (95, 98, ME,
 
 ## Downloads
 
-- [Windows](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-Windows-9x.zip)
-- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.1.10/Synergy-v1.1.10-debug-MacOS-10.3.zip)
+### v1.3.1
+
+Backwards compatible with v1.1.10.
+
+- [Windows](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-Windows-98.zip)
+- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-MacOSX-10.4.zip)
 - Linux (coming soon)
 
-The Mac OS X version is 1.1.10, and the Windows version is 1.3.1.
-These two versions are compatible (they work with eachother fine).
-
-The build machine for Windows is Windows 98, but the download will 
+The Windows download for 1.3.1 is built on Windows 98, but the download will 
 probably work on Windows 95, Windows ME, and possibly Windows 2000.
-For the Mac OS X download, the build machine is Mac OS X Panther 10.3,
-the download works on 10.4 and may work on similar versions (e.g. 10.2).
+For the Mac OS X download of 1.3.1, it's built on Mac OS X Tiger 10.4 using the
+10.3.9 SDK it so as well as working on Mac OS X 10.4, it will probably work on
+any version of Mac OS X 10.3, but is unlikely to work with older versions of 
+Mac OS X (such as 10.2 and below).
+
+### v1.1.10
+
+- Windows (coming soon)
+- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-MacOSX-10.4.zip)
+- Linux (coming soon)
+
+The Mac OS X download of 1.1.10 is built on Mac OS X Panther 10.3 using the 10.2
+deployment target, so it's likely that this will work on both Mac OS X 10.3 and 10.2,
+but is unlikely to work on earlier versions of Mac OS X such as 10.1.
 
 ## History
 
