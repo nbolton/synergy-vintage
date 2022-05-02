@@ -31,7 +31,7 @@ Backwards compatible with v1.1.10.
 The Windows download for 1.3.1 is built on Windows 98, but the download will 
 probably work on Windows 95, Windows ME, and possibly Windows 2000.
 For the Mac OS X download of 1.3.1, it's built on Mac OS X Tiger 10.4 using the
-10.3.9 SDK it so as well as working on Mac OS X 10.4, it will probably work on
+10.3.9 SDK, so as well as working on Mac OS X 10.4, it will probably work on
 any version of Mac OS X 10.3, but is unlikely to work with older versions of 
 Mac OS X (such as 10.2 and below).
 
