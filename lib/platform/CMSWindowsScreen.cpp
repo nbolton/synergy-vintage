@@ -381,13 +381,13 @@ CMSWindowsScreen::screensaver(bool activate)
 void
 CMSWindowsScreen::resetOptions()
 {
-	// no options
+	m_desks->resetOptions();
 }
 
 void
-CMSWindowsScreen::setOptions(const COptionsList&)
+CMSWindowsScreen::setOptions(const COptionsList& options)
 {
-	// no options
+	m_desks->setOptions(options);
 }
 
 void

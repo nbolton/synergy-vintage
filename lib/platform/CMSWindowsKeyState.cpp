@@ -985,6 +985,13 @@ CMSWindowsKeyState::ctrlAltDelThread(void*)
 	}
 }
 
+KeyModifierMask
+CMSWindowsKeyState::pollActiveModifiers() const
+{
+	// active modifiers are always up to date on win32
+	return getActiveModifiers();
+}
+
 const char*
 CMSWindowsKeyState::getKeyName(KeyButton button) const
 {

@@ -61,6 +61,8 @@ public:
 	virtual bool		isKeyDown(KeyButton) const;
 	virtual KeyModifierMask
 						getActiveModifiers() const;
+	virtual KeyModifierMask
+						pollActiveModifiers() const;
 	virtual const char*	getKeyName(KeyButton) const;
 
 	// IPlatformScreen overrides

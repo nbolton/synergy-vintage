@@ -106,6 +106,7 @@
 #define IDC_GLOBAL_SCREENSAVER_SYNC     1047
 #define IDC_GLOBAL_RELATIVE_MOVES       1048
 #define IDC_ADVANCED_DEFAULTS           1049
+#define IDC_GLOBAL_LEAVE_FOREGROUND     1049
 #define IDC_ADD_DC_SIZE                 1052
 #define IDC_ADD_DC_TOP_LEFT             1053
 #define IDC_ADD_DC_TOP_RIGHT            1054

@@ -106,6 +106,7 @@ CMSWindowsDesks::CMSWindowsDesks(
 	m_cursor    = createBlankCursor();
 	m_deskClass = createDeskWindowClass(m_isPrimary);
 	m_keyLayout = GetKeyboardLayout(GetCurrentThreadId());
+	resetOptions();
 }
 
 CMSWindowsDesks::~CMSWindowsDesks()
@@ -162,6 +163,23 @@ void
 CMSWindowsDesks::leave(HKL keyLayout)
 {
 	sendMessage(SYNERGY_MSG_LEAVE, (WPARAM)keyLayout, 0);
+}
+
+void
+CMSWindowsDesks::resetOptions()
+{
+	m_leaveForegroundOption = false;
+}
+
+void
+CMSWindowsDesks::setOptions(const COptionsList& options)
+{
+	for (UInt32 i = 0, n = options.size(); i < n; i += 2) {
+		if (options[i] == kOptionWin32KeepForeground) {
+			m_leaveForegroundOption = (options[i + 1] != 0);
+			LOG((CLOG_DEBUG1 "%s the foreground window", m_leaveForegroundOption ? "Don\'t grab" : "Grab"));
+		}
+	}
 }
 
 void
@@ -631,16 +649,18 @@ CMSWindowsDesks::deskLeave(CDesk* desk, HKL keyLayout)
 		// note that we must enable the window to activate it and we
 		// need to disable the window on deskEnter.
 		else {
-			desk->m_foregroundWindow = GetForegroundWindow();
-			EnableWindow(desk->m_window, TRUE);
-			SetActiveWindow(desk->m_window);
-			DWORD thisThread =
-				GetWindowThreadProcessId(desk->m_window, NULL);
-			DWORD thatThread =
-				GetWindowThreadProcessId(desk->m_foregroundWindow, NULL);
-			AttachThreadInput(thatThread, thisThread, TRUE);
-			SetForegroundWindow(desk->m_window);
-			AttachThreadInput(thatThread, thisThread, FALSE);
+			desk->m_foregroundWindow = getForegroundWindow();
+			if (desk->m_foregroundWindow != NULL) {
+				EnableWindow(desk->m_window, TRUE);
+				SetActiveWindow(desk->m_window);
+				DWORD thisThread =
+					GetWindowThreadProcessId(desk->m_window, NULL);
+				DWORD thatThread =
+					GetWindowThreadProcessId(desk->m_foregroundWindow, NULL);
+				AttachThreadInput(thatThread, thisThread, TRUE);
+				SetForegroundWindow(desk->m_window);
+				AttachThreadInput(thatThread, thisThread, FALSE);
+			}
 		}
 
 		// switch to requested keyboard layout
@@ -970,4 +990,17 @@ CMSWindowsDesks::getDesktopName(HDESK desk)
 		CString result(name);
 		return result;
 	}
+}
+
+HWND
+CMSWindowsDesks::getForegroundWindow() const
+{
+	// Ideally we'd return NULL as much as possible, only returning
+	// the actual foreground window when we know it's going to mess
+	// up our keyboard input.  For now we'll just let the user
+	// decide.
+	if (m_leaveForegroundOption) {
+		return NULL;
+	}
+	return GetForegroundWindow();
 }

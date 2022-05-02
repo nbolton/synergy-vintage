@@ -13,8 +13,6 @@
 ## Process this file with automake to produce Makefile.in
 NULL =
 
-export MACOSX_DEPLOYMENT_TARGET
-
 COMMON_SOURCE_FILES =					\
 	CServerTaskBarReceiver.cpp			\
 	CServerTaskBarReceiver.h			\

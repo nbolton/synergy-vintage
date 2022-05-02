@@ -54,6 +54,8 @@ public:
 	// IKeyState overrides
 	virtual void		setHalfDuplexMask(KeyModifierMask);
 	virtual bool		fakeCtrlAltDel();
+	virtual KeyModifierMask
+						pollActiveModifiers() const;
 	virtual const char*	getKeyName(KeyButton) const;
 	virtual void		sendKeyEvent(void* target,
 							bool press, bool isAutoRepeat,

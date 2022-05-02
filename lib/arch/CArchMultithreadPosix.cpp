@@ -49,6 +49,7 @@ setSignalSet(sigset_t* sigset)
 	sigaddset(sigset, SIGHUP);
 	sigaddset(sigset, SIGINT);
 	sigaddset(sigset, SIGTERM);
+	sigaddset(sigset, SIGUSR2);
 }
 
 //
@@ -789,6 +790,10 @@ CArchMultithreadPosix::threadSignalHandler(void*)
 
 		case SIGHUP:
 			ARCH->raiseSignal(kHANGUP);
+			break;
+
+		case SIGUSR2:
+			ARCH->raiseSignal(kUSER);
 			break;
 
 		default:

@@ -737,6 +737,9 @@ CConfig::getOptionName(OptionID id)
 	if (id == kOptionRelativeMouseMoves) {
 		return "relativeMouseMoves";
 	}
+	if (id == kOptionWin32KeepForeground) {
+		return "win32KeepForeground";
+	}
 	return NULL;
 }
 
@@ -748,7 +751,8 @@ CConfig::getOptionValue(OptionID id, OptionValue value)
 		id == kOptionHalfDuplexScrollLock ||
 		id == kOptionScreenSaverSync ||
 		id == kOptionXTestXineramaUnaware ||
-		id == kOptionRelativeMouseMoves) {
+		id == kOptionRelativeMouseMoves ||
+		id == kOptionWin32KeepForeground) {
 		return (value != 0) ? "true" : "false";
 	}
 	if (id == kOptionModifierMapForShift ||
@@ -914,6 +918,9 @@ CConfig::readSectionOptions(std::istream& s)
 		}
 		else if (name == "relativeMouseMoves") {
 			addOption("", kOptionRelativeMouseMoves, parseBoolean(value));
+		}
+		else if (name == "win32KeepForeground") {
+			addOption("", kOptionWin32KeepForeground, parseBoolean(value));
 		}
 		else {
 			throw XConfigRead("unknown argument");

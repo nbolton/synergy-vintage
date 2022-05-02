@@ -57,7 +57,7 @@ CPrimaryClient::getCursorCenter(SInt32& x, SInt32& y) const
 KeyModifierMask
 CPrimaryClient::getToggleMask() const
 {
-	return m_screen->getActiveModifiers();
+	return m_screen->pollActiveModifiers();
 }
 
 bool

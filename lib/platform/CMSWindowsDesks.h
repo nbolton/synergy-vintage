@@ -18,6 +18,7 @@
 #include "CSynergyHook.h"
 #include "KeyTypes.h"
 #include "MouseTypes.h"
+#include "OptionTypes.h"
 #include "CCondVar.h"
 #include "CMutex.h"
 #include "CString.h"
@@ -91,6 +92,19 @@ public:
 	Prepares a desk for when the cursor leaves it.
 	*/
 	void				leave(HKL keyLayout);
+
+	//! Notify of options changes
+	/*!
+	Resets all options to their default values.
+	*/
+	void				resetOptions();
+
+	//! Notify of options changes
+	/*!
+	Set options to given values.  Ignores unknown options and doesn't
+	modify options that aren't given in \c options.
+	*/
+	void				setOptions(const COptionsList& options);
 
 	//! Update the key state
 	/*!
@@ -199,6 +213,9 @@ private:
 	void				waitForDesk() const;
 	void				sendMessage(UINT, WPARAM, LPARAM) const;
 
+	// work around for messed up keyboard events from low-level hooks
+	HWND				getForegroundWindow() const;
+
 	// desk API wrappers
 	HDESK				openInputDesktop();
 	void				closeDesktop(HDESK);
@@ -259,6 +276,9 @@ private:
 	// keyboard stuff
 	IJob*				m_updateKeys;
 	HKL					m_keyLayout;
+
+	// options
+	bool				m_leaveForegroundOption;
 };
 
 #endif

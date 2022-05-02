@@ -51,6 +51,8 @@ public:
 
 	// IKeyState overrides
 	virtual bool		fakeCtrlAltDel();
+	virtual KeyModifierMask
+						pollActiveModifiers() const;
 	virtual const char*	getKeyName(KeyButton) const;
 
 protected:

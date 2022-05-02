@@ -81,6 +81,12 @@ CPlatformScreen::getActiveModifiers() const
 	return getKeyState()->getActiveModifiers();
 }
 
+KeyModifierMask
+CPlatformScreen::pollActiveModifiers() const
+{
+	return getKeyState()->pollActiveModifiers();
+}
+
 const char*
 CPlatformScreen::getKeyName(KeyButton button) const
 {

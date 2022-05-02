@@ -69,6 +69,8 @@ public:
 							KeyID key, KeyModifierMask mask,
 							SInt32 count, KeyButton button);
 	virtual bool		fakeCtrlAltDel();
+	virtual KeyModifierMask
+						pollActiveModifiers() const;
 	virtual const char*	getKeyName(KeyButton) const;
 
 protected:

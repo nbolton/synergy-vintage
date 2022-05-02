@@ -33,6 +33,7 @@ libsynergy_a_SOURCES = 			\
 	IKeyState.cpp				\
 	IPrimaryScreen.cpp			\
 	IScreen.cpp					\
+	ProtocolTypes.cpp			\
 	XScreen.cpp					\
 	XSynergy.cpp				\
 	CClipboard.h				\

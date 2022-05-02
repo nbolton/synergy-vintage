@@ -388,6 +388,12 @@ CScreen::getActiveModifiers() const
 	return m_screen->getActiveModifiers();
 }
 
+KeyModifierMask
+CScreen::pollActiveModifiers() const
+{
+	return m_screen->pollActiveModifiers();
+}
+
 void*
 CScreen::getEventTarget() const
 {

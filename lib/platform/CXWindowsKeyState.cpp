@@ -181,6 +181,19 @@ CXWindowsKeyState::fakeCtrlAltDel()
 	return false;
 }
 
+KeyModifierMask
+CXWindowsKeyState::pollActiveModifiers() const
+{
+	Window root = DefaultRootWindow(m_display), window;
+	int xRoot, yRoot, xWindow, yWindow;
+	unsigned int state;
+	if (!XQueryPointer(m_display, root, &root, &window,
+								&xRoot, &yRoot, &xWindow, &yWindow, &state)) {
+		state = 0;
+	}
+	return mapModifiersFromX(state);
+}
+
 const char*
 CXWindowsKeyState::getKeyName(KeyButton keycode) const
 {

@@ -127,6 +127,10 @@ SOURCE=.\IScreen.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\ProtocolTypes.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\XScreen.cpp
 # End Source File
 # Begin Source File

@@ -1,3 +1,138 @@
+2005/08/07 10:32:54 crs
+doc/autostart.html
+
+Updated OS X autostart documentation.
+
+----------
+2005/08/07 10:32:19 crs
+lib/arch/CArchMultithreadPosix.cpp
+lib/arch/IArchMultithread.h
+
+Added support for SIGUSR2.  Not using it yet, though.
+
+----------
+2005/08/03 21:03:49 crs
+cmd/synergyc/synergyc.cpp
+
+Client now quits after failing to connect if not restartable.
+Was failing to quit.
+
+----------
+2005/08/03 20:14:42 crs
+cmd/synergyc/Makefile.am
+cmd/synergys/Makefile.am
+configure.in
+lib/arch/Makefile.am
+lib/platform/Makefile.am
+
+Changed how we export MACOSX_DEPLOYMENT_TARGET to a hopefully more
+portable solution.
+
+----------
+2005/08/02 21:42:12 crs
+cmd/synergyc/synergyc.cpp
+cmd/synergys/synergys.cpp
+
+Fixed --daemon fix when compiled on unix.
+
+----------
+2005/08/02 20:57:52 crs
+cmd/launcher/CGlobalOptions.cpp
+cmd/launcher/launcher.rc
+cmd/launcher/resource.h
+lib/platform/CMSWindowsDesks.cpp
+lib/platform/CMSWindowsDesks.h
+lib/platform/CMSWindowsScreen.cpp
+lib/server/CConfig.cpp
+lib/synergy/OptionTypes.h
+
+Added option to suppress grabbing of the foreground window on win32
+synergy servers.  Grabbing the foreground window prevents certain
+apps from messing up low level keyboard events but doing that can
+break certain workflow, particularly with games.  Since the option
+is only for win32 and it's in the launcher GUI and I hope to get rid
+of it someday, there is no configuration documentation for it.
+
+----------
+2005/08/02 20:55:35 crs
+cmd/synergyc/synergyc.cpp
+cmd/synergys/synergys.cpp
+
+Fixed '--daemon' command line option on Windows NT family client and
+server.  Those platforms now ignore --daemon and --no-daemon like
+they should.
+
+----------
+2005/08/01 22:34:05 crs
+lib/platform/CMSWindowsKeyState.cpp
+lib/platform/CMSWindowsKeyState.h
+lib/platform/COSXKeyState.cpp
+lib/platform/COSXKeyState.h
+lib/platform/CXWindowsKeyState.cpp
+lib/platform/CXWindowsKeyState.h
+lib/server/CPrimaryClient.cpp
+lib/synergy/CKeyState.h
+lib/synergy/CPlatformScreen.cpp
+lib/synergy/CPlatformScreen.h
+lib/synergy/CScreen.cpp
+lib/synergy/CScreen.h
+lib/synergy/IKeyState.h
+lib/synergy/IPlatformScreen.h
+
+Fixed scroll-lock screen locking on linux servers.  An earlier
+change made the function that returns modifier state return the
+shadowed state not the current state.  On X windows we don't
+shadow the state when on the primary screen so the synergy server
+would never see the scroll-lock state turned on until it left the
+primary screen.  As a result scroll-lock would not lock to the
+primary screen but would lock you to whatever secondary screen
+you ended up on.
+
+Changed win32 and OSX versions to work like the linux version.
+Win32 used to work anyway because we constantly shadow keyboard
+state on that.  OSX did not query current keyboard state at all
+before and it still doesn't;  this needs to be fixed.
+
+----------
+2005/08/01 22:29:48 crs
+lib/synergy/libsynergy.dsp
+
+Added ProtocolTypes.cpp to VC++ project.
+
+----------
+2005/08/01 21:02:07 crs
+lib/common/common.h
+synergy.xcode/project.pbxproj
+
+Changes to get gcc3.3, 10.2.8 SDK builds working on OS X.
+
+----------
+2005/07/31 22:50:10 crs
+configure.in
+lib/platform/COSXScreenSaver.cpp
+lib/platform/COSXScreenSaver.mm
+lib/platform/COSXScreenSaverUtil.h
+lib/platform/COSXScreenSaverUtil.m
+lib/platform/Makefile.am
+
+Removed Objective-C++ file.  Now using an Objective-C file instead
+which works better with autoconf/automake.
+
+----------
+2005/07/31 22:49:03 crs
+lib/synergy/Makefile.am
+lib/synergy/ProtocolTypes.cpp
+lib/synergy/ProtocolTypes.h
+
+Fixed warnings on gcc 4.0.
+
+----------
+2005/07/31 22:48:30 crs
+lib/common/Version.h
+
+Changed version to 1.2.4.
+
+----------
 2005/07/26 21:37:41 crs
 lib/common/Version.h
 

@@ -74,6 +74,7 @@ Section "Synergy (required)"
   File ${DEPTH}\doc\news.html
   File ${DEPTH}\doc\running.html
   File ${DEPTH}\doc\security.html
+  File ${DEPTH}\doc\synergy.css
   File ${DEPTH}\doc\tips.html
   File ${DEPTH}\doc\todo.html
 

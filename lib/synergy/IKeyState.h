@@ -107,10 +107,19 @@ public:
 
 	//! Get the active modifiers
 	/*!
-	Returns the modifiers that are currently active.
+	Returns the modifiers that are currently active according to our
+	shadowed state.
 	*/
 	virtual KeyModifierMask
 						getActiveModifiers() const = 0;
+
+	//! Get the active modifiers from OS
+	/*!
+	Returns the modifiers that are currently active according to the
+	operating system.
+	*/
+	virtual KeyModifierMask
+						pollActiveModifiers() const = 0;
 
 	//! Get name of key
 	/*!

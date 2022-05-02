@@ -74,13 +74,13 @@ enum EDirectionMask {
 // say hello to client;  primary -> secondary
 // $1 = protocol major version number supported by server.  $2 =
 // protocol minor version number supported by server.
-static const char		kMsgHello[]			= "Synergy%2i%2i";
+extern const char*		kMsgHello;
 
 // respond to hello from server;  secondary -> primary
 // $1 = protocol major version number supported by client.  $2 =
 // protocol minor version number supported by client.  $3 = client
 // name.
-static const char		kMsgHelloBack[]		= "Synergy%2i%2i%s";
+extern const char*		kMsgHelloBack;
 
 
 //
@@ -88,10 +88,10 @@ static const char		kMsgHelloBack[]		= "Synergy%2i%2i%s";
 //
 
 // no operation;  secondary -> primary
-static const char		kMsgCNoop[] 		= "CNOP";
+extern const char*		kMsgCNoop;
 
 // close connection;  primary -> secondary
-static const char		kMsgCClose[] 		= "CBYE";
+extern const char*		kMsgCClose;
 
 // enter screen:  primary -> secondary
 // entering screen at screen position $1 = x, $2 = y.  x,y are
@@ -101,7 +101,7 @@ static const char		kMsgCClose[] 		= "CBYE";
 // mask.  this will have bits set for each toggle modifier key
 // that is activated on entry to the screen.  the secondary screen
 // should adjust its toggle modifiers to reflect that state.
-static const char		kMsgCEnter[] 		= "CINN%2i%2i%4i%2i";
+extern const char*		kMsgCEnter;
 
 // leave screen:  primary -> secondary
 // leaving screen.  the secondary screen should send clipboard
@@ -110,28 +110,28 @@ static const char		kMsgCEnter[] 		= "CINN%2i%2i%4i%2i";
 // not received a kMsgCClipboard for with a greater sequence
 // number) and that were grabbed or have changed since the
 // last leave.
-static const char		kMsgCLeave[] 		= "COUT";
+extern const char*		kMsgCLeave;
 
 // grab clipboard:  primary <-> secondary
 // sent by screen when some other app on that screen grabs a
 // clipboard.  $1 = the clipboard identifier, $2 = sequence number.
 // secondary screens must use the sequence number passed in the
 // most recent kMsgCEnter.  the primary always sends 0.
-static const char		kMsgCClipboard[] 	= "CCLP%1i%4i";
+extern const char*		kMsgCClipboard;
 
 // screensaver change:  primary -> secondary
 // screensaver on primary has started ($1 == 1) or closed ($1 == 0)
-static const char		kMsgCScreenSaver[] 	= "CSEC%1i";
+extern const char*		kMsgCScreenSaver;
 
 // reset options:  primary -> secondary
 // client should reset all of its options to their defaults.
-static const char		kMsgCResetOptions[]	= "CROP";
+extern const char*		kMsgCResetOptions;
 
 // resolution change acknowledgment:  primary -> secondary
 // sent by primary in response to a secondary screen's kMsgDInfo.
 // this is sent for every kMsgDInfo, whether or not the primary
 // had sent a kMsgQInfo.
-static const char		kMsgCInfoAck[]		= "CIAK";
+extern const char*		kMsgCInfoAck;
 
 
 //
@@ -149,52 +149,52 @@ static const char		kMsgCInfoAck[]		= "CIAK";
 // the press.  this can happen with combining (dead) keys or if
 // the keyboard layouts are not identical and the user releases
 // a modifier key before releasing the modified key.
-static const char		kMsgDKeyDown[]		= "DKDN%2i%2i%2i";
+extern const char*		kMsgDKeyDown;
 
 // key pressed 1.0:  same as above but without KeyButton
-static const char		kMsgDKeyDown1_0[]	= "DKDN%2i%2i";
+extern const char*		kMsgDKeyDown1_0;
 
 // key auto-repeat:  primary -> secondary
 // $1 = KeyID, $2 = KeyModifierMask, $3 = number of repeats, $4 = KeyButton
-static const char		kMsgDKeyRepeat[]	= "DKRP%2i%2i%2i%2i";
+extern const char*		kMsgDKeyRepeat;
 
 // key auto-repeat 1.0:  same as above but without KeyButton
-static const char		kMsgDKeyRepeat1_0[]	= "DKRP%2i%2i%2i";
+extern const char*		kMsgDKeyRepeat1_0;
 
 // key released:  primary -> secondary
 // $1 = KeyID, $2 = KeyModifierMask, $3 = KeyButton
-static const char		kMsgDKeyUp[]		= "DKUP%2i%2i%2i";
+extern const char*		kMsgDKeyUp;
 
 // key released 1.0:  same as above but without KeyButton
-static const char		kMsgDKeyUp1_0[]		= "DKUP%2i%2i";
+extern const char*		kMsgDKeyUp1_0;
 
 // mouse button pressed:  primary -> secondary
 // $1 = ButtonID
-static const char		kMsgDMouseDown[]	= "DMDN%1i";
+extern const char*		kMsgDMouseDown;
 
 // mouse button released:  primary -> secondary
 // $1 = ButtonID
-static const char		kMsgDMouseUp[]		= "DMUP%1i";
+extern const char*		kMsgDMouseUp;
 
 // mouse moved:  primary -> secondary
 // $1 = x, $2 = y.  x,y are absolute screen coordinates.
-static const char		kMsgDMouseMove[]	= "DMMV%2i%2i";
+extern const char*		kMsgDMouseMove;
 
 // relative mouse move:  primary -> secondary
 // $1 = dx, $2 = dy.  dx,dy are motion deltas.
-static const char		kMsgDMouseRelMove[]	= "DMRM%2i%2i";
+extern const char*		kMsgDMouseRelMove;
 
 // mouse button pressed:  primary -> secondary
 // $1 = delta.  the delta should be +120 for one tick forward (away
 // from the user) and -120 for one tick backward (toward the user).
-static const char		kMsgDMouseWheel[]	= "DMWM%2i";
+extern const char*		kMsgDMouseWheel;
 
 // clipboard data:  primary <-> secondary
 // $2 = sequence number, $3 = clipboard data.  the sequence number
 // is 0 when sent by the primary.  secondary screens should use the
 // sequence number from the most recent kMsgCEnter.  $1 = clipboard
 // identifier.
-static const char		kMsgDClipboard[]	= "DCLP%1i%4i%s";
+extern const char*		kMsgDClipboard;
 
 // client data:  secondary -> primary
 // $1 = coordinate of leftmost pixel on secondary screen,
@@ -210,12 +210,12 @@ static const char		kMsgDClipboard[]	= "DCLP%1i%4i%s";
 // should ignore any kMsgDMouseMove messages until it receives a
 // kMsgCInfoAck in order to prevent attempts to move the mouse off
 // the new screen area.
-static const char		kMsgDInfo[]			= "DINF%2i%2i%2i%2i%2i%2i%2i";
+extern const char*		kMsgDInfo;
 
 // set options:  primary -> secondary
 // client should set the given option/value pairs.  $1 = option/value
 // pairs.
-static const char		kMsgDSetOptions[]	= "DSOP%4I";
+extern const char*		kMsgDSetOptions;
 
 
 //
@@ -224,7 +224,7 @@ static const char		kMsgDSetOptions[]	= "DSOP%4I";
 
 // query screen info:  primary -> secondary
 // client should reply with a kMsgDInfo.
-static const char		kMsgQInfo[]			= "QINF";
+extern const char*		kMsgQInfo;
 
 
 //
@@ -233,19 +233,19 @@ static const char		kMsgQInfo[]			= "QINF";
 
 // incompatible versions:  primary -> secondary
 // $1 = major version of primary, $2 = minor version of primary.
-static const char		kMsgEIncompatible[]	= "EICV%2i%2i";
+extern const char*		kMsgEIncompatible;
 
 // name provided when connecting is already in use:  primary -> secondary
-static const char		kMsgEBusy[] 		= "EBSY";
+extern const char*		kMsgEBusy;
 
 // unknown client:  primary -> secondary
 // name provided when connecting is not in primary's screen
 // configuration map.
-static const char		kMsgEUnknown[]		= "EUNK";
+extern const char*		kMsgEUnknown;
 
 // protocol violation:  primary -> secondary
 // primary should disconnect after sending this message.
-static const char		kMsgEBad[]			= "EBAD";
+extern const char*		kMsgEBad;
 
 
 //

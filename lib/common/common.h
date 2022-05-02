@@ -71,7 +71,8 @@
 #		define HAVE_SYS_UTSNAME_H 1
 #		define HAVE_UNISTD_H 1
 #		define HAVE_VSNPRINTF 1
-#		define HAVE_WCHAR_H 1
+/* disable this so we can build with the 10.2.8 SDK */
+/*#		define HAVE_WCHAR_H 1*/
 
 #		define SELECT_TYPE_ARG1 int
 #		define SELECT_TYPE_ARG234 (fd_set *)

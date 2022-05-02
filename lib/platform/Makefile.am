@@ -13,8 +13,6 @@
 ## Process this file with automake to produce Makefile.in
 NULL =
 
-export MACOSX_DEPLOYMENT_TARGET
-
 XWINDOWS_SOURCE_FILES =						\
 	CXWindowsClipboard.cpp					\
 	CXWindowsClipboardAnyBitmapConverter.cpp\
@@ -79,7 +77,8 @@ CARBON_SOURCE_FILES =						\
 	COSXEventQueueBuffer.cpp				\
 	COSXKeyState.cpp						\
 	COSXScreen.cpp							\
-	COSXScreenSaver.mm						\
+	COSXScreenSaver.cpp						\
+	COSXScreenSaverUtil.m					\
 	COSXClipboard.h							\
 	COSXClipboardAnyTextConverter.h			\
 	COSXClipboardTextConverter.h			\
@@ -88,6 +87,7 @@ CARBON_SOURCE_FILES =						\
 	COSXKeyState.h							\
 	COSXScreen.h							\
 	COSXScreenSaver.h						\
+	COSXScreenSaverUtil.h					\
 	OSXScreenSaverControl.h					\
 	$(NULL)
 
@@ -123,15 +123,3 @@ INCLUDES =									\
 	-I$(top_srcdir)/lib/io	 				\
 	-I$(top_srcdir)/lib/synergy 			\
 	$(NULL)
-
-OBJCXX_RULE_PATTERN = .mm.o
-OBJCXXCOMPILE = $(OBJCXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
-	$(CPPFLAGS) $(OBJCXXFLAGS)
-OBJCXX = @OBJCXX@
-OBJCXXFLAGS = @OBJCXXFLAGS@
-$(OBJCXX_RULE_PATTERN):
-	source='$<' object='$@' libtool=no \
-	depfile='$(DEPDIR)/$*.Po' tmpdepfile='$(DEPDIR)/$*.TPo' \
-	$(CXXDEPMODE) $(depcomp) \
-	$(OBJCXXCOMPILE) -c -o $@ `test -f '$<' || echo '$(srcdir)/'`$<
-

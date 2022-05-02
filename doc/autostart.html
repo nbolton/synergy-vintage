@@ -317,8 +317,8 @@ RunService "$1"
 <span class="codeblock">
 {
     Description      = "Synergy Client";
-    Provides         = ("synergy-client");
-    Requires         = "Network";
+    Provides         = ("Synergy");
+    Requires         = ("Network");
     OrderPreference  = "None";
 }
 </span>
@@ -327,9 +327,7 @@ RunService "$1"
 </p>
 <p>
 That's it!  If you want to test this setup, you can run the
-startup script as follow:
-</p>
-<p>
+startup script as follows:
 <span class="userinput">
   # /Library/StartupItems/Synergy/Synergy start
 </span>
@@ -378,20 +376,19 @@ one.
   Launch a Terminal window, and become root:
   <span class="userinput">
   $ sudo su -
+  </span>
 </li>
 </p>
 <p>
 <li>
   Find out if a LoginHook already exists:
   <span class="userinput">
-  # defaults read /Library/Preferences/com.apple.loginwindow LoginHook
+  # defaults read com.apple.loginwindow LoginHook
   </span>
-</p>
-<p>
   This will either show the full path to a script or
   executable file, or the text:
   <span class="userinput">
-  The domain/default pair of (/Library/Preferences/com.apple.loginwindow, LoginHook) does not exist
+  The domain/default pair of (com.apple.loginwindow, LoginHook) does not exist
   </span>
   In the former case, you need to modify your existing script,
   and/or create a "superscript" which in turn calls your
@@ -401,8 +398,6 @@ one.
   The rest of this text assumes that this item did not already
   exist, and that we will create a new script.
 </li>
-</p>
-<p>
 <li>
   Create a folder in which we will store our custom startup
   script:
@@ -410,8 +405,6 @@ one.
   # mkdir -p /Library/LoginWindow
   </span>
 </li>
-</p>
-<p>
 <li>
   In this folder, create a new script file (let's name it
   <span class="code">LoginHook.sh</span>), containing the following text:
@@ -419,7 +412,7 @@ one.
 <p>
 <span class="codeblock">
 #!/bin/sh
-prog=(/usr/local/bin/synergyc -n $(hostname -s) --camp <span class="arg">ip-address-of-server</span>)
+prog=(/usr/local/bin/synergyc -n $(hostname -s) <span class="arg">ip-address-of-server</span>)
 &nbsp;
 ### Stop any currently running Synergy client
 killall ${prog[0]##*/}
@@ -428,17 +421,23 @@ killall ${prog[0]##*/}
 exec "${prog[@]}"
 </span>
 </li>
-</p>
-<p>
+<li>
+  Make this script executable:
+  <span class="userinput">
+  # chmod 755 /Library/LoginWindow/LoginHook.sh
+  </span>
+</li>
 <li>
   Create a login hook to call the script you just created:
   <span class="userinput">
-  # defaults write /Library/Preferences/com.apple.loginwindow \
-    LoginHook /Library/LoginWindow/LoginHook.sh
+  # defaults&nbsp;write&nbsp;com.apple.loginwindow&nbsp;LoginHook&nbsp;/Library/LoginWindow/LoginHook.sh
   </span>
-  You can instead type the above all on one line but remove the backslash.
 </li>
 </ul>
+</p>
+<p>
+More information on setting up login hooks can be found at
+<a href="http://docs.info.apple.com/article.html?artnum=301446">Apple</a>.
 </p>
 <p>
 When running the Synergy client, you may need to use the IP
@@ -451,7 +450,7 @@ quit if it cannot resolve the server name.
 </p>
 <p>
 (This is not an issue with the previous method, because the
-<span class="code">StartupItems.plist</span> file specifies that this
+<span class="code">StartupParameters.plist</span> file specifies that this
 script should not be run until "network" is available).
 </p>
 <p>

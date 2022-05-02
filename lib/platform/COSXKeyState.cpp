@@ -195,6 +195,13 @@ COSXKeyState::fakeCtrlAltDel()
 	return false;
 }
 
+KeyModifierMask
+COSXKeyState::pollActiveModifiers() const
+{
+	// XXX
+	return 0;
+}
+
 const char*
 COSXKeyState::getKeyName(KeyButton button) const
 {

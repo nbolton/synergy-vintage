@@ -74,6 +74,8 @@ public:
 	virtual bool		isKeyDown(KeyButton) const;
 	virtual KeyModifierMask
 						getActiveModifiers() const;
+	virtual KeyModifierMask
+						pollActiveModifiers() const = 0;
 	virtual const char*	getKeyName(KeyButton) const = 0;
 
 protected:

@@ -58,6 +58,7 @@ static const OptionID	kOptionScreenSwitchTwoTap     = OPTION_CODE("SSTT");
 static const OptionID	kOptionScreenSaverSync        = OPTION_CODE("SSVR");
 static const OptionID	kOptionXTestXineramaUnaware   = OPTION_CODE("XTXU");
 static const OptionID	kOptionRelativeMouseMoves     = OPTION_CODE("MDLT");
+static const OptionID	kOptionWin32KeepForeground    = OPTION_CODE("_KFW");
 //@}
 
 //! @name Screen switch corner enumeration

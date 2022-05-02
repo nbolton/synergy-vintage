@@ -13,11 +13,10 @@
  */
 
 #import "COSXScreenSaver.h"
-#import "OSXScreenSaverControl.h"
+#import "COSXScreenSaverUtil.h"
 #import "CLog.h"
 #import "IEventQueue.h"
 #import "IPrimaryScreen.h"
-#import <Foundation/NSAutoreleasePool.h>
 #import <string.h>
 
 //
@@ -28,8 +27,8 @@ COSXScreenSaver::COSXScreenSaver(void* eventTarget) :
 	m_eventTarget(eventTarget),
 	m_enabled(true)
 {
-	m_autoReleasePool       = [[NSAutoreleasePool alloc] init];
-	m_screenSaverController = [[ScreenSaverController controller] retain];
+	m_autoReleasePool       = screenSaverUtilCreatePool();
+	m_screenSaverController = screenSaverUtilCreateController();
 
 	// install launch/termination event handlers
 	EventTypeSpec launchEventTypes[2];
@@ -76,41 +75,40 @@ COSXScreenSaver::COSXScreenSaver(void* eventTarget) :
 COSXScreenSaver::~COSXScreenSaver()
 {
 	RemoveEventHandler(m_launchTerminationEventHandlerRef);
-	[(NSAutoreleasePool*)m_autoReleasePool release];
+//	screenSaverUtilReleaseController(m_screenSaverController);
+	screenSaverUtilReleasePool(m_autoReleasePool);
 }
 
 void
 COSXScreenSaver::enable()
 {
 	m_enabled = true;
-	[(ScreenSaverController*)m_screenSaverController setScreenSaverCanRun:m_enabled];
+	screenSaverUtilEnable(m_screenSaverController);
 }
 
 void
 COSXScreenSaver::disable()
 {
 	m_enabled = false;
-	[(ScreenSaverController*)m_screenSaverController setScreenSaverCanRun:m_enabled];
+	screenSaverUtilDisable(m_screenSaverController);
 }
 
 void
 COSXScreenSaver::activate()
 {
-	[(ScreenSaverController*)m_screenSaverController setScreenSaverCanRun:YES];
-	[(ScreenSaverController*)m_screenSaverController screenSaverStartNow];
+	screenSaverUtilActivate(m_screenSaverController);
 }
 
 void
 COSXScreenSaver::deactivate()
 {
-	[(ScreenSaverController*)m_screenSaverController screenSaverStopNow];
-	[(ScreenSaverController*)m_screenSaverController setScreenSaverCanRun:m_enabled];
+	screenSaverUtilDeactivate(m_screenSaverController, m_enabled);
 }
 
 bool
 COSXScreenSaver::isActive() const
 {
-	return [(ScreenSaverController*)m_screenSaverController screenSaverIsRunning];
+	return (screenSaverUtilIsActive(m_screenSaverController) != 0);
 }
 
 void
