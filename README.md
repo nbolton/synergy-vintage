@@ -28,7 +28,7 @@ These two versions are compatible (they work with eachother fine).
 The build machine for Windows is Windows 98, but the download will 
 probably work on Windows 95, Windows ME, and possibly Windows 2000.
 For the Mac OS X download, the build machine is Mac OS X Panther 10.3,
-and the download may work on similar versions (e.g. 10.2 and 10.4).
+the download works on 10.4 and may work on similar versions (e.g. 10.2).
 
 ## History
 
