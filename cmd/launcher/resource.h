@@ -44,6 +44,7 @@
 #define IDS_ERROR_CODE                  39
 #define IDS_AUTOSTART_PERMISSION_ALL    40
 #define IDS_INVALID_INTERFACE_NAME      41
+#define IDS_INVALID_CORNER_SIZE         42
 #define IDD_MAIN                        101
 #define IDD_ADD                         102
 #define IDD_WAIT                        103
@@ -105,6 +106,11 @@
 #define IDC_GLOBAL_SCREENSAVER_SYNC     1047
 #define IDC_GLOBAL_RELATIVE_MOVES       1048
 #define IDC_ADVANCED_DEFAULTS           1049
+#define IDC_ADD_DC_SIZE                 1052
+#define IDC_ADD_DC_TOP_LEFT             1053
+#define IDC_ADD_DC_TOP_RIGHT            1054
+#define IDC_ADD_DC_BOTTOM_LEFT          1055
+#define IDC_ADD_DC_BOTTOM_RIGHT         1056
 
 // Next default values for new objects
 // 
@@ -113,7 +119,7 @@
 #define _APS_NO_MFC                     1
 #define _APS_NEXT_RESOURCE_VALUE        110
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1052
+#define _APS_NEXT_CONTROL_VALUE         1057
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

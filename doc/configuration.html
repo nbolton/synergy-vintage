@@ -103,9 +103,17 @@ A screen can have the following options:
 <p>
         This is identical to <span class="code">halfDuplexCapsLock</span>
         except it applies to the Scroll Lock key.  Note that synergy uses
-		Scroll Lock to keep the cursor on the current screen.  That is,
-		when Scroll Lock is toggled on, the cursor is locked to the screen
-		that it's currently on.  Use it to prevent accidental switching.
+	Scroll Lock to keep the cursor on the current screen.  That is,
+	when Scroll Lock is toggled on, the cursor is locked to the screen
+	that it's currently on.  Use it to prevent accidental switching.
+</p>
+<li><span class="code">switchCorners = &lt;corners&gt;</span>
+<p>
+	See <a href="#corners">switchCorners</a> below.
+</p>
+<li><span class="code">switchCornerSize = N</span>
+<p>
+	See <a href="#cornerSize">switchCornerSize</a> below.
 </p>
 <li><span class="code">xtestIsXineramaUnaware = {true|false}</span>
 <p>
@@ -237,6 +245,46 @@ A screen can have the following options:
         If synergy fails to detect clients disconnecting while
         the server is sleeping or vice versa, try using this
         option.
+</p>
+<li><span class="code"><a name="corners"></a>switchCorners = &lt;corners&gt;</span>
+<p>
+	Synergy won't switch screens when the mouse reaches the edge of
+	the screen if it's in a listed corner.  The size of all corners
+	is given by the <span class="code">switchCornerSize</span>
+	option.
+</p>
+<p>
+	Corners are specified by a list using the following names:
+	<ul>
+	<li><span class="code">none</span> -- no corners
+	<li><span class="code">top-left</span> -- the top left corner
+	<li><span class="code">top-right</span> -- the top right corner
+	<li><span class="code">bottom-left</span> -- the bottom left corner
+	<li><span class="code">bottom-right</span> -- the bottom right corner
+	<li><span class="code">left</span> -- top and bottom left corners
+	<li><span class="code">right</span> -- top and bottom right corners
+	<li><span class="code">top</span> -- left and right top corners
+	<li><span class="code">bottom</span> -- left and right bottom corners
+	<li><span class="code">all</span> -- all corners
+	</ul>
+</p>
+<p>
+	The first name in the list is one of the above names and defines
+	the initial set of corners.  Subsequent names are prefixed with
+	+ or - to add the corner to or remove the corner from the set,
+	respectively.  For example:
+	<pre>
+		all -left +top-left
+	</pre>
+	starts will all corners, removes the left corners (top and bottom)
+	then adds the top-left back in, resulting in the top-left,
+	bottom-left and bottom-right corners.
+</p>
+<li><span class="code"><a name="cornerSize"></a>switchCornerSize = N</span>
+<p>
+	Sets the size of all corners in pixels.  The cursor must be within
+	<span class="code">N</span> pixels of the corner to be considered
+	to be in the corner.
 </p>
 <li><span class="code">switchDelay = N</span>
 <p>

@@ -1496,6 +1496,7 @@ CMSWindowsKeyState::mapVirtKeyToButton(UINT virtualKey,
 	// keys since MapVirtualKey(N, 3) is unimplemented.
 	switch (virtualKey) {
 	case VK_CANCEL:
+	case VK_KANJI:
 	case VK_LWIN:
 	case VK_RWIN:
 	case VK_APPS:

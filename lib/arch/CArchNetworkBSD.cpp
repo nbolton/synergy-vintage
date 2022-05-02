@@ -322,7 +322,7 @@ CArchNetworkBSD::pollSocket(CPollEntry pe[], int num, double timeout)
 	n = poll(pfd, n, t);
 
 	// reset the unblock pipe
-	if (unblockPipe != NULL && (pfd[num].revents & POLLIN) != 0) {
+	if (n > 0 && unblockPipe != NULL && (pfd[num].revents & POLLIN) != 0) {
 		// the unblock event was signalled.  flush the pipe.
 		char dummy[100];
 		do {
@@ -452,7 +452,7 @@ CArchNetworkBSD::pollSocket(CPollEntry pe[], int num, double timeout)
 				SELECT_TYPE_ARG5   timeout2P);
 
 	// reset the unblock pipe
-	if (unblockPipe != NULL && FD_ISSET(unblockPipe[0], &readSet)) {
+	if (n > 0 && unblockPipe != NULL && FD_ISSET(unblockPipe[0], &readSet)) {
 		// the unblock event was signalled.  flush the pipe.
 		char dummy[100];
 		do {
@@ -587,6 +587,29 @@ CArchNetworkBSD::setNoDelayOnSocket(CArchSocket s, bool noDelay)
 	int flag = noDelay ? 1 : 0;
 	size     = sizeof(flag);
 	if (setsockopt(s->m_fd, IPPROTO_TCP, TCP_NODELAY,
+							(optval_t*)&flag, size) == -1) {
+		throwError(errno);
+	}
+
+	return (oflag != 0);
+}
+
+bool
+CArchNetworkBSD::setReuseAddrOnSocket(CArchSocket s, bool reuse)
+{
+	assert(s != NULL);
+
+	// get old state
+	int oflag;
+	socklen_t size = sizeof(oflag);
+	if (getsockopt(s->m_fd, SOL_SOCKET, SO_REUSEADDR,
+							(optval_t*)&oflag, &size) == -1) {
+		throwError(errno);
+	}
+
+	int flag = reuse ? 1 : 0;
+	size     = sizeof(flag);
+	if (setsockopt(s->m_fd, SOL_SOCKET, SO_REUSEADDR,
 							(optval_t*)&flag, size) == -1) {
 		throwError(errno);
 	}

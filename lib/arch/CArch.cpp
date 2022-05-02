@@ -488,6 +488,12 @@ CArch::setNoDelayOnSocket(CArchSocket s, bool noDelay)
 	return m_net->setNoDelayOnSocket(s, noDelay);
 }
 
+bool
+CArch::setReuseAddrOnSocket(CArchSocket s, bool reuse)
+{
+	return m_net->setReuseAddrOnSocket(s, reuse);
+}
+
 std::string
 CArch::getHostName()
 {

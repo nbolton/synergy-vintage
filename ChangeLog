@@ -1,3 +1,201 @@
+2005/07/26 21:37:41 crs
+lib/common/Version.h
+
+Changed version to 1.2.3.
+
+----------
+2005/07/26 21:37:27 crs
+lib/platform/CMSWindowsDesks.cpp
+lib/platform/CMSWindowsDesks.h
+
+Now disabling the win32 foreground window on the server when
+leaving the server screen.  This prevents the system from
+messing up keyboard events.  The console (command prompt) and
+remote desktop are known to interfere with the shift key when
+they have the focus.  This introduces a bug where the window
+that was the foreground is raised to the top of the stacking
+order when the cursor enters the server screen.  This should
+only be a problem for Mouse-X (activation follows mouse) users.
+I don't know how Mouse-X changes the foreground/active window
+without raising it;  if I did I'd fix this bug.
+
+----------
+2005/07/26 21:24:13 crs
+doc/configuration.html
+
+Fixed typo in documentation.
+
+----------
+2005/07/26 19:58:37 crs
+cmd/launcher/launcher.cpp
+
+Now defaulting to WARNING as the default debug level on win32.
+This is a workaround for NOTE and higher always popping up the
+command window, which can't be hidden or closed.  When the
+user clicks 'Test', the debug level is forced to be at least
+INFO to workaround this workaround.  Future versions will do
+away with the command window altogether so this weirdness isn't
+too much of a problem.
+
+----------
+2005/07/26 19:50:44 crs
+doc/faq.html
+doc/tips.html
+
+Improved documentation of how to get ctrl+alt+pause working on
+Windows NT,2k,XP.
+
+----------
+2005/07/21 21:25:51 crs
+lib/common/common.h
+
+Forcing use of select() rather than poll() on OS X.  Wasn't
+getting a read event on a socket when the remote side closed
+down when using poll().  Probably a bug in synergy code but
+I couldn't find it.
+
+----------
+2005/07/21 21:24:28 crs
+lib/arch/CArchNetworkBSD.cpp
+
+Fixed "resource temporarily unavailable" exception on OS X when
+using the unblock pipe.
+
+----------
+2005/07/20 22:09:05 crs
+cmd/launcher/launcher.cpp
+cmd/launcher/launcher.rc
+cmd/launcher/resource.h
+cmd/synergys/synergys.cpp
+doc/configuration.html
+lib/client/CClient.cpp
+lib/server/CConfig.cpp
+lib/server/CConfig.h
+lib/server/CServer.cpp
+lib/server/CServer.h
+lib/synergy/OptionTypes.h
+
+Added "dead" corners support.  The cursor can't switch screens
+from a dead corner.
+
+----------
+2005/07/19 20:43:51 crs
+lib/platform/COSXKeyState.cpp
+lib/platform/COSXKeyState.h
+
+Applied patch (from Lorenz Schori) to fix getting the keyboard
+layout.  It previously was failing for non-Apple keyboards.
+
+----------
+2005/07/19 20:23:29 crs
+lib/platform/COSXKeyState.cpp
+
+Replaced NULL with 0 in arithmetic expression.
+
+----------
+2005/05/08 11:40:26 crs
+lib/platform/CMSWindowsKeyState.cpp
+
+Applied patch 1113363 to support the kanji key on win32.
+
+----------
+2005/05/08 11:08:12 crs
+lib/arch/CArch.cpp
+lib/arch/CArch.h
+lib/arch/CArchNetworkBSD.cpp
+lib/arch/CArchNetworkBSD.h
+lib/arch/CArchNetworkWinsock.cpp
+lib/arch/CArchNetworkWinsock.h
+lib/arch/IArchNetwork.h
+lib/net/CTCPListenSocket.cpp
+
+Added support for SO_REUSEADDR.  It is always enabled.
+
+----------
+2005/05/08 11:00:42 crs
+cmd/synergys/synergys.cpp
+
+Fixed bug in retrying to initialize or start the server.  Was
+waiting the retry interval then doing nothing.
+
+----------
+2005/04/29 21:27:10 crs
+lib/common/common.h
+lib/platform/COSXScreen.cpp
+synergy.xcode/project.pbxproj
+
+A few OSX build fixes.
+
+----------
+2005/04/28 22:05:51 crs
+lib/common/common.h
+
+Now setting HAVE_SOCKLEN_T to 1 when on OSX and _SOCKLEN_T is
+defined and HAVE_CONFIG_H isn't is set.
+
+----------
+2005/04/28 22:04:23 crs
+cmd/synergyc/Makefile.am
+cmd/synergys/Makefile.am
+configure.in
+lib/arch/Makefile.am
+lib/platform/Makefile.am
+
+Added support for MACOSX_DEPLOYMENT_TARGET.  It's set to 10.2.
+
+----------
+2005/04/28 22:02:47 crs
+cmd/synergys/synergys.cpp
+lib/client/CClient.cpp
+
+Now reporting sleep suspend/resume at INFO level.
+
+----------
+2005/04/25 22:12:04 crs
+cmd/synergyc/Makefile.am
+cmd/synergyc/synergyc.cpp
+cmd/synergys/Makefile.am
+cmd/synergys/synergys.cpp
+configure.in
+lib/base/CEvent.cpp
+lib/base/CEvent.h
+lib/base/CEventQueue.cpp
+lib/client/CClient.cpp
+lib/client/CClient.h
+lib/platform/CMSWindowsScreen.cpp
+lib/platform/CMSWindowsScreen.h
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+lib/platform/COSXScreenSaver.cpp
+lib/platform/COSXScreenSaver.h
+lib/platform/COSXScreenSaver.mm
+lib/platform/Makefile.am
+lib/platform/OSXScreenSaverControl.h
+lib/server/CServer.cpp
+lib/synergy/IScreen.cpp
+lib/synergy/IScreen.h
+synergy.xcode/project.pbxproj
+
+Added support on OS X for screensaver synchronization,
+sleeping and fast user switching.  OS X Server also now
+captures global hot keys (cmd+tab, F9, etc.) and sends them
+to the client.  Changes mostly due to lorenz schori.  Some
+bug fixes (in lorenz's code and in synergy) and integration
+into automake by crs (had to add support for Objective C++
+files) and the XCode project.
+
+This change also adds flags to events.  Flags can cause events
+to be dispatched immediately and to not free event data.  Both
+features are used in the new code.
+
+This change adds events on IScreen for notification of the
+system going to sleep or waking up (or the user's session
+being somehow suspended and restored).  CClient and synergys
+now listen for and respond to these events.  CMSWindowsScreen
+used to use IJobs for handling these events synchronously.  It
+now uses the new IScreen events and delivers them immediately.
+
+----------
 2005/01/26 18:45:45 crs
 lib/common/Version.h
 

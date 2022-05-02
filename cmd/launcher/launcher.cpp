@@ -84,7 +84,8 @@ static const char* s_debugName[][2] = {
 	{ TEXT("Debug1"),  "DEBUG1" },
 	{ TEXT("Debug2"),  "DEBUG2" }
 };
-static const int s_defaultDebug = 3;	// INFO
+static const int s_defaultDebug = 1;	// WARNING
+static const int s_minTestDebug = 3;	// INFO
 
 HINSTANCE s_instance = NULL;
 
@@ -549,8 +550,16 @@ getCommandLine(HWND hwnd, bool testing)
 
 	// debug level.  always include this.
 	if (true) {
-		HWND child  = getItem(hwnd, IDC_MAIN_DEBUG);
-		DWORD debug = SendMessage(child, CB_GETCURSEL, 0, 0);
+		HWND child = getItem(hwnd, IDC_MAIN_DEBUG);
+		int debug  = (int)SendMessage(child, CB_GETCURSEL, 0, 0);
+
+		// if testing then we force the debug level to be no less than
+		// s_minTestDebug.   what's the point of testing if you can't
+		// see the debugging info?
+		if (testing && debug < s_minTestDebug) {
+			debug = s_minTestDebug;
+		}
+
 		cmdLine    += " --debug ";
 		cmdLine    += s_debugName[debug][1];
 	}
@@ -857,6 +866,30 @@ addDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			SendMessage(child, CB_SETCURSEL, id - baseModifier, 0);
 		}
 
+		// dead corners
+		UInt32 corners = 0;
+		index = info->m_options.find(kOptionScreenSwitchCorners);
+		if (index != info->m_options.end()) {
+			corners = index->second;
+		}
+		child = getItem(hwnd, IDC_ADD_DC_TOP_LEFT);
+		setItemChecked(child, (corners & kTopLeftMask) != 0);
+		child = getItem(hwnd, IDC_ADD_DC_TOP_RIGHT);
+		setItemChecked(child, (corners & kTopRightMask) != 0);
+		child = getItem(hwnd, IDC_ADD_DC_BOTTOM_LEFT);
+		setItemChecked(child, (corners & kBottomLeftMask) != 0);
+		child = getItem(hwnd, IDC_ADD_DC_BOTTOM_RIGHT);
+		setItemChecked(child, (corners & kBottomRightMask) != 0);
+		index = info->m_options.find(kOptionScreenSwitchCornerSize);
+		SInt32 size = 0;
+		if (index != info->m_options.end()) {
+			size = index->second;
+		}
+		char buffer[20];
+		sprintf(buffer, "%d", size);
+		child = getItem(hwnd, IDC_ADD_DC_SIZE);
+		SendMessage(child, WM_SETTEXT, 0, (LPARAM)buffer);
+
 		return TRUE;
 	}
 
@@ -925,6 +958,18 @@ addDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 			}
 
+			// dead corner size must be non-negative
+			child = getItem(hwnd, IDC_ADD_DC_SIZE);
+			CString valueString = getWindowText(child);
+			int cornerSize = atoi(valueString.c_str());
+			if (cornerSize < 0) {
+				showError(hwnd, CStringUtil::format(
+									getString(IDS_INVALID_CORNER_SIZE).c_str(),
+									valueString.c_str()));
+				SetFocus(child);
+				return TRUE;
+			}
+
 			// save name data
 			info->m_screen  = newName;
 			info->m_aliases = newAliases;
@@ -966,6 +1011,23 @@ addDlgProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 					info->m_options.erase(s_modifiers[i].m_optionID);
 				}
 			}
+
+			// save dead corner options
+			UInt32 corners = 0;
+			if (isItemChecked(getItem(hwnd, IDC_ADD_DC_TOP_LEFT))) {
+				corners |= kTopLeftMask;
+			}
+			if (isItemChecked(getItem(hwnd, IDC_ADD_DC_TOP_RIGHT))) {
+				corners |= kTopRightMask;
+			}
+			if (isItemChecked(getItem(hwnd, IDC_ADD_DC_BOTTOM_LEFT))) {
+				corners |= kBottomLeftMask;
+			}
+			if (isItemChecked(getItem(hwnd, IDC_ADD_DC_BOTTOM_RIGHT))) {
+				corners |= kBottomRightMask;
+			}
+			info->m_options[kOptionScreenSwitchCorners]    = corners;
+			info->m_options[kOptionScreenSwitchCornerSize] = cornerSize;
 
 			// success
 			EndDialog(hwnd, 1);

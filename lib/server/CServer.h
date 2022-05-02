@@ -148,7 +148,7 @@ private:
 	// options like switch delay and tracking any state required to
 	// implement them.  returns true iff a switch is permitted.
 	bool				isSwitchOkay(IClient* dst, EDirection,
-							SInt32 x, SInt32 y);
+							SInt32 x, SInt32 y, SInt32 xActive, SInt32 yActive);
 
 	// update switch state due to a mouse move at \p x, \p y that
 	// doesn't switch screens.
@@ -180,6 +180,11 @@ private:
 
 	// returns true iff the delay switch timer is started
 	bool				isSwitchWaitStarted() const;
+
+	// returns the corner (EScreenSwitchCornerMasks) where x,y is on the
+	// given client.  corners have the given size.
+	UInt32				getCorner(IClient*,
+							SInt32 x, SInt32 y, SInt32 size) const;
 
 	// stop relative mouse moves
 	void				stopRelativeMoves();

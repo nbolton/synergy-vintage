@@ -565,9 +565,21 @@ CMSWindowsDesks::deskEnter(CDesk* desk)
 							SWP_NOMOVE | SWP_NOSIZE |
 							SWP_NOACTIVATE | SWP_HIDEWINDOW);
 
-	// this is here only because of the "ConsoleWindowClass" stuff in
-	// deskLeave.
+	// restore the foreground window
+	// XXX -- this raises the window to the top of the Z-order.  we
+	// want it to stay wherever it was to properly support X-mouse
+	// (mouse over activation) but i've no idea how to do that.
+	// the obvious workaround of using SetWindowPos() to move it back
+	// after being raised doesn't work.
+	DWORD thisThread =
+		GetWindowThreadProcessId(desk->m_window, NULL);
+	DWORD thatThread =
+		GetWindowThreadProcessId(desk->m_foregroundWindow, NULL);
+	AttachThreadInput(thatThread, thisThread, TRUE);
+	SetForegroundWindow(desk->m_foregroundWindow);
+	AttachThreadInput(thatThread, thisThread, FALSE);
 	EnableWindow(desk->m_window, desk->m_lowLevel ? FALSE : TRUE);
+	desk->m_foregroundWindow = NULL;
 }
 
 void
@@ -610,39 +622,25 @@ CMSWindowsDesks::deskLeave(CDesk* desk, HKL keyLayout)
 			SetActiveWindow(desk->m_window);
 		}
 
-		// if the active window is a console then activate our window.
-		// we do this because for some reason our hook reports unshifted
-		// characters when the shift is down and a console window is
-		// active.  interestingly we do see the shift key go down and up.
+		// if using low-level hooks then disable the foreground window
+		// so it can't mess up any of our keyboard events.  the console
+		// program, for example, will cause characters to be reported as
+		// unshifted, regardless of the shift key state.  interestingly
+		// we do see the shift key go down and up.
+		//
 		// note that we must enable the window to activate it and we
 		// need to disable the window on deskEnter.
-		// FIXME -- figure out the real problem here and solve it.
 		else {
-			HWND foreground = GetForegroundWindow();
-			if (foreground != NULL) {
-				char className[40];
-				if (GetClassName(foreground, className,
-								sizeof(className) / sizeof(className[0])) &&
-					strcmp(className, "ConsoleWindowClass") == 0) {
-					EnableWindow(desk->m_window, TRUE);
-					SetActiveWindow(desk->m_window);
-
-					// force our window to the foreground.  we can't
-					// simply call SetForegroundWindow() because that
-					// will only alert the user that the window wants
-					// to be the foreground as of windows 98/2000.  we
-					// have to attach to the thread of the current
-					// foreground window then call it on our window
-					// and finally detach the threads.
-					DWORD thisThread =
-						GetWindowThreadProcessId(desk->m_window, NULL);
-					DWORD thatThread =
-						GetWindowThreadProcessId(foreground, NULL);
-					AttachThreadInput(thatThread, thisThread, TRUE);
-					SetForegroundWindow(desk->m_window);
-					AttachThreadInput(thatThread, thisThread, FALSE);
-				}
-			}
+			desk->m_foregroundWindow = GetForegroundWindow();
+			EnableWindow(desk->m_window, TRUE);
+			SetActiveWindow(desk->m_window);
+			DWORD thisThread =
+				GetWindowThreadProcessId(desk->m_window, NULL);
+			DWORD thatThread =
+				GetWindowThreadProcessId(desk->m_foregroundWindow, NULL);
+			AttachThreadInput(thatThread, thisThread, TRUE);
+			SetForegroundWindow(desk->m_window);
+			AttachThreadInput(thatThread, thisThread, FALSE);
 		}
 
 		// switch to requested keyboard layout
@@ -671,9 +669,10 @@ CMSWindowsDesks::deskThread(void* vdesk)
 	MSG msg;
 
 	// use given desktop for this thread
-	CDesk* desk      = reinterpret_cast<CDesk*>(vdesk);
-	desk->m_threadID = GetCurrentThreadId();
-	desk->m_window   = NULL;
+	CDesk* desk              = reinterpret_cast<CDesk*>(vdesk);
+	desk->m_threadID         = GetCurrentThreadId();
+	desk->m_window           = NULL;
+	desk->m_foregroundWindow = NULL;
 	if (desk->m_desk != NULL && SetThreadDesktop(desk->m_desk) != 0) {
 		// create a message queue
 		PeekMessage(&msg, NULL, 0,0, PM_NOREMOVE);

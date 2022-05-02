@@ -18,13 +18,37 @@
 #include "COSXKeyState.h"
 #include "COSXScreenSaver.h"
 #include "CClipboard.h"
+#include "CCondVar.h"
+#include "CLock.h"
+#include "CMutex.h"
+#include "CThread.h"
 #include "CLog.h"
 #include "IEventQueue.h"
 #include "TMethodEventJob.h"
+#include "TMethodJob.h"
+#include "XArch.h"
+
+#include <mach-o/dyld.h>
+#include <AvailabilityMacros.h>
+
+// Set some enums for fast user switching if we're building with an SDK
+// from before such support was added.
+#if !defined(MAC_OS_X_VERSION_10_3) || \
+	(MAC_OS_X_VERSION_MAX_ALLOWED < MAC_OS_X_VERSION_10_3)
+enum {
+	kEventClassSystem                  = 'macs',
+	kEventSystemUserSessionActivated   = 10,
+	kEventSystemUserSessionDeactivated = 11
+};
+#endif
 
 //
 // COSXScreen
 //
+
+bool					COSXScreen::s_testedForGHOM     = false;
+bool					COSXScreen::s_hasGHOM           = false;
+CEvent::Type			COSXScreen::s_confirmSleepEvent = CEvent::kUnknown;
 
 COSXScreen::COSXScreen(bool isPrimary) :
 	m_isPrimary(isPrimary),
@@ -38,13 +62,17 @@ COSXScreen::COSXScreen(bool isPrimary) :
 	m_ownClipboard(false),
 	m_hiddenWindow(NULL),
 	m_userInputWindow(NULL),
-	m_displayManagerNotificationUPP(NULL)
+	m_displayManagerNotificationUPP(NULL),
+	m_switchEventHandlerRef(0),
+	m_pmMutex(new CMutex),
+	m_pmWatchThread(NULL),
+	m_pmThreadReady(new CCondVar<bool>(m_pmMutex, false))
 {
 	try {
-		m_displayID = CGMainDisplayID();
+		m_displayID   = CGMainDisplayID();
 		updateScreenShape();
-		m_screensaver = new COSXScreenSaver();
-		m_keyState    = new COSXKeyState();
+		m_screensaver = new COSXScreenSaver(getEventTarget());
+		m_keyState	  = new COSXKeyState();
 
 		if (m_isPrimary) {
 			// 1x1 window (to minimze the back buffer allocated for this
@@ -81,17 +109,47 @@ COSXScreen::COSXScreen(bool isPrimary) :
 			SetWindowAlpha(m_userInputWindow, 0);
 		}
 		
+		// install display manager notification handler
 		m_displayManagerNotificationUPP =
 			NewDMExtendedNotificationUPP(displayManagerCallback);
-
 		OSStatus err = GetCurrentProcess(&m_PSN);
-
 		err = DMRegisterExtendedNotifyProc(m_displayManagerNotificationUPP,
 							this, 0, &m_PSN);
+
+		// install fast user switching event handler
+		EventTypeSpec switchEventTypes[2];
+		switchEventTypes[0].eventClass = kEventClassSystem;
+		switchEventTypes[0].eventKind  = kEventSystemUserSessionDeactivated;
+		switchEventTypes[1].eventClass = kEventClassSystem;
+		switchEventTypes[1].eventKind  = kEventSystemUserSessionActivated;
+		EventHandlerUPP switchEventHandler =
+			NewEventHandlerUPP(userSwitchCallback);
+		InstallApplicationEventHandler(switchEventHandler, 2, switchEventTypes,
+									   this, &m_switchEventHandlerRef);
+		DisposeEventHandlerUPP(switchEventHandler);
+
+		// watch for requests to sleep
+		EVENTQUEUE->adoptHandler(COSXScreen::getConfirmSleepEvent(),
+								getEventTarget(),
+								new TMethodEventJob<COSXScreen>(this,
+									&COSXScreen::handleConfirmSleep));
+
+		// create thread for monitoring system power state.
+		LOG((CLOG_DEBUG "starting watchSystemPowerThread"));
+		m_pmWatchThread = new CThread(new TMethodJob<COSXScreen>
+								(this, &COSXScreen::watchSystemPowerThread));
 	}
 	catch (...) {
-		DMRemoveExtendedNotifyProc(m_displayManagerNotificationUPP,
+		EVENTQUEUE->removeHandler(COSXScreen::getConfirmSleepEvent(),
+								getEventTarget());
+		if (m_switchEventHandlerRef != 0) {
+			RemoveEventHandler(m_switchEventHandlerRef);
+		}
+		if (m_displayManagerNotificationUPP != NULL) {
+			DMRemoveExtendedNotifyProc(m_displayManagerNotificationUPP,
 							NULL, &m_PSN, 0);
+		}
+
 		if (m_hiddenWindow) {
 			ReleaseWindow(m_hiddenWindow);
 			m_hiddenWindow = NULL;
@@ -121,6 +179,33 @@ COSXScreen::~COSXScreen()
 	EVENTQUEUE->adoptBuffer(NULL);
 	EVENTQUEUE->removeHandler(CEvent::kSystem, IEventQueue::getSystemTarget());
 
+	if (m_pmWatchThread) {
+		// make sure the thread has setup the runloop.
+		{
+			CLock lock(m_pmMutex);
+			while (!(bool)*m_pmThreadReady) {
+				m_pmThreadReady->wait();
+			}
+		}
+
+		// now exit the thread's runloop and wait for it to exit
+		LOG((CLOG_DEBUG "stopping watchSystemPowerThread"));
+		CFRunLoopStop(m_pmRunloop);
+		m_pmWatchThread->wait();
+		delete m_pmWatchThread;
+		m_pmWatchThread = NULL;
+	}
+	delete m_pmThreadReady;
+	delete m_pmMutex;
+
+	EVENTQUEUE->removeHandler(COSXScreen::getConfirmSleepEvent(),
+								getEventTarget());
+
+	RemoveEventHandler(m_switchEventHandlerRef);
+
+	DMRemoveExtendedNotifyProc(m_displayManagerNotificationUPP,
+							NULL, &m_PSN, 0);
+
 	if (m_hiddenWindow) {
 		ReleaseWindow(m_hiddenWindow);
 		m_hiddenWindow = NULL;
@@ -131,9 +216,6 @@ COSXScreen::~COSXScreen()
 		m_userInputWindow = NULL;
 	}
 
-	DMRemoveExtendedNotifyProc(m_displayManagerNotificationUPP,
-							NULL, &m_PSN, 0);
-	
 	delete m_keyState;
 	delete m_screensaver;
 }
@@ -398,6 +480,9 @@ COSXScreen::enter()
 		SetMouseCoalescingEnabled(true, NULL);
 
 		CGSetLocalEventsSuppressionInterval(HUGE_VAL);
+
+		// enable global hotkeys
+		setGlobalHotKeysEnabled(true);
 	}
 	else {
 		// show cursor
@@ -440,6 +525,9 @@ COSXScreen::leave()
 		// to send it over to other machines.  So disable it.		
 		SetMouseCoalescingEnabled(false, NULL);
 		CGSetLocalEventsSuppressionInterval(0.0001);
+
+		// disable global hotkeys
+		setGlobalHotKeysEnabled(false);
 	}
 	else {
 		// hide cursor
@@ -681,7 +769,8 @@ COSXScreen::handleSystemEvent(const CEvent& event, void*)
 		}
 		break;
 
-	default: 
+	default:
+		SendEventToEventTarget(*carbonEvent, GetEventDispatcherTarget());
 		break;
 	}
 }
@@ -977,3 +1066,256 @@ COSXScreen::updateScreenShape()
 
 	LOG((CLOG_DEBUG "screen shape: %d,%d %dx%d on %u %s", m_x, m_y, m_w, m_h, displayCount, (displayCount == 1) ? "display" : "displays"));
 }
+
+#pragma mark - 
+
+//
+// FAST USER SWITCH NOTIFICATION SUPPORT
+//
+// COSXScreen::userSwitchCallback(void*)
+// 
+// gets called if a fast user switch occurs
+//
+
+pascal OSStatus
+COSXScreen::userSwitchCallback(EventHandlerCallRef nextHandler,
+								EventRef theEvent,
+								void* inUserData)
+{
+	COSXScreen* screen = (COSXScreen*)inUserData;
+	UInt32 kind        = GetEventKind(theEvent);
+
+	if (kind == kEventSystemUserSessionDeactivated) {
+		LOG((CLOG_DEBUG "user session deactivated"));
+		EVENTQUEUE->addEvent(CEvent(IScreen::getSuspendEvent(),
+									screen->getEventTarget()));
+	}
+	else if (kind == kEventSystemUserSessionActivated) {
+		LOG((CLOG_DEBUG "user session activated"));
+		EVENTQUEUE->addEvent(CEvent(IScreen::getResumeEvent(),
+									screen->getEventTarget()));
+	}
+	return (CallNextEventHandler(nextHandler, theEvent));
+}
+
+#pragma mark - 
+
+//
+// SLEEP/WAKEUP NOTIFICATION SUPPORT
+//
+// COSXScreen::watchSystemPowerThread(void*)
+// 
+// main of thread monitoring system power (sleep/wakup) using a CFRunLoop
+//
+
+void
+COSXScreen::watchSystemPowerThread(void*)
+{
+	io_object_t				notifier;
+	IONotificationPortRef	notificationPortRef;
+	CFRunLoopSourceRef		runloopSourceRef = 0;
+
+	m_pmRunloop = CFRunLoopGetCurrent();
+	
+	// install system power change callback
+	m_pmRootPort = IORegisterForSystemPower(this, &notificationPortRef,
+											powerChangeCallback, &notifier);
+	if (m_pmRootPort == 0) {
+		LOG((CLOG_WARN "IORegisterForSystemPower failed"));
+	}
+	else {
+		runloopSourceRef =
+			IONotificationPortGetRunLoopSource(notificationPortRef);
+		CFRunLoopAddSource(m_pmRunloop, runloopSourceRef,
+								kCFRunLoopCommonModes);
+	}
+	
+	// thread is ready
+	{
+		CLock lock(m_pmMutex);
+		*m_pmThreadReady = true;
+		m_pmThreadReady->signal();
+	}
+
+	// if we were unable to initialize then exit.  we must do this after
+	// setting m_pmThreadReady to true otherwise the parent thread will
+	// block waiting for it.
+	if (m_pmRootPort == 0) {
+		return;
+	}
+
+	// start the run loop
+	LOG((CLOG_DEBUG "started watchSystemPowerThread"));
+	CFRunLoopRun();
+	
+	// cleanup
+	if (notificationPortRef) {
+		CFRunLoopRemoveSource(m_pmRunloop,
+								runloopSourceRef, kCFRunLoopDefaultMode);
+		CFRunLoopSourceInvalidate(runloopSourceRef);
+		CFRelease(runloopSourceRef);
+	}
+
+	CLock lock(m_pmMutex);
+	IODeregisterForSystemPower(&notifier);
+	m_pmRootPort = 0;
+	LOG((CLOG_DEBUG "stopped watchSystemPowerThread"));
+}
+
+void
+COSXScreen::powerChangeCallback(void* refcon, io_service_t service,
+						  natural_t messageType, void* messageArg)
+{
+	((COSXScreen*)refcon)->handlePowerChangeRequest(messageType, messageArg);
+}
+
+void
+COSXScreen::handlePowerChangeRequest(natural_t messageType, void* messageArg)
+{
+	// we've received a power change notification
+	switch (messageType) {
+	case kIOMessageSystemWillSleep:
+		// COSXScreen has to handle this in the main thread so we have to
+		// queue a confirm sleep event here.  we actually don't allow the
+		// system to sleep until the event is handled.
+		EVENTQUEUE->addEvent(CEvent(COSXScreen::getConfirmSleepEvent(),
+								getEventTarget(), messageArg,
+								CEvent::kDontFreeData));
+		return;
+			
+	case kIOMessageSystemHasPoweredOn:
+		LOG((CLOG_DEBUG "system wakeup"));
+		EVENTQUEUE->addEvent(CEvent(IScreen::getResumeEvent(),
+								getEventTarget()));
+		break;
+
+	default:
+		break;
+	}
+
+	CLock lock(m_pmMutex);
+	if (m_pmRootPort != 0) {
+		IOAllowPowerChange(m_pmRootPort, (long)messageArg);
+	}
+}
+
+CEvent::Type
+COSXScreen::getConfirmSleepEvent()
+{
+	return CEvent::registerTypeOnce(s_confirmSleepEvent,
+									"COSXScreen::confirmSleep");
+}
+
+void
+COSXScreen::handleConfirmSleep(const CEvent& event, void*)
+{
+	long messageArg = (long)event.getData();
+	if (messageArg != 0) {
+		CLock lock(m_pmMutex);
+		if (m_pmRootPort != 0) {
+			// deliver suspend event immediately.
+			EVENTQUEUE->addEvent(CEvent(IScreen::getSuspendEvent(),
+									getEventTarget(), NULL, 
+									CEvent::kDeliverImmediately));
+	
+			LOG((CLOG_DEBUG "system will sleep"));
+			IOAllowPowerChange(m_pmRootPort, messageArg);
+		}
+	}
+}
+
+#pragma mark - 
+
+//
+// GLOBAL HOTKEY OPERATING MODE SUPPORT (10.3)
+//
+// CoreGraphics private API (OSX 10.3)
+// Source: http://ichiro.nnip.org/osx/Cocoa/GlobalHotkey.html
+//
+// We load the functions dynamically because they're not available in
+// older SDKs.  We don't use weak linking because we want users of
+// older SDKs to build an app that works on newer systems and older
+// SDKs will not provide the symbols.
+//
+
+#ifdef	__cplusplus
+extern "C" {
+#endif
+
+typedef int CGSConnection;
+typedef enum {
+	CGSGlobalHotKeyEnable = 0,
+	CGSGlobalHotKeyDisable = 1,
+} CGSGlobalHotKeyOperatingMode;
+
+extern CGSConnection _CGSDefaultConnection(void) WEAK_IMPORT_ATTRIBUTE;
+extern CGError CGSGetGlobalHotKeyOperatingMode(CGSConnection connection, CGSGlobalHotKeyOperatingMode *mode) WEAK_IMPORT_ATTRIBUTE;
+extern CGError CGSSetGlobalHotKeyOperatingMode(CGSConnection connection, CGSGlobalHotKeyOperatingMode mode) WEAK_IMPORT_ATTRIBUTE;
+
+typedef CGSConnection (*_CGSDefaultConnection_t)(void);
+typedef CGError (*CGSGetGlobalHotKeyOperatingMode_t)(CGSConnection connection, CGSGlobalHotKeyOperatingMode *mode);
+typedef CGError (*CGSSetGlobalHotKeyOperatingMode_t)(CGSConnection connection, CGSGlobalHotKeyOperatingMode mode);
+
+static _CGSDefaultConnection_t				s__CGSDefaultConnection;
+static CGSGetGlobalHotKeyOperatingMode_t	s_CGSGetGlobalHotKeyOperatingMode;
+static CGSSetGlobalHotKeyOperatingMode_t	s_CGSSetGlobalHotKeyOperatingMode;
+
+#ifdef	__cplusplus
+}
+#endif
+
+#define LOOKUP(name_)													\
+	s_ ## name_ = NULL;													\
+	if (NSIsSymbolNameDefinedWithHint("_" #name_, "CoreGraphics")) {	\
+		s_ ## name_ = (name_ ## _t)NSAddressOfSymbol(					\
+							NSLookupAndBindSymbolWithHint(				\
+								"_" #name_, "CoreGraphics"));			\
+	}
+
+bool
+COSXScreen::isGlobalHotKeyOperatingModeAvailable()
+{
+	if (!s_testedForGHOM) {
+		s_testedForGHOM = true;
+		LOOKUP(_CGSDefaultConnection);
+		LOOKUP(CGSGetGlobalHotKeyOperatingMode);
+		LOOKUP(CGSSetGlobalHotKeyOperatingMode);
+		s_hasGHOM = (s__CGSDefaultConnection != NULL &&
+					s_CGSGetGlobalHotKeyOperatingMode != NULL &&
+					s_CGSSetGlobalHotKeyOperatingMode != NULL);
+	}
+	return s_hasGHOM;
+}
+
+void
+COSXScreen::setGlobalHotKeysEnabled(bool enabled)
+{
+	if (isGlobalHotKeyOperatingModeAvailable()) {
+		CGSConnection conn = s__CGSDefaultConnection();
+
+		CGSGlobalHotKeyOperatingMode mode;
+		s_CGSGetGlobalHotKeyOperatingMode(conn, &mode);
+
+		if (enabled && mode == CGSGlobalHotKeyDisable) {
+			s_CGSSetGlobalHotKeyOperatingMode(conn, CGSGlobalHotKeyEnable);
+		}
+		else if (!enabled && mode == CGSGlobalHotKeyEnable) {
+			s_CGSSetGlobalHotKeyOperatingMode(conn, CGSGlobalHotKeyDisable);
+		}
+	}
+}
+
+bool
+COSXScreen::getGlobalHotKeysEnabled()
+{
+	CGSGlobalHotKeyOperatingMode mode;
+	if (isGlobalHotKeyOperatingModeAvailable()) {
+		CGSConnection conn = s__CGSDefaultConnection();
+		s_CGSGetGlobalHotKeyOperatingMode(conn, &mode);
+	}
+	else {
+		mode = CGSGlobalHotKeyEnable;
+	}
+	return (mode == CGSGlobalHotKeyEnable);
+}
+

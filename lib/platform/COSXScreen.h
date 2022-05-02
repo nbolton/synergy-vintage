@@ -19,6 +19,16 @@
 #include "stdvector.h"
 #include <Carbon/Carbon.h>
 
+#include <mach/mach_port.h>
+#include <mach/mach_interface.h>
+#include <mach/mach_init.h>
+#include <IOKit/pwr_mgt/IOPMLib.h>
+#include <IOKit/IOMessage.h>
+
+template <class T>
+class CCondVar;
+class CMutex;
+class CThread;
 class COSXKeyState;
 class COSXScreenSaver;
 
@@ -98,8 +108,31 @@ private:
 	/// Resolution switch callback
 	static pascal void	displayManagerCallback(void* inUserData,
 							SInt16 inMessage, void* inNotifyData);
-
 	
+	// fast user switch callback
+	static pascal OSStatus userSwitchCallback (EventHandlerCallRef nextHandler,
+											   EventRef theEvent,
+											   void* inUserData);
+	
+	// sleep / wakeup support
+	void watchSystemPowerThread(void*);
+	static void testCanceled (CFRunLoopTimerRef timer, void *info);
+
+
+	static void powerChangeCallback(void * refcon, io_service_t service,
+								natural_t messageType, void * messageArgument);
+	
+	void		handlePowerChangeRequest(natural_t messageType,
+										 void * messageArgument);
+
+	static CEvent::Type		getConfirmSleepEvent();
+	void		handleConfirmSleep(const CEvent& event, void*);
+	
+	// global hotkey operating mode
+	static bool isGlobalHotKeyOperatingModeAvailable();
+	static void setGlobalHotKeysEnabled(bool enabled);
+	static bool getGlobalHotKeysEnabled();
+
 private:
 	// true if screen is being used as a primary screen, false otherwise
 	bool				m_isPrimary;
@@ -133,17 +166,34 @@ private:
 
 	// clipboard stuff
 	bool				m_ownClipboard;
-	
+
 	// window object that gets user input events when the server
 	// has focus.
 	WindowRef			m_hiddenWindow;
 	// window object that gets user input events when the server
 	// does not have focus.
 	WindowRef			m_userInputWindow;
-	
+
 	// display manager stuff (to get screen resolution switches).
 	DMExtendedNotificationUPP   m_displayManagerNotificationUPP;
 	ProcessSerialNumber			m_PSN;
+
+	// fast user switching
+	EventHandlerRef			m_switchEventHandlerRef;
+
+	// sleep / wakeup
+	CMutex*					m_pmMutex;
+	CThread*				m_pmWatchThread;
+    CCondVar<bool>*			m_pmThreadReady;
+	CFRunLoopRef			m_pmRunloop;
+	io_connect_t			m_pmRootPort;
+
+	// global hotkey operating mode
+	static bool				s_testedForGHOM;
+	static bool				s_hasGHOM;
+
+	// events
+	static CEvent::Type		s_confirmSleepEvent;
 };
 
 #endif

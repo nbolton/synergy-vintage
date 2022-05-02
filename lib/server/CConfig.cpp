@@ -602,6 +602,90 @@ CConfig::parseModifierKey(const CString& arg)
 	throw XConfigRead("invalid argument");
 }
 
+OptionValue
+CConfig::parseCorner(const CString& arg)
+{
+	if (CStringUtil::CaselessCmp::equal(arg, "left")) {
+		return kTopLeftMask | kBottomLeftMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "right")) {
+		return kTopRightMask | kBottomRightMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "top")) {
+		return kTopLeftMask | kTopRightMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "bottom")) {
+		return kBottomLeftMask | kBottomRightMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "top-left")) {
+		return kTopLeftMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "top-right")) {
+		return kTopRightMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "bottom-left")) {
+		return kBottomLeftMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "bottom-right")) {
+		return kBottomRightMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "none")) {
+		return kNoCornerMask;
+	}
+	else if (CStringUtil::CaselessCmp::equal(arg, "all")) {
+		return kAllCornersMask;
+	}
+	throw XConfigRead("invalid argument");
+}
+
+OptionValue
+CConfig::parseCorners(const CString& args)
+{
+	// find first token
+	std::string::size_type i = args.find_first_not_of(" \t", 0);
+	if (i == std::string::npos) {
+		throw XConfigRead("missing corner argument");
+	}
+	std::string::size_type j = args.find_first_of(" \t", i);
+
+	// parse first corner token
+	OptionValue corners = parseCorner(args.substr(i, j - i));
+
+	// get +/-
+	i = args.find_first_not_of(" \t", j);
+	while (i != std::string::npos) {
+		// parse +/-
+		bool add;
+		if (args[i] == '-') {
+			add = false;
+		}
+		else if (args[i] == '+') {
+			add = true;
+		}
+		else {
+			throw XConfigRead("invalid operator");
+		}
+
+		// get next corner token
+		i = args.find_first_not_of(" \t", i + 1);
+		j = args.find_first_of(" \t", i);
+		if (i == std::string::npos) {
+			throw XConfigRead("missing corner argument");
+		}
+
+		// parse next corner token
+		if (add) {
+			corners |= parseCorner(args.substr(i, j - i));
+		}
+		else {
+			corners &= ~parseCorner(args.substr(i, j - i));
+		}
+		i = args.find_first_not_of(" \t", j);
+	}
+
+	return corners;
+}
+
 const char*
 CConfig::getOptionName(OptionID id)
 {
@@ -631,6 +715,12 @@ CConfig::getOptionName(OptionID id)
 	}
 	if (id == kOptionHeartbeat) {
 		return "heartbeat";
+	}
+	if (id == kOptionScreenSwitchCorners) {
+		return "switchCorners";
+	}
+	if (id == kOptionScreenSwitchCornerSize) {
+		return "switchCornerSize";
 	}
 	if (id == kOptionScreenSwitchDelay) {
 		return "switchDelay";
@@ -687,9 +777,26 @@ CConfig::getOptionValue(OptionID id, OptionValue value)
 		}
 	}
 	if (id == kOptionHeartbeat ||
+		id == kOptionScreenSwitchCornerSize ||
 		id == kOptionScreenSwitchDelay ||
 		id == kOptionScreenSwitchTwoTap) {
 		return CStringUtil::print("%d", value);
+	}
+	if (id == kOptionScreenSwitchCorners) {
+		std::string result("none");
+		if ((value & kTopLeftMask) != 0) {
+			result += " +top-left";
+		}
+		if ((value & kTopRightMask) != 0) {
+			result += " +top-right";
+		}
+		if ((value & kBottomLeftMask) != 0) {
+			result += " +bottom-left";
+		}
+		if ((value & kBottomRightMask) != 0) {
+			result += " +bottom-left";
+		}
+		return result;
 	}
 
 	return "";
@@ -789,6 +896,12 @@ CConfig::readSectionOptions(std::istream& s)
 		}
 		else if (name == "heartbeat") {
 			addOption("", kOptionHeartbeat, parseInt(value));
+		}
+		else if (name == "switchCorners") {
+			addOption("", kOptionScreenSwitchCorners, parseCorners(value));
+		}
+		else if (name == "switchCornerSize") {
+			addOption("", kOptionScreenSwitchCornerSize, parseInt(value));
 		}
 		else if (name == "switchDelay") {
 			addOption("", kOptionScreenSwitchDelay, parseInt(value));
@@ -894,6 +1007,14 @@ CConfig::readSectionScreens(std::istream& s)
 			else if (name == "xtestIsXineramaUnaware") {
 				addOption(screen, kOptionXTestXineramaUnaware,
 					parseBoolean(value));
+			}
+			else if (name == "switchCorners") {
+				addOption(screen, kOptionScreenSwitchCorners,
+					parseCorners(value));
+			}
+			else if (name == "switchCornerSize") {
+				addOption(screen, kOptionScreenSwitchCornerSize,
+					parseInt(value));
 			}
 			else {
 				// unknown argument

@@ -77,7 +77,10 @@ EXEEXT = @EXEEXT@
 HAVE_DOT = @HAVE_DOT@
 INET_ATON_LIBS = @INET_ATON_LIBS@
 INSTALL_STRIP_PROGRAM = @INSTALL_STRIP_PROGRAM@
+MACOSX_DEPLOYMENT_TARGET = @MACOSX_DEPLOYMENT_TARGET@
 NANOSLEEP_LIBS = @NANOSLEEP_LIBS@
+OBJCXX = @OBJCXX@
+OBJCXXFLAGS = @OBJCXXFLAGS@
 OBJEXT = @OBJEXT@
 PACKAGE = @PACKAGE@
 PTHREAD_CC = @PTHREAD_CC@
@@ -152,6 +155,13 @@ bin_PROGRAMS = synergyc
 @XWINDOWS_TRUE@	$(COMMON_SOURCE_FILES)				\
 @XWINDOWS_TRUE@	$(XWINDOWS_SOURCE_FILES)			\
 @XWINDOWS_TRUE@	$(NULL)
+
+@CARBON_TRUE@synergyc_LDFLAGS = \
+@CARBON_TRUE@	-framework ScreenSaver						\
+@CARBON_TRUE@	-framework IOKit							\
+@CARBON_TRUE@	-framework ApplicationServices				\
+@CARBON_TRUE@	-framework Foundation						\
+@CARBON_TRUE@	$(NULL)
 
 synergyc_LDADD = \
 	$(top_builddir)/lib/client/libclient.a		\
@@ -237,7 +247,6 @@ synergyc_DEPENDENCIES = $(top_builddir)/lib/client/libclient.a \
 	$(top_builddir)/lib/base/libbase.a \
 	$(top_builddir)/lib/common/libcommon.a \
 	$(top_builddir)/lib/arch/libarch.a
-synergyc_LDFLAGS =
 
 DEFS = @DEFS@
 DEFAULT_INCLUDES =  -I. -I$(srcdir) -I$(top_builddir)
@@ -464,6 +473,8 @@ uninstall-am: uninstall-binPROGRAMS uninstall-info-am
 	mostlyclean-generic tags uninstall uninstall-am \
 	uninstall-binPROGRAMS uninstall-info-am
 
+
+export MACOSX_DEPLOYMENT_TARGET
 # Tell versions [3.59,3.63) of GNU make to not export all variables.
 # Otherwise a system limit (for SysV at least) may be exceeded.
 .NOEXPORT:

@@ -60,10 +60,6 @@
 typedef int (*StartupFunc)(int, char**);
 static bool startClient();
 static void parse(int argc, const char* const* argv);
-#if WINAPI_MSWINDOWS
-static void handleSystemSuspend(void*);
-static void handleSystemResume(void*);
-#endif
 
 //
 // program arguments
@@ -108,9 +104,7 @@ CScreen*
 createScreen()
 {
 #if WINAPI_MSWINDOWS
-	return new CScreen(new CMSWindowsScreen(false,
-							new CFunctionJob(&handleSystemSuspend),
-							new CFunctionJob(&handleSystemResume)));
+	return new CScreen(new CMSWindowsScreen(false));
 #elif WINAPI_XWINDOWS
 	return new CScreen(new CXWindowsScreen(ARG->m_display, false));
 #elif WINAPI_CARBON
@@ -199,26 +193,6 @@ handleScreenError(const CEvent&, void*)
 	EVENTQUEUE->addEvent(CEvent(CEvent::kQuit));
 }
 
-#if WINAPI_MSWINDOWS
-static
-void
-handleSystemSuspend(void*)
-{
-	LOG((CLOG_NOTE "system suspending"));
-	s_suspened = true;
-	s_client->disconnect(NULL);
-}
-
-static
-void
-handleSystemResume(void*)
-{
-	LOG((CLOG_NOTE "system resuming"));
-	s_suspened = false;
-	startClient();
-}
-#endif
-
 static
 CScreen*
 openClientScreen()
@@ -252,9 +226,7 @@ handleClientRestart(const CEvent&, void* vtimer)
 	EVENTQUEUE->removeHandler(CEvent::kTimer, timer);
 
 	// reconnect
-	if (!s_suspened) {
-		startClient();
-	}
+	startClient();
 }
 
 static

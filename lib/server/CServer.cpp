@@ -168,7 +168,8 @@ CServer::~CServer()
 		delete client;
 	}
 
-	// disconnect primary client
+	// disable and disconnect primary client
+	m_primaryClient->disable();
 	removeClient(m_primaryClient);
 }
 
@@ -661,7 +662,8 @@ CServer::getNeighbor(IClient* src,
 }
 
 bool
-CServer::isSwitchOkay(IClient* newScreen, EDirection dir, SInt32 x, SInt32 y)
+CServer::isSwitchOkay(IClient* newScreen, EDirection dir, SInt32 x, SInt32 y,
+								SInt32 xActive, SInt32 yActive)
 {
 	LOG((CLOG_DEBUG1 "try to leave \"%s\" on %s", getName(m_active).c_str(), CConfig::dirName(dir)));
 
@@ -707,6 +709,33 @@ CServer::isSwitchOkay(IClient* newScreen, EDirection dir, SInt32 x, SInt32 y)
 			startSwitchWait(x, y);
 		}
 		preventSwitch = true;
+	}
+
+	// are we in a locked corner?  first check if screen has the option set
+	// and, if not, check the global options.
+	const CConfig::CScreenOptions* options =
+						m_config.getOptions(getName(m_active));
+	if (options == NULL || options->count(kOptionScreenSwitchCorners) == 0) {
+		options = m_config.getOptions("");
+	}
+	if (options != NULL && options->count(kOptionScreenSwitchCorners) > 0) {
+		// get corner mask and size
+		CConfig::CScreenOptions::const_iterator i =
+			options->find(kOptionScreenSwitchCorners);
+		UInt32 corners = static_cast<UInt32>(i->second);
+		i = options->find(kOptionScreenSwitchCornerSize);
+		SInt32 size = 0;
+		if (i != options->end()) {
+			size = i->second;
+		}
+
+		// see if we're in a locked corner
+		if ((getCorner(m_active, xActive, yActive, size) & corners) != 0) {
+			// yep, no switching
+			LOG((CLOG_DEBUG1 "locked in corner"));
+			preventSwitch = true;
+			stopSwitch();
+		}
 	}
 
 	// ignore if mouse is locked to screen and don't try to switch later
@@ -838,6 +867,62 @@ bool
 CServer::isSwitchWaitStarted() const
 {
 	return (m_switchWaitTimer != NULL);
+}
+
+UInt32
+CServer::getCorner(IClient* client, SInt32 x, SInt32 y, SInt32 size) const
+{
+	assert(client != NULL);
+
+	// get client screen shape
+	SInt32 ax, ay, aw, ah;
+	client->getShape(ax, ay, aw, ah);
+
+	// check for x,y on the left or right
+	SInt32 xSide;
+	if (x <= ax) {
+		xSide = -1;
+	}
+	else if (x >= ax + aw - 1) {
+		xSide = 1;
+	}
+	else {
+		xSide = 0;
+	}
+
+	// check for x,y on the top or bottom
+	SInt32 ySide;
+	if (y <= ay) {
+		ySide = -1;
+	}
+	else if (y >= ay + ah - 1) {
+		ySide = 1;
+	}
+	else {
+		ySide = 0;
+	}
+
+	// if against the left or right then check if y is within size
+	if (xSide != 0) {
+		if (y < ay + size) {
+			return (xSide < 0) ? kTopLeftMask : kTopRightMask;
+		}
+		else if (y >= ay + ah - size) {
+			return (xSide < 0) ? kBottomLeftMask : kBottomRightMask;
+		}
+	}
+
+	// if against the left or right then check if y is within size
+	if (ySide != 0) {
+		if (x < ax + size) {
+			return (ySide < 0) ? kTopLeftMask : kBottomLeftMask;
+		}
+		else if (x >= ax + aw - size) {
+			return (ySide < 0) ? kTopRightMask : kBottomRightMask;
+		}
+	}
+
+	return kNoCornerMask;
 }
 
 void
@@ -1315,6 +1400,21 @@ CServer::onMouseMovePrimary(SInt32 x, SInt32 y)
 	m_active->getShape(ax, ay, aw, ah);
 	SInt32 zoneSize = getJumpZoneSize(m_active);
 
+	// clamp position to screen
+	SInt32 xc = x, yc = y;
+	if (xc < ax + zoneSize) {
+		xc = ax;
+	}
+	else if (xc >= ax + aw - zoneSize) {
+		xc = ax + aw - 1;
+	}
+	if (yc < ay + zoneSize) {
+		yc = ay;
+	}
+	else if (yc >= ay + ah - zoneSize) {
+		yc = ay + ah - 1;
+	}
+
 	// see if we should change screens
 	EDirection dir;
 	if (x < ax + zoneSize) {
@@ -1343,7 +1443,7 @@ CServer::onMouseMovePrimary(SInt32 x, SInt32 y)
 	IClient* newScreen = getNeighbor(m_active, dir, x, y);
 
 	// should we switch or not?
-	if (isSwitchOkay(newScreen, dir, x, y)) {
+	if (isSwitchOkay(newScreen, dir, x, y, xc, yc)) {
 		// switch screen
 		switchScreen(newScreen, x, y, false);
 		return true;
@@ -1401,6 +1501,21 @@ CServer::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
 	bool jump = true;
 	IClient* newScreen;
 	do {
+		// clamp position to screen
+		SInt32 xc = m_x, yc = m_y;
+		if (xc < ax) {
+			xc = ax;
+		}
+		else if (xc >= ax + aw) {
+			xc = ax + aw - 1;
+		}
+		if (yc < ay) {
+			yc = ay;
+		}
+		else if (yc >= ay + ah) {
+			yc = ay + ah - 1;
+		}
+
 		EDirection dir;
 		if (m_x < ax) {
 			dir = kLeft;
@@ -1460,7 +1575,7 @@ CServer::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
 		newScreen = getNeighbor(m_active, dir, m_x, m_y);
 
 		// see if we should switch
-		if (!isSwitchOkay(newScreen, dir, m_x, m_y)) {
+		if (!isSwitchOkay(newScreen, dir, m_x, m_y, xc, yc)) {
 			newScreen = m_active;
 			jump      = false;
 		}

@@ -57,6 +57,13 @@ AC_PROG_CXX
 AC_PROG_RANLIB
 AC_CHECK_PROG(HAVE_DOT, dot, YES, NO)
 
+dnl objective C++ support
+dnl XXX -- should check that -ObjC++ works
+OBJCXX=g++
+OBJCXXFLAGS="-ObjC++"
+AC_SUBST(OBJCXX)
+AC_SUBST(OBJCXXFLAGS)
+
 dnl do checks using C++
 AC_LANG_CPLUSPLUS
 
@@ -207,7 +214,17 @@ ACX_CXX_WARNINGS_ARE_ERRORS
 
 dnl adjust compiler and linker variables
 CXXFLAGS="$CXXFLAGS $SYNERGY_CXXFLAGS $ARCH_CFLAGS"
+OBJCXXFLAGS="$OBJCXXFLAGS $CXXFLAGS $ARCH_CFLAGS"
 LIBS="$NANOSLEEP_LIBS $INET_ATON_LIBS $ARCH_LIBS $LIBS"
+
+dnl we need to have an environment variable set when building on OS X.
+dnl i'm not sure of the right way to do that but this works if we assume
+dnl we're using gmake.  we include this in each platform dependent or
+dnl OSX specific makefile.
+if test x"$acx_host_winapi" = xCARBON; then
+	MACOSX_DEPLOYMENT_TARGET="10.2"
+fi
+AC_SUBST(MACOSX_DEPLOYMENT_TARGET)
 
 AC_OUTPUT([
 Makefile

@@ -98,7 +98,7 @@ private:
 	void				checkKeyboardLayout();
 
 	// Switch to a new keyboard layout.
-	void				setKeyboardLayout(SInt16 keyboardLayoutID);
+	void				setKeyboardLayout(KeyboardLayoutRef keyboardLayoutID);
 
 	// Insert KeyID to key sequences for non-printing characters, like
 	// delete, home, up arrow, etc. and the virtual key to KeyID mapping.
@@ -165,11 +165,9 @@ private:
     	UInt8               m_characterTables[1][128];
 	};
 
-	SInt16				m_keyboardLayoutID;
+	KeyboardLayoutRef	m_keyboardLayoutRef;
 	UInt32				m_keyboardType;
 	mutable UInt32		m_deadKeyState;
-	Handle				m_KCHRHandle;
-	Handle				m_uchrHandle;
 	CKCHRResource*		m_KCHRResource;
 	UCKeyboardLayout*	m_uchrResource;
 	CKeyIDMap			m_keyMap;

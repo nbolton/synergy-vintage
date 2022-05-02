@@ -28,12 +28,11 @@ class CMSWindowsDesks;
 class CMSWindowsKeyState;
 class CMSWindowsScreenSaver;
 class CThread;
-class IJob;
 
 //! Implementation of IPlatformScreen for Microsoft Windows
 class CMSWindowsScreen : public CPlatformScreen {
 public:
-	CMSWindowsScreen(bool isPrimary, IJob* suspend, IJob* resume);
+	CMSWindowsScreen(bool isPrimary);
 	virtual ~CMSWindowsScreen();
 
 	//! @name manipulators
@@ -262,10 +261,6 @@ private:
 
 	// map of button state
 	bool				m_buttons[1 + kButtonExtra0 + 1];
-
-	// suspend/resume callbacks
-	IJob*				m_suspend;
-	IJob*				m_resume;
 
 	// the system shows the mouse cursor when an internal display count
 	// is >= 0.  this count is maintained per application but there's

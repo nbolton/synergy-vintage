@@ -13,6 +13,8 @@
 ## Process this file with automake to produce Makefile.in
 NULL =
 
+export MACOSX_DEPLOYMENT_TARGET
+
 COMMON_SOURCE_FILES =					\
 	CServerTaskBarReceiver.cpp			\
 	CServerTaskBarReceiver.h			\
@@ -66,6 +68,12 @@ if CARBON
 synergys_SOURCES =						\
 	$(COMMON_SOURCE_FILES)				\
 	$(CARBON_SOURCE_FILES)				\
+	$(NULL)
+synergys_LDFLAGS =								\
+	-framework ScreenSaver						\
+	-framework IOKit							\
+	-framework ApplicationServices				\
+	-framework Foundation						\
 	$(NULL)
 endif
 synergys_LDADD =								\

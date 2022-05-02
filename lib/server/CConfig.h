@@ -287,6 +287,8 @@ private:
 	static OptionValue	parseBoolean(const CString&);
 	static OptionValue	parseInt(const CString&);
 	static OptionValue	parseModifierKey(const CString&);
+	static OptionValue	parseCorner(const CString&);
+	static OptionValue	parseCorners(const CString&);
 	static const char*	getOptionName(OptionID);
 	static CString		getOptionValue(OptionID, OptionValue);
 	void				readSection(std::istream&);

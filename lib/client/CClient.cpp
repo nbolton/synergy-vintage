@@ -47,17 +47,32 @@ CClient::CClient(const CString& name, const CNetworkAddress& address,
 	m_stream(NULL),
 	m_timer(NULL),
 	m_server(NULL),
-	
-	m_active(false)
+	m_ready(false),
+	m_active(false),
+	m_suspended(false),
+	m_connectOnResume(false)
 {
 	assert(m_socketFactory != NULL);
 	assert(m_screen        != NULL);
 
-	// do nothing
+	// register suspend/resume event handlers
+	EVENTQUEUE->adoptHandler(IScreen::getSuspendEvent(),
+							getEventTarget(),
+							new TMethodEventJob<CClient>(this,
+								&CClient::handleSuspend));
+	EVENTQUEUE->adoptHandler(IScreen::getResumeEvent(),
+							getEventTarget(),
+							new TMethodEventJob<CClient>(this,
+								&CClient::handleResume));
 }
 
 CClient::~CClient()
 {
+	EVENTQUEUE->removeHandler(IScreen::getSuspendEvent(),
+							  getEventTarget());
+	EVENTQUEUE->removeHandler(IScreen::getResumeEvent(),
+							  getEventTarget());
+
 	cleanupTimer();
 	cleanupScreen();
 	cleanupConnecting();
@@ -70,6 +85,10 @@ void
 CClient::connect()
 {
 	if (m_stream != NULL) {
+		return;
+	}
+	if (m_suspended) {
+		m_connectOnResume = true;
 		return;
 	}
 
@@ -111,8 +130,10 @@ CClient::connect()
 void
 CClient::disconnect(const char* msg)
 {
+	m_connectOnResume = false;
 	cleanupTimer();
 	cleanupScreen();
+	cleanupConnecting();
 	cleanupConnection();
 	if (msg != NULL) {
 		sendConnectionFailedEvent(msg);
@@ -513,6 +534,7 @@ CClient::handleConnectTimeout(const CEvent&, void*)
 {
 	cleanupTimer();
 	cleanupConnecting();
+	cleanupConnection();
 	delete m_stream;
 	m_stream = NULL;
 	LOG((CLOG_DEBUG1 "connection timed out"));
@@ -605,3 +627,25 @@ CClient::handleHello(const CEvent&, void*)
 							m_stream->getEventTarget()));
 	}
 }
+
+void
+CClient::handleSuspend(const CEvent&, void*)
+{
+	LOG((CLOG_INFO "suspend"));
+	m_suspended       = true;
+	bool wasConnected = isConnected();
+	disconnect(NULL);
+	m_connectOnResume = wasConnected;
+}
+
+void
+CClient::handleResume(const CEvent&, void*)
+{
+	LOG((CLOG_INFO "resume"));
+	m_suspended = false;
+	if (m_connectOnResume) {
+		m_connectOnResume = false;
+		connect();
+	}
+}
+

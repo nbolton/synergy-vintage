@@ -140,9 +140,13 @@ COSXKeyState::COSXKeyState() :
 	m_uchrFound(false)
 {
 	setHalfDuplexMask(0);
-	SInt16 currentKeyScript = GetScriptManagerVariable(smKeyScript);
-	SInt16 keyboardLayoutID = GetScriptVariable(currentKeyScript, smScriptKeys);
-	setKeyboardLayout(keyboardLayoutID);
+	m_keyboardType = LMGetKbdType();
+	
+	KeyboardLayoutRef keyboardLayoutRef;
+	OSStatus status = KLGetCurrentKeyboardLayout(&keyboardLayoutRef);
+	if (status == noErr) {
+		setKeyboardLayout(keyboardLayoutRef);
+	}
 }
 
 COSXKeyState::~COSXKeyState()
@@ -564,32 +568,36 @@ COSXKeyState::handleModifierKey(void* target, KeyID id, bool down)
 void
 COSXKeyState::checkKeyboardLayout()
 {
-	SInt16 currentKeyScript = GetScriptManagerVariable(smKeyScript);
-	SInt16 keyboardLayoutID = GetScriptVariable(currentKeyScript, smScriptKeys);
-	UInt32 keyboardType     = LMGetKbdType();
-	if (keyboardLayoutID != m_keyboardLayoutID ||
-		keyboardType     != m_keyboardType) {
+	KeyboardLayoutRef keyboardLayoutRef;
+	OSStatus status		= KLGetCurrentKeyboardLayout(&keyboardLayoutRef);
+	UInt32 keyboardType	= LMGetKbdType();
+
+	if (status            == noErr && 
+		keyboardLayoutRef != m_keyboardLayoutRef ||
+		keyboardType      != m_keyboardType) {
 		// layout changed
 		m_keyboardType = keyboardType;
-		setKeyboardLayout(keyboardLayoutID);
+		setKeyboardLayout(keyboardLayoutRef);
 		updateKeys();
 	}
 }
 
 void
-COSXKeyState::setKeyboardLayout(SInt16 keyboardLayoutID)
+COSXKeyState::setKeyboardLayout(KeyboardLayoutRef keyboardLayoutRef)
 {
-	m_keyboardLayoutID = keyboardLayoutID;
-	m_deadKeyState     = 0;
-	m_KCHRHandle       = GetResource('KCHR', m_keyboardLayoutID);
-	m_uchrHandle       = GetResource('uchr', m_keyboardLayoutID);
-	m_KCHRResource     = NULL;
-	m_uchrResource     = NULL;
-	if (m_uchrHandle != NULL) {
-		m_uchrResource = reinterpret_cast<UCKeyboardLayout*>(*m_uchrHandle);
-	}
-	if (m_KCHRHandle != NULL) {
-		m_KCHRResource = reinterpret_cast<CKCHRResource*>(*m_KCHRHandle);
+	m_keyboardLayoutRef = keyboardLayoutRef;
+	m_deadKeyState		= 0;
+	m_KCHRResource		= NULL;
+	m_uchrResource		= NULL;
+	OSStatus status		= noErr;
+	
+	if (m_keyboardLayoutRef) {
+		status = KLGetKeyboardLayoutProperty(m_keyboardLayoutRef,
+											 kKLKCHRData,
+											 (const void**)&m_KCHRResource);
+		status = KLGetKeyboardLayoutProperty(m_keyboardLayoutRef,
+											 kKLuchrData,
+											 (const void**)&m_uchrResource);
 	}
 }
 
@@ -840,12 +848,12 @@ COSXKeyState::filluchrKeysMap(CKeyIDMap& keyMap) const
 
 	// build composed keys to virtual keys mapping
 	UCKeyStateRecordsIndex* sri = NULL;
-	if (th->keyStateRecordsIndexOffset != NULL) {
+	if (th->keyStateRecordsIndexOffset != 0) {
 		sri = reinterpret_cast<UCKeyStateRecordsIndex*>(
 				base + th->keyStateRecordsIndexOffset);
 	}
 	UCKeyStateTerminators* st = NULL;
-	if (th->keyStateTerminatorsOffset != NULL) {
+	if (th->keyStateTerminatorsOffset != 0) {
 		st = reinterpret_cast<UCKeyStateTerminators*>(
 				base + th->keyStateTerminatorsOffset);
 	}

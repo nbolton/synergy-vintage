@@ -162,7 +162,9 @@ private:
 	void				handleShapeChanged(const CEvent&, void*);
 	void				handleClipboardGrabbed(const CEvent&, void*);
 	void				handleHello(const CEvent&, void*);
-
+	void				handleSuspend(const CEvent& event, void*);
+	void				handleResume(const CEvent& event, void*);
+	
 private:
 	CString					m_name;
 	CNetworkAddress			m_serverAddress;
@@ -174,6 +176,8 @@ private:
 	CServerProxy*			m_server;
 	bool					m_ready;
 	bool					m_active;
+	bool					m_suspended;
+	bool					m_connectOnResume;
 	bool				m_ownClipboard[kClipboardEnd];
 	IClipboard::Time	m_timeClipboard[kClipboardEnd];
 	CString				m_dataClipboard[kClipboardEnd];

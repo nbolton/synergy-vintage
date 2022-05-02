@@ -167,6 +167,7 @@ private:
 		DWORD			m_targetID;
 		HDESK			m_desk;
 		HWND			m_window;
+		HWND			m_foregroundWindow;
 		bool			m_lowLevel;
 	};
 	typedef std::map<CString, CDesk*> CDesks;

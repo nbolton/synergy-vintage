@@ -76,8 +76,7 @@
 HINSTANCE				CMSWindowsScreen::s_instance = NULL;
 CMSWindowsScreen*		CMSWindowsScreen::s_screen   = NULL;
 
-CMSWindowsScreen::CMSWindowsScreen(bool isPrimary,
-				IJob* suspend, IJob* resume) :
+CMSWindowsScreen::CMSWindowsScreen(bool isPrimary) :
 	m_isPrimary(isPrimary),
 	m_is95Family(CArchMiscWindows::isWindows95Family()),
 	m_isOnScreen(m_isPrimary),
@@ -106,8 +105,6 @@ CMSWindowsScreen::CMSWindowsScreen(bool isPrimary,
 	m_setZone(NULL),
 	m_setMode(NULL),
 	m_keyState(NULL),
-	m_suspend(suspend),
-	m_resume(resume),
 	m_hasMouse(GetSystemMetrics(SM_MOUSEPRESENT) != 0),
 	m_showingMouse(false)
 {
@@ -139,8 +136,6 @@ CMSWindowsScreen::CMSWindowsScreen(bool isPrimary,
 		destroyWindow(m_window);
 		destroyClass(m_class);
 		closeHookLibrary(m_hookLibrary);
-		delete m_suspend;
-		delete m_resume;
 		s_screen = NULL;
 		throw;
 	}
@@ -167,8 +162,6 @@ CMSWindowsScreen::~CMSWindowsScreen()
 	destroyWindow(m_window);
 	destroyClass(m_class);
 	closeHookLibrary(m_hookLibrary);
-	delete m_suspend;
-	delete m_resume;
 	s_screen = NULL;
 }
 
@@ -856,15 +849,15 @@ CMSWindowsScreen::onEvent(HWND, UINT msg,
 		case PBT_APMRESUMEAUTOMATIC:
 		case PBT_APMRESUMECRITICAL:
 		case PBT_APMRESUMESUSPEND:
-			if (m_resume != NULL) {
-				m_resume->run();
-			}
+			EVENTQUEUE->addEvent(CEvent(IScreen::getResumeEvent(),
+							getEventTarget(), NULL,
+							CEvent::kDeliverImmediately));
 			break;
 
 		case PBT_APMSUSPEND:
-			if (m_suspend != NULL) {
-				m_suspend->run();
-			}
+			EVENTQUEUE->addEvent(CEvent(IScreen::getSuspendEvent(),
+							getEventTarget(), NULL,
+							CEvent::kDeliverImmediately));
 			break;
 		}
 		*result = TRUE;
