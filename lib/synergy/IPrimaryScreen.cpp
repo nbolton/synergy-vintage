@@ -25,6 +25,8 @@ CEvent::Type		IPrimaryScreen::s_motionSecondaryEvent = CEvent::kUnknown;
 CEvent::Type		IPrimaryScreen::s_wheelEvent           = CEvent::kUnknown;
 CEvent::Type		IPrimaryScreen::s_ssActivatedEvent     = CEvent::kUnknown;
 CEvent::Type		IPrimaryScreen::s_ssDeactivatedEvent   = CEvent::kUnknown;
+CEvent::Type		IPrimaryScreen::s_hotKeyDownEvent      = CEvent::kUnknown;
+CEvent::Type		IPrimaryScreen::s_hotKeyUpEvent        = CEvent::kUnknown;
 
 CEvent::Type
 IPrimaryScreen::getButtonDownEvent()
@@ -75,16 +77,40 @@ IPrimaryScreen::getScreensaverDeactivatedEvent()
 							"IPrimaryScreen::screensaverDeactivated");
 }
 
+CEvent::Type
+IPrimaryScreen::getHotKeyDownEvent()
+{
+	return CEvent::registerTypeOnce(s_hotKeyDownEvent,
+							"IPrimaryScreen::hotKeyDown");
+}
+
+CEvent::Type
+IPrimaryScreen::getHotKeyUpEvent()
+{
+	return CEvent::registerTypeOnce(s_hotKeyUpEvent,
+							"IPrimaryScreen::hotKeyUp");
+}
+
 
 //
 // IPrimaryScreen::CButtonInfo
 //
 
 IPrimaryScreen::CButtonInfo*
-IPrimaryScreen::CButtonInfo::alloc(ButtonID id)
+IPrimaryScreen::CButtonInfo::alloc(ButtonID id, KeyModifierMask mask)
 {
 	CButtonInfo* info = (CButtonInfo*)malloc(sizeof(CButtonInfo));
 	info->m_button = id;
+	info->m_mask   = mask;
+	return info;
+}
+
+IPrimaryScreen::CButtonInfo*
+IPrimaryScreen::CButtonInfo::alloc(const CButtonInfo& x)
+{
+	CButtonInfo* info = (CButtonInfo*)malloc(sizeof(CButtonInfo));
+	info->m_button = x.m_button;
+	info->m_mask   = x.m_mask;
 	return info;
 }
 
@@ -112,5 +138,18 @@ IPrimaryScreen::CWheelInfo::alloc(SInt32 wheel)
 {
 	CWheelInfo* info = (CWheelInfo*)malloc(sizeof(CWheelInfo));
 	info->m_wheel = wheel;
+	return info;
+}
+
+
+//
+// IPrimaryScreen::CHotKeyInfo
+//
+
+IPrimaryScreen::CHotKeyInfo*
+IPrimaryScreen::CHotKeyInfo::alloc(UInt32 id)
+{
+	CHotKeyInfo* info = (CHotKeyInfo*)malloc(sizeof(CHotKeyInfo));
+	info->m_id = id;
 	return info;
 }

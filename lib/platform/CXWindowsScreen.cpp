@@ -51,44 +51,6 @@
 #endif
 #include "CArch.h"
 
-// map "Internet" keys to KeyIDs
-static const KeySym		g_map1008FF[] =
-{
-	/* 0x00 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x08 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x10 */ 0, kKeyAudioDown, kKeyAudioMute, kKeyAudioUp,
-	/* 0x14 */ kKeyAudioPlay, kKeyAudioStop, kKeyAudioPrev, kKeyAudioNext,
-	/* 0x18 */ kKeyWWWHome, kKeyAppMail, 0, kKeyWWWSearch, 0, 0, 0, 0,
-	/* 0x20 */ 0, 0, 0, 0, 0, 0, kKeyWWWBack, kKeyWWWForward,
-	/* 0x28 */ kKeyWWWStop, kKeyWWWRefresh, 0, 0, kKeyEject, 0, 0, 0,
-	/* 0x30 */ kKeyWWWFavorites, 0, kKeyAppMedia, 0, 0, 0, 0, 0,
-	/* 0x38 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x40 */ kKeyAppUser1, kKeyAppUser2, 0, 0, 0, 0, 0, 0,
-	/* 0x48 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x50 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x58 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x60 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x68 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x70 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x78 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x80 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x88 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x90 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0x98 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xa0 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xa8 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xb0 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xb8 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xc0 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xc8 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xd0 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xd8 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xe0 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xe8 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xf0 */ 0, 0, 0, 0, 0, 0, 0, 0,
-	/* 0xf8 */ 0, 0, 0, 0, 0, 0, 0, 0
-};
-
 
 //
 // CXWindowsScreen
@@ -143,7 +105,7 @@ CXWindowsScreen::CXWindowsScreen(const char* displayName, bool isPrimary) :
 		m_window      = openWindow();
 		m_screensaver = new CXWindowsScreenSaver(m_display,
 								m_window, getEventTarget());
-		m_keyState    = new CXWindowsKeyState(m_display);
+		m_keyState    = new CXWindowsKeyState(m_display, m_xkb);
 		LOG((CLOG_DEBUG "screen shape: %d,%d %dx%d %s", m_x, m_y, m_w, m_h, m_xinerama ? "(xinerama)" : ""));
 		LOG((CLOG_DEBUG "window is 0x%08x", m_window));
 	}
@@ -230,8 +192,6 @@ CXWindowsScreen::enable()
 		// warp the mouse to the cursor center
 		fakeMouseMove(m_xCenter, m_yCenter);
 	}
-
-	updateKeys();
 }
 
 void
@@ -515,6 +475,189 @@ CXWindowsScreen::warpCursor(SInt32 x, SInt32 y)
 	m_yCursor = y;
 }
 
+UInt32
+CXWindowsScreen::registerHotKey(KeyID key, KeyModifierMask mask)
+{
+	// fail if no keys
+	if (key == kKeyNone && mask == 0) {
+		return 0;
+	}
+
+	// convert to X
+	unsigned int modifiers;
+	if (!m_keyState->mapModifiersToX(mask, modifiers)) {
+		// can't map all modifiers
+		LOG((CLOG_WARN "could not map hotkey id=%04x mask=%04x", key, mask));
+		return 0;
+	}
+	CXWindowsKeyState::CKeycodeList keycodes;
+	m_keyState->mapKeyToKeycodes(key, keycodes);
+	if (key != kKeyNone && keycodes.empty()) {
+		// can't map key
+		LOG((CLOG_WARN "could not map hotkey id=%04x mask=%04x", key, mask));
+		return 0;
+	}
+
+	// choose hotkey id
+	UInt32 id;
+	if (!m_oldHotKeyIDs.empty()) {
+		id = m_oldHotKeyIDs.back();
+		m_oldHotKeyIDs.pop_back();
+	}
+	else {
+		id = m_hotKeys.size() + 1;
+	}
+	HotKeyList& hotKeys = m_hotKeys[id];
+
+	// all modifier hotkey must be treated specially.  for each modifier
+	// we need to grab the modifier key in combination with all the other
+	// requested modifiers.
+	bool err = false;
+	CXWindowsUtil::CErrorLock lock(m_display, &err);
+	if (key == kKeyNone) {
+		static const KeyModifierMask s_hotKeyModifiers[] = {
+			KeyModifierShift,
+			KeyModifierControl,
+			KeyModifierAlt,
+			KeyModifierMeta,
+			KeyModifierSuper
+		};
+
+		XModifierKeymap* modKeymap = XGetModifierMapping(m_display);
+		for (size_t j = 0; j < sizeof(s_hotKeyModifiers) /
+								sizeof(s_hotKeyModifiers[0]) && !err; ++j) {
+			// skip modifier if not in mask
+			if ((mask & s_hotKeyModifiers[j]) == 0) {
+				continue;
+			}
+
+			// skip with error if we can't map remaining modifiers
+			unsigned int modifiers2;
+			KeyModifierMask mask2 = (mask & ~s_hotKeyModifiers[j]);
+			if (!m_keyState->mapModifiersToX(mask2, modifiers2)) {
+				err = true;
+				continue;
+			}
+
+			// compute modifier index for modifier.  there should be
+			// exactly one X modifier missing
+			int index;
+			switch (modifiers ^ modifiers2) {
+			case ShiftMask:
+				index = ShiftMapIndex;
+				break;
+
+			case LockMask:
+				index = LockMapIndex;
+				break;
+
+			case ControlMask:
+				index = ControlMapIndex;
+				break;
+
+			case Mod1Mask:
+				index = Mod1MapIndex;
+				break;
+
+			case Mod2Mask:
+				index = Mod2MapIndex;
+				break;
+
+			case Mod3Mask:
+				index = Mod3MapIndex;
+				break;
+
+			case Mod4Mask:
+				index = Mod4MapIndex;
+				break;
+
+			case Mod5Mask:
+				index = Mod5MapIndex;
+				break;
+
+			default:
+				err = true;
+				continue;
+			}
+
+			// grab each key for the modifier
+			const KeyCode* modifiermap =
+				modKeymap->modifiermap + index * modKeymap->max_keypermod;
+			for (int k = 0; k < modKeymap->max_keypermod && !err; ++k) {
+				KeyCode code = modifiermap[k];
+				if (modifiermap[k] != 0) {
+					XGrabKey(m_display, code, modifiers2, m_root,
+								False, GrabModeAsync, GrabModeAsync);
+					if (!err) {
+						hotKeys.push_back(std::make_pair(code, modifiers2));
+						m_hotKeyToIDMap[CHotKeyItem(code, modifiers2)] = id;
+					}
+				}
+			}
+		}
+		XFreeModifiermap(modKeymap);
+	}
+
+	// a non-modifier key is simple
+	else {
+		for (CXWindowsKeyState::CKeycodeList::iterator j = keycodes.begin();
+								j != keycodes.end() && !err; ++j) {
+			XGrabKey(m_display, *j, modifiers, m_root,
+								False, GrabModeAsync, GrabModeAsync);
+			if (!err) {
+				hotKeys.push_back(std::make_pair(*j, modifiers));
+				m_hotKeyToIDMap[CHotKeyItem(*j, modifiers)] = id;
+			}
+		}
+	}
+
+	if (err) {
+		// if any failed then unregister any we did get
+		for (HotKeyList::iterator j = hotKeys.begin();
+								j != hotKeys.end(); ++j) {
+			XUngrabKey(m_display, j->first, j->second, m_root);
+			m_hotKeyToIDMap.erase(CHotKeyItem(j->first, j->second));
+		}
+
+		m_oldHotKeyIDs.push_back(id);
+		m_hotKeys.erase(id);
+		LOG((CLOG_WARN "failed to register hotkey id=%04x mask=%04x", key, mask));
+		return 0;
+	}
+	
+	LOG((CLOG_DEBUG "registered hotkey id=%04x mask=%04x as id=%d", key, mask, id));
+	return id;
+}
+
+void
+CXWindowsScreen::unregisterHotKey(UInt32 id)
+{
+	// look up hotkey
+	HotKeyMap::iterator i = m_hotKeys.find(id);
+	if (i == m_hotKeys.end()) {
+		return;
+	}
+
+	// unregister with OS
+	bool err = false;
+	CXWindowsUtil::CErrorLock lock(m_display, &err);
+	HotKeyList& hotKeys = i->second;
+	for (HotKeyList::iterator j = hotKeys.begin(); j != hotKeys.end(); ++j) {
+		XUngrabKey(m_display, j->first, j->second, m_root);
+		m_hotKeyToIDMap.erase(CHotKeyItem(j->first, j->second));
+	}
+	if (err) {
+		LOG((CLOG_WARN "failed to unregister hotkey id=%d", id));
+	}
+	else {
+		LOG((CLOG_DEBUG "unregistered hotkey id=%d", id));
+	}
+
+	// discard hot key from map and record old id for reuse
+	m_hotKeys.erase(i);
+	m_oldHotKeyIDs.push_back(id);
+}
+
 SInt32
 CXWindowsScreen::getJumpZoneSize() const
 {
@@ -649,6 +792,7 @@ CXWindowsScreen::openDisplay(const char* displayName)
 
 #if HAVE_XKB_EXTENSION
 	{
+		m_xkb = false;
 		int major = XkbMajorVersion, minor = XkbMinorVersion;
 		if (XkbLibraryVersion(&major, &minor)) {
 			int opcode, firstError;
@@ -657,6 +801,9 @@ CXWindowsScreen::openDisplay(const char* displayName)
 				m_xkb = true;
 				XkbSelectEvents(display, XkbUseCoreKbd,
 								XkbMapNotifyMask, XkbMapNotifyMask);
+				XkbSelectEventDetails(display, XkbUseCoreKbd,
+								XkbStateNotifyMask,
+								XkbGroupStateMask, XkbGroupStateMask);
 			}
 		}
 	}
@@ -883,10 +1030,22 @@ CXWindowsScreen::handleSystemEvent(const CEvent& event, void*)
 		}
 
 		if (xevent->type == KeyPress || xevent->type == KeyRelease) {
-			if (!isRepeat) {
-				m_keyState->setKeyDown(xevent->xkey.keycode,
-							xevent->type == KeyPress);
+			if (xevent->xkey.window == m_root) {
+				// this is a hot key
+				onHotKey(xevent->xkey, isRepeat);
+				return;
 			}
+			else if (!m_isOnScreen) {
+				// this might be a hot key
+				if (onHotKey(xevent->xkey, isRepeat)) {
+					return;
+				}
+			}
+
+			bool down             = (isRepeat || xevent->type == KeyPress);
+			KeyModifierMask state =
+				m_keyState->mapModifiersFromX(xevent->xkey.state);
+			m_keyState->onKey(xevent->xkey.keycode, down, state);
 		}
 	}
 
@@ -1044,8 +1203,18 @@ CXWindowsScreen::handleSystemEvent(const CEvent& event, void*)
 
 	default:
 #if HAVE_XKB_EXTENSION
-		if (m_xkb && xevent->type == m_xkbEventBase + XkbMapNotify) {
-			refreshKeyboard(xevent);
+		if (m_xkb && xevent->type == m_xkbEventBase) {
+			XkbEvent* xkbEvent = reinterpret_cast<XkbEvent*>(xevent);
+			switch (xkbEvent->any.xkb_type) {
+			case XkbMapNotify:
+				refreshKeyboard(xevent);
+				return;
+
+			case XkbStateNotify:
+				LOG((CLOG_INFO "group change: %d", xkbEvent->state.group));
+				m_keyState->setActiveGroup((SInt32)xkbEvent->state.group);
+				return;
+			}
 		}
 #endif
 		break;
@@ -1128,13 +1297,44 @@ CXWindowsScreen::onKeyRelease(XKeyEvent& xkey, bool isRepeat)
 	}
 }
 
+bool
+CXWindowsScreen::onHotKey(XKeyEvent& xkey, bool isRepeat)
+{
+	// find the hot key id
+	HotKeyToIDMap::const_iterator i =
+		m_hotKeyToIDMap.find(CHotKeyItem(xkey.keycode, xkey.state));
+	if (i == m_hotKeyToIDMap.end()) {
+		return false;
+	}
+
+	// find what kind of event
+	CEvent::Type type;
+	if (xkey.type == KeyPress) {
+		type = getHotKeyDownEvent();
+	}
+	else if (xkey.type == KeyRelease) {
+		type = getHotKeyUpEvent();
+	}
+	else {
+		return false;
+	}
+
+	// generate event (ignore key repeats)
+	if (!isRepeat) {
+		EVENTQUEUE->addEvent(CEvent(type, getEventTarget(),
+								CHotKeyInfo::alloc(i->second)));
+	}
+	return true;
+}
+
 void
 CXWindowsScreen::onMousePress(const XButtonEvent& xbutton)
 {
 	LOG((CLOG_DEBUG1 "event: ButtonPress button=%d", xbutton.button));
-	const ButtonID button = mapButtonFromX(&xbutton);
+	ButtonID button      = mapButtonFromX(&xbutton);
+	KeyModifierMask mask = m_keyState->mapModifiersFromX(xbutton.state);
 	if (button != kButtonNone) {
-		sendEvent(getButtonDownEvent(), CButtonInfo::alloc(button));
+		sendEvent(getButtonDownEvent(), CButtonInfo::alloc(button, mask));
 	}
 }
 
@@ -1142,9 +1342,10 @@ void
 CXWindowsScreen::onMouseRelease(const XButtonEvent& xbutton)
 {
 	LOG((CLOG_DEBUG1 "event: ButtonRelease button=%d", xbutton.button));
-	const ButtonID button = mapButtonFromX(&xbutton);
+	ButtonID button      = mapButtonFromX(&xbutton);
+	KeyModifierMask mask = m_keyState->mapModifiersFromX(xbutton.state);
 	if (button != kButtonNone) {
-		sendEvent(getButtonUpEvent(), CButtonInfo::alloc(button));
+		sendEvent(getButtonUpEvent(), CButtonInfo::alloc(button, mask));
 	}
 	else if (xbutton.button == 4) {
 		// wheel forward (away from user)
@@ -1421,41 +1622,7 @@ CXWindowsScreen::mapKeyFromX(XKeyEvent* event) const
 	}
 
 	// convert key
-	switch (keysym & 0xffffff00) {
-	case 0x0000:
-		// Latin-1
-		return static_cast<KeyID>(keysym);
-
-	case 0xfe00:
-		// ISO 9995 Function and Modifier Keys
-		if (keysym == XK_ISO_Left_Tab) {
-			return kKeyLeftTab;
-		}
-		if (keysym == XK_ISO_Level3_Shift) {
-			// treat ISO_Level3_Shift as ModeSwitch
-			return kKeyModeSwitch;
-		}
-		return kKeyNone;
-
-	case 0xff00:
-		// MISCELLANY
-		return static_cast<KeyID>(keysym - 0xff00 + 0xef00);
-
-	case 0x1008ff00:
-		// "Internet" keys
-		return g_map1008FF[keysym & 0xff];
-
-	default: {
-		// lookup character in table
-		UInt32 key = CXWindowsUtil::mapKeySymToUCS4(keysym);
-		if (key != 0x0000ffff) {
-			return static_cast<KeyID>(key);
-		}
-
-		// unknown character
-		return kKeyNone;
-	}
-	}
+	return CXWindowsUtil::mapKeySymToKeyID(keysym);
 }
 
 ButtonID
@@ -1627,7 +1794,7 @@ CXWindowsScreen::refreshKeyboard(XEvent* event)
 	if (XPending(m_display) > 0) {
 		XEvent tmpEvent;
 		XPeekEvent(m_display, &tmpEvent);
-		if (tmpEvent.type == event->type) {
+		if (tmpEvent.type == MappingNotify) {
 			// discard this event since another follows.
 			// we tend to get a bunch of these in a row.
 			return;
@@ -1636,10 +1803,34 @@ CXWindowsScreen::refreshKeyboard(XEvent* event)
 
 	// keyboard mapping changed
 #if HAVE_XKB_EXTENSION
-	XkbRefreshKeyboardMapping((XkbMapNotifyEvent*)event);
+	if (m_xkb && event->type == m_xkbEventBase) {
+		XkbRefreshKeyboardMapping((XkbMapNotifyEvent*)event);
+	}
+	else
 #else
-	XRefreshKeyboardMapping(&event->xmapping);
+	{
+		XRefreshKeyboardMapping(&event->xmapping);
+	}
 #endif
-	m_keyState->updateKeys();
+	m_keyState->updateKeyMap();
+	m_keyState->updateKeyState();
 }
 
+
+//
+// CXWindowsScreen::CHotKeyItem
+//
+
+CXWindowsScreen::CHotKeyItem::CHotKeyItem(int keycode, unsigned int mask) :
+	m_keycode(keycode),
+	m_mask(mask)
+{
+	// do nothing
+}
+
+bool
+CXWindowsScreen::CHotKeyItem::operator<(const CHotKeyItem& x) const
+{
+	return (m_keycode < x.m_keycode ||
+			(m_keycode == x.m_keycode && m_mask < x.m_mask));
+}

@@ -19,9 +19,11 @@
 #include "ProtocolTypes.h"
 #include "CNetworkAddress.h"
 #include "CStringUtil.h"
+#include "CInputFilter.h"
 #include "XBase.h"
 #include "stdmap.h"
 #include "stdset.h"
+#include "IPlatformScreen.h"
 #include <iosfwd>
 
 class CConfig;
@@ -280,6 +282,8 @@ public:
 	*/
 	static const char*	dirName(EDirection);
 
+	
+	CInputFilter*		getInputFilter();
 	//@}
 
 private:
@@ -297,11 +301,23 @@ private:
 	void				readSectionLinks(std::istream&);
 	void				readSectionAliases(std::istream&);
 
+	void				checkStringBounds(CString::size_type i, const char* upperx, const char* lowerx = NULL);
+	void				createFilterRule(CString &condition,
+										 std::vector<CString> &condargs,
+										 CString &action,
+										 std::vector<CString> &actargs);
+	IPlatformScreen::CKeyInfo*
+						parseKeystroke(const CString &keystroke) const;
+	IPlatformScreen::CButtonInfo*
+						parseMouse(const CString &mouse) const;
+	KeyModifierMask		parseModifier(const CString &modifiers) const;
+
 private:
 	CCellMap			m_map;
 	CNameMap			m_nameToCanonicalName;
 	CNetworkAddress		m_synergyAddress;
 	CScreenOptions		m_globalOptions;
+	CInputFilter		m_inputFilter;
 };
 
 //! Configuration stream read exception

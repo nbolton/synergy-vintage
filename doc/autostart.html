@@ -73,15 +73,17 @@ put the edits near the top of the script.
 <p>
 The location and names of these files depend on the operating
 system and display manager you're using.  A good guess for the
-location is <span class="code">/etc/X11</span>.  Typical file names
-are:
+location is <span class="code">/etc/X11</span>.  If you use kdm
+then try looking in <span class="code">/etc/kde3</span> or
+<span class="code">/usr/kde/<span class="arg">version</span>/share/config</span>.
+Typical file names are:
 </p>
 <p class="code">
 <table>
-<tr><td>&nbsp;&nbsp;</td>  <td>&nbsp;&nbsp;</td> <td>xdm</td> <td>&nbsp;&nbsp;</td> <td>gdm</td></tr>
-<tr><td>1</td> <td></td> <td>xdm/Xsetup</td>   <td></td> <td>gdm/Init/Default (*)</td></tr>
-<tr><td>2</td> <td></td> <td>xdm/Xstartup</td> <td></td> <td>gdm/PostLogin/Default (*)</td></tr>
-<tr><td>3</td> <td></td> <td>xdm/Xsession</td> <td></td> <td>gdm/Sessions/Default (*, **)</td></tr>
+<tr><td>&nbsp;&nbsp;</td>  <td>&nbsp;&nbsp;</td> <td>xdm</td> <td>&nbsp;&nbsp;</td> <td>kdm</td> <td>&nbsp;&nbsp;</td> <td>gdm</td></tr>
+<tr><td>1</td> <td></td> <td>xdm/Xsetup</td> <td></td> <td>kdm/Xsetup</td> <td></td>  <td>gdm/Init/Default (*)</td></tr>
+<tr><td>2</td> <td></td> <td>xdm/Xstartup</td> <td></td> <td>kdm/Xstartup</td> <td></td> <td>gdm/PostLogin/Default (*)</td></tr>
+<tr><td>3</td> <td></td> <td>xdm/Xsession</td> <td></td> <td>kdm/Xsession</td> <td></td> <td>gdm/Sessions/Default (*, **)</td></tr>
 </table>
 </p>
 <p>

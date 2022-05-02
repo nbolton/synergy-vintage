@@ -3834,7 +3834,7 @@ EOF
 
 fi
 
-for ac_header in unistd.h sys/time.h sys/types.h wchar.h alloca.h
+for ac_header in unistd.h sys/time.h sys/types.h locale.h wchar.h alloca.h
 do
 as_ac_Header=`echo "ac_cv_header_$ac_header" | $as_tr_sh`
 echo "$as_me:3840: checking for $ac_header" >&5

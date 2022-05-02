@@ -29,6 +29,7 @@
 class CEventQueueTimer;
 class CPrimaryClient;
 class IClient;
+class CInputFilter;
 
 //! Synergy server
 /*!
@@ -36,6 +37,34 @@ This class implements the top-level server algorithms for synergy.
 */
 class CServer {
 public:
+	//! Lock cursor to screen data
+	class CLockCursorToScreenInfo {
+	public:
+		static CLockCursorToScreenInfo* alloc(bool state);
+
+	public:
+		bool			m_state;
+	};
+
+	//! Switch to screen data
+	class CSwitchToScreenInfo {
+	public:
+		static CSwitchToScreenInfo* alloc(const CString& screen);
+
+	public:
+		// this is a C-string;  this type is a variable size structure
+		char			m_screen[1];
+	};
+
+	//! Switch in direction data
+	class CSwitchInDirectionInfo {
+	public:
+		static CSwitchInDirectionInfo* alloc(EDirection direction);
+
+	public:
+		EDirection		m_direction;
+	};
+
 	/*!
 	Start the server with the configuration \p config and the primary
 	client (local screen) \p primaryClient.  The client retains
@@ -100,6 +129,30 @@ public:
 	clients have disconnected.
 	*/
 	static CEvent::Type	getDisconnectedEvent();
+	
+	//! Get switch to screen event type
+	/*!
+	Returns the switch to screen event type.  The server responds to this
+	by switching screens.  The event data is a \c CSwitchToScreenInfo*
+	that indicates the target screen.
+	*/
+	static CEvent::Type	getSwitchToScreenEvent();
+	
+	//! Get switch in direction event type
+	/*!
+	Returns the switch in direction event type.  The server responds to this
+	by switching screens.  The event data is a \c CSwitchInDirectionInfo*
+	that indicates the target direction.
+	*/
+	static CEvent::Type	getSwitchInDirectionEvent();
+
+	//! Get lock cursor event type
+	/*!
+	Returns the lock cursor event type.  The server responds to this
+	by locking the cursor to the active screen or unlocking it.  The
+	event data is a \c CLockCursorToScreenInfo*.
+	*/
+	static CEvent::Type	getLockCursorToScreenEvent();
 
 	//@}
 
@@ -132,6 +185,9 @@ private:
 	// change the active screen
 	void				switchScreen(IClient*,
 							SInt32 x, SInt32 y, bool forScreenSaver);
+
+	// jump to screen
+	void				jumpToScreen(IClient*);
 
 	// lookup neighboring screen
 	IClient*			getNeighbor(IClient*, EDirection) const;
@@ -212,6 +268,9 @@ private:
 	void				handleSwitchWaitTimeout(const CEvent&, void*);
 	void				handleClientDisconnected(const CEvent&, void*);
 	void				handleClientCloseTimeout(const CEvent&, void*);
+	void				handleSwitchToScreenEvent(const CEvent&, void*);
+	void				handleSwitchInDirectionEvent(const CEvent&, void*);
+	void				handleLockCursorToScreenEvent(const CEvent&, void*);
 
 	// event processing
 	void				onClipboardChanged(IClient* sender,
@@ -294,6 +353,9 @@ private:
 	// current configuration
 	CConfig				m_config;
 
+	// input filter (from m_config);
+	CInputFilter*		m_inputFilter;
+
 	// clipboard cache
 	CClipboardInfo		m_clipboards[kClipboardEnd];
 
@@ -321,8 +383,14 @@ private:
 	// relative mouse move option
 	bool				m_relativeMoves;
 
+	// screen locking (former scroll lock)
+	bool				m_lockedToScreen;
+
 	static CEvent::Type	s_errorEvent;
 	static CEvent::Type	s_disconnectedEvent;
+	static CEvent::Type	s_switchToScreen;
+	static CEvent::Type	s_switchInDirection;
+	static CEvent::Type s_lockCursorToScreen;
 };
 
 #endif

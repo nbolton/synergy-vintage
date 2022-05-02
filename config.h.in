@@ -37,6 +37,9 @@
 /* Define if you have the <istream> header file. */
 #undef HAVE_ISTREAM
 
+/* Define if you have the <locale.h> header file. */
+#undef HAVE_LOCALE_H
+
 /* Define if you have the <memory.h> header file. */
 #undef HAVE_MEMORY_H
 

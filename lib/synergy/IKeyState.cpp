@@ -59,3 +59,14 @@ IKeyState::CKeyInfo::alloc(KeyID id,
 	info->m_count  = count;
 	return info;
 }
+
+IKeyState::CKeyInfo*
+IKeyState::CKeyInfo::alloc(const CKeyInfo& x)
+{
+	CKeyInfo* info = (CKeyInfo*)malloc(sizeof(CKeyInfo));
+	info->m_key    = x.m_key;
+	info->m_mask   = x.m_mask;
+	info->m_button = x.m_button;
+	info->m_count  = x.m_count;
+	return info;
+}

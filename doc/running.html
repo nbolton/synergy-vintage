@@ -26,7 +26,8 @@ Second, you install the software.  Choose the appropriate package
 and install it.  For example, on Windows you would run
 <span class="code">SynergyInstaller</span>.  You must install the
 software on all the computers that will share the mouse and keyboard
-(clients and server).
+(clients and server).  On OS X you'll just have a folder with some
+documentation and two programs.  You can put this folder anywhere.
 </p>
 
 <h4>Step 3 - Configure and start the server</h4>
@@ -130,9 +131,21 @@ It detaches from the terminal and doesn't have a visible window, effectively
 disappearing from view.  Until you're sure your configuration works, you
 should start synergy "in the foreground" using the <span class="code">-f</span>
 command line option.
+</p>
+<p>
+On unix type the command below in a shell.  If synergys is not in your
+PATH then use the full pathname.
 <pre>
     synergys -f --config synergy.conf
 </pre>
+On OS X open Terminal in the Utilities folder in the Applications folder.
+Drag the synergys program from the synergy folder onto the Terminal window.
+The path to the synergys program will appear.  Add the following to the
+same line, type a space at the end of the line but don't press enter:
+<pre>
+    -f --config 
+</pre>
+Now drag the synergy.conf file onto the Terminal window and press enter.
 Check the reported messages for errors.  Use ctrl+c to stop synergy if
 it didn't stop automatically, correct any problems, and start it again.
 </p>
@@ -168,12 +181,34 @@ Now click <span class="code">Test</span>.
 </p>
 <p>
 <b>Unix or Mac OS X</b><br>
-To start a client, enter the following:
+To start a client on unix, enter the following:
 <pre>
     synergyc -f <span class="arg">server-host-name</span>
 </pre>
 where <span class="arg">server-host-name</span> is replaced by the host
-name of the computer running the synergy server.
+name of the computer running the synergy server.  If synergyc is not in
+your PATH then use the full pathname.
+</p>
+<p>
+On OS X open Terminal in the Utilities folder in the Applications folder.
+Drag the synergyc program from the synergy folder onto the Terminal window.
+The path to the synergys program will appear.  Add the following to the
+same line and press enter:
+<pre>
+    -f <span class="arg">server-host-name</span>
+</pre>
+</p>
+<p>
+When you added the client to the server's configuration you chose a
+name for the client.  If that name was not client's host name then
+you must tell the client the name you used.  Instead of the above
+command use this instead:
+<pre>
+    synergyc -f --name <span class="arg">name</span> <span class="arg">server-host-name</span>
+</pre>
+where <span class="arg">name</span> is the name for the client in
+the server's configuration.  (On OS X drag the synergyc program to the
+Terminal window rather than typing synergyc.)
 </p>
 <h4>Step 5 - Test</h4>
 <p>

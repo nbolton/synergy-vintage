@@ -322,10 +322,231 @@ A screen can have the following options:
 		games.  If set to <span class="code">false</span> or not
 		set then all mouse moves are absolute.
 </p>
+<li><span class="code">keystroke(<span class="arg">key</span>) = <span class="arg">action</span></span>
+<p>
+		Binds the key combination <span class="arg">key</span> to the
+		given <span class="arg">action</span>.  <span class="arg">key</span>
+		is an optional list of modifiers (<span class="code">shift</span>,
+		<span class="code">control</span>, <span class="code">alt</span>,
+		<span class="code">meta</span> or <span class="code">super</span>)
+		optionally followed by a character or a key name, all separated by
+		<span class="code">+</span> (plus signs).  You must have either
+		modifiers or a character/key name or both.  See below for
+		<a href="#keynames">valid key names</a>.
+</p>
+<p>
+		The <span class="arg">key</span> can be optionally followed by
+		<span class="code">,toggle</span> which, for certain actions,
+		causes the action to toggle on and off.  This is useful in particular
+		for the <span class="code">lockCursorToScreen</span> action.
+</p>
+<p>
+		Actions are described <a href="#actions">below</a>.
+</p>
+<p>
+		Keyboard hot keys are handled on the primary screen and secondary
+		screens.
+</p>
+<p>
+		Examples:
+		<span class="code"><ul>
+		<li>keystroke(alt+left) = switchInDirection(left)
+		<li>keystroke(alt+f1,toggle) = lockCursorToScreen
+		<li>keystroke(shift+control+alt+super) = switchToScreen(moe)
+		</ul></span>
+</p>
+<li><span class="code">mousebutton(<span class="arg">button</span>) = <span class="arg">action</span></span>
+<p>
+		Binds the modifier and mouse button combination
+		<span class="arg">button</span> to the given
+		<span class="arg">action</span>.  <span class="arg">button</span>
+		is an optional list of modifiers (<span class="code">shift</span>,
+		<span class="code">control</span>, <span class="code">alt</span>,
+		<span class="code">meta</span> or <span class="code">super</span>)
+		followed by a button number.  The primary button (the
+		left button for right handed users) is button 1, the middle button
+		is 2, etc.
+</p>
+<p>
+		The <span class="arg">button</span> can be optionally followed by
+		<span class="code">,toggle</span> which, for certain actions,
+		causes the action to toggle on and off.  This is useful in particular
+		for the <span class="code">lockCursorToScreen</span> action.
+</p>
+<p>
+		Actions are described <a href="#actions">below</a>.
+</p>
+<p>
+		Mouse button actions are not handled on the primary screen.  You
+		cannot use these to perform an action while on the primary screen.
+</p>
 </ul>
     You can use both the <span class="code">switchDelay</span> and
     <span class="code">switchDoubleTap</span> options at the same
     time.  Synergy will switch when either requirement is satisfied.
+</p>
+<p>
+<a name="actions">Actions</a> are:
+<ul>
+<li><span class="code">keystroke(<span class="arg">key</span>)</span>
+<p>
+		Synthesizes the modifiers and key given in <span class="arg">key</span>
+		which has the same form as described in the
+		<span class="code">keystroke</span> option.
+</p>
+<li><span class="code">mousebutton(<span class="arg">button</span>)</span>
+<p>
+		Synthesizes the modifiers and mouse button given in
+		<span class="arg">button</span>
+		which has the same form as described in the
+		<span class="code">mousebutton</span> option.
+</p>
+<li><span class="code">lockCursorToScreen</span>
+<p>
+		Locks the cursor to or unlocks the cursor from the active screen.
+		Use the <span class="code">toggle</span> modifier in the option
+		when using this action.  Scroll lock also performs the function.
+</p>
+<li><span class="code">switchToScreen(<span class="arg">screen</span>)</span>
+<p>
+		Jump to screen with name or alias <span class="arg">screen</span>.
+</p>
+<li><span class="code">switchInDirection(<span class="arg">dir</span>)</span>
+<p>
+		Switch to the screen in the direction <span class="arg">dir</span>,
+		which may be one of <span class="code">left</span>,
+		<span class="code">right</span>, <span class="code">up</span> or
+		<span class="code">down</span>.
+</p>
+</ul>
+</p>
+<p>
+<a name="keynames">Valid key names</a> are:
+<span class="code"><ul>
+<li>AppMail
+<li>AppMedia
+<li>AppUser1
+<li>AppUser2
+<li>AudioDown
+<li>AudioMute
+<li>AudioNext
+<li>AudioPlay
+<li>AudioPrev
+<li>AudioStop
+<li>AudioUp
+<li>BackSpace
+<li>Begin
+<li>Break
+<li>Cancel
+<li>Clear
+<li>Delete
+<li>Down
+<li>Eject
+<li>End
+<li>Escape
+<li>Execute
+<li>F1
+<li>F2
+<li>F3
+<li>F4
+<li>F5
+<li>F6
+<li>F7
+<li>F8
+<li>F9
+<li>F10
+<li>F11
+<li>F12
+<li>F13
+<li>F14
+<li>F15
+<li>F16
+<li>F17
+<li>F18
+<li>F19
+<li>F20
+<li>F21
+<li>F22
+<li>F23
+<li>F24
+<li>F25
+<li>F26
+<li>F27
+<li>F28
+<li>F29
+<li>F30
+<li>F31
+<li>F32
+<li>F33
+<li>F34
+<li>F35
+<li>Find
+<li>Help
+<li>Home
+<li>Insert
+<li>KP_0
+<li>KP_1
+<li>KP_2
+<li>KP_3
+<li>KP_4
+<li>KP_5
+<li>KP_6
+<li>KP_7
+<li>KP_8
+<li>KP_9
+<li>KP_Add
+<li>KP_Begin
+<li>KP_Decimal
+<li>KP_Delete
+<li>KP_Divide
+<li>KP_Down
+<li>KP_End
+<li>KP_Enter
+<li>KP_Equal
+<li>KP_F1
+<li>KP_F2
+<li>KP_F3
+<li>KP_F4
+<li>KP_Home
+<li>KP_Insert
+<li>KP_Left
+<li>KP_Multiply
+<li>KP_PageDown
+<li>KP_PageUp
+<li>KP_Right
+<li>KP_Separator
+<li>KP_Space
+<li>KP_Subtract
+<li>KP_Tab
+<li>KP_Up
+<li>Left
+<li>LeftTab
+<li>Linefeed
+<li>Menu
+<li>PageDown
+<li>PageUp
+<li>Pause
+<li>Print
+<li>Redo
+<li>Return
+<li>Right
+<li>Select
+<li>Sleep
+<li>Space
+<li>SysReq
+<li>Tab
+<li>Undo
+<li>Up
+<li>WWWBack
+<li>WWWFavorites
+<li>WWWForward
+<li>WWWHome
+<li>WWWRefresh
+<li>WWWSearch
+<li>WWWStop
+</ul></span>
+Key (and modifier) names are case-insensitive.  Keys that don't exist on
+the keyboard or in the default keyboard layout will not work.
 </p>
 </body>
 </html>

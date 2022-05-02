@@ -62,7 +62,8 @@ CXWindowsScreenSaver::CXWindowsScreenSaver(
 	m_dpms(false),
 	m_disabled(false),
 	m_suppressDisable(false),
-	m_disableTimer(NULL)
+	m_disableTimer(NULL),
+	m_disablePos(0)
 {
 	// get atoms
 	m_atomScreenSaver           = XInternAtom(m_display,
@@ -509,9 +510,9 @@ CXWindowsScreenSaver::handleDisableTimer(const CEvent&, void*)
 		event.xmotion.root         = DefaultRootWindow(m_display);
 		event.xmotion.subwindow    = None;
 		event.xmotion.time         = CurrentTime;
-		event.xmotion.x            = 0;
+		event.xmotion.x            = m_disablePos;
 		event.xmotion.y            = 0;
-		event.xmotion.x_root       = 0;
+		event.xmotion.x_root       = m_disablePos;
 		event.xmotion.y_root       = 0;
 		event.xmotion.state        = 0;
 		event.xmotion.is_hint      = NotifyNormal;
@@ -519,6 +520,8 @@ CXWindowsScreenSaver::handleDisableTimer(const CEvent&, void*)
 
 		CXWindowsUtil::CErrorLock lock(m_display);
 		XSendEvent(m_display, m_xscreensaver, False, 0, &event);
+
+		m_disablePos = 20 - m_disablePos;
 	}
 }
 

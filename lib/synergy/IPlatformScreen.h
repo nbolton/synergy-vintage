@@ -146,6 +146,8 @@ public:
 	// IPrimaryScreen overrides
 	virtual void		reconfigure(UInt32 activeSides) = 0;
 	virtual void		warpCursor(SInt32 x, SInt32 y) = 0;
+	virtual UInt32		registerHotKey(KeyID key, KeyModifierMask mask) = 0;
+	virtual void		unregisterHotKey(UInt32 id) = 0;
 	virtual SInt32		getJumpZoneSize() const = 0;
 	virtual bool		isAnyMouseButtonDown() const = 0;
 	virtual void		getCursorCenter(SInt32& x, SInt32& y) const = 0;
@@ -157,22 +159,23 @@ public:
 	virtual void		fakeMouseWheel(SInt32 delta) const = 0;
 
 	// IKeyState overrides
-	virtual void		updateKeys() = 0;
+	virtual void		updateKeyMap() = 0;
+	virtual void		updateKeyState() = 0;
 	virtual void		setHalfDuplexMask(KeyModifierMask) = 0;
 	virtual void		fakeKeyDown(KeyID id, KeyModifierMask mask,
 							KeyButton button) = 0;
 	virtual void		fakeKeyRepeat(KeyID id, KeyModifierMask mask,
 							SInt32 count, KeyButton button) = 0;
 	virtual void		fakeKeyUp(KeyButton button) = 0;
-	virtual void		fakeToggle(KeyModifierMask modifier) = 0;
+	virtual void		fakeAllKeysUp() = 0;
 	virtual bool		fakeCtrlAltDel() = 0;
 	virtual bool		isKeyDown(KeyButton) const = 0;
-	virtual bool		isServerKeyDown(KeyButton) const = 0;
 	virtual KeyModifierMask
 						getActiveModifiers() const = 0;
 	virtual KeyModifierMask
 						pollActiveModifiers() const = 0;
-	virtual const char*	getKeyName(KeyButton) const = 0;
+	virtual SInt32		pollActiveGroup() const = 0;
+	virtual void		pollPressedKeys(KeyButtonSet& pressedKeys) const = 0;
 
 protected:
 	//! Handle system event
@@ -191,9 +194,9 @@ protected:
 
 	A primary screen has further responsibilities.  It should post
 	the events in \c IPrimaryScreen as appropriate.  It should also
-	call \c setKeyDown() on its \c CKeyState whenever a key is pressed
+	call \c onKey() on its \c CKeyState whenever a key is pressed
 	or released (but not for key repeats).  And it should call
-	\c updateKeys() on its \c CKeyState if necessary when the keyboard
+	\c updateKeyMap() on its \c CKeyState if necessary when the keyboard
 	mapping changes.
 
 	The target of all events should be the value returned by

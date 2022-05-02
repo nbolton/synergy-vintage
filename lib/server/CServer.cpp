@@ -28,13 +28,17 @@
 #include "CLog.h"
 #include "TMethodEventJob.h"
 #include "CArch.h"
+#include <string.h>
 
 //
 // CServer
 //
 
-CEvent::Type			CServer::s_errorEvent        = CEvent::kUnknown;
-CEvent::Type			CServer::s_disconnectedEvent = CEvent::kUnknown;
+CEvent::Type			CServer::s_errorEvent         = CEvent::kUnknown;
+CEvent::Type			CServer::s_disconnectedEvent  = CEvent::kUnknown;
+CEvent::Type			CServer::s_switchToScreen     = CEvent::kUnknown;
+CEvent::Type			CServer::s_switchInDirection  = CEvent::kUnknown;
+CEvent::Type			CServer::s_lockCursorToScreen = CEvent::kUnknown;
 
 CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 	m_primaryClient(primaryClient),
@@ -45,6 +49,7 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 	m_xDelta2(0),
 	m_yDelta2(0),
 	m_config(config),
+	m_inputFilter(m_config.getInputFilter()),
 	m_activeSaver(NULL),
 	m_switchDir(kNoDirection),
 	m_switchScreen(NULL),
@@ -54,7 +59,8 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 	m_switchTwoTapEngaged(false),
 	m_switchTwoTapArmed(false),
 	m_switchTwoTapZone(3),
-	m_relativeMoves(false)
+	m_relativeMoves(false),
+	m_lockedToScreen(false)
 {
 	// must have a primary client and it must have a canonical name
 	assert(m_primaryClient != NULL);
@@ -74,28 +80,31 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 		clipboard.m_clipboardData   = clipboard.m_clipboard.marshall();
 	}
 
+	// get input filter
+	m_inputFilter = m_config.getInputFilter();
+
 	// install event handlers
 	EVENTQUEUE->adoptHandler(CEvent::kTimer, this,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleSwitchWaitTimeout));
 	EVENTQUEUE->adoptHandler(IPlatformScreen::getKeyDownEvent(),
-							m_primaryClient->getEventTarget(),
+							m_inputFilter,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleKeyDownEvent));
 	EVENTQUEUE->adoptHandler(IPlatformScreen::getKeyUpEvent(),
-							m_primaryClient->getEventTarget(),
+							m_inputFilter,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleKeyUpEvent));
 	EVENTQUEUE->adoptHandler(IPlatformScreen::getKeyRepeatEvent(),
-							m_primaryClient->getEventTarget(),
+							m_inputFilter,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleKeyRepeatEvent));
 	EVENTQUEUE->adoptHandler(IPlatformScreen::getButtonDownEvent(),
-							m_primaryClient->getEventTarget(),
+							m_inputFilter,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleButtonDownEvent));
 	EVENTQUEUE->adoptHandler(IPlatformScreen::getButtonUpEvent(),
-							m_primaryClient->getEventTarget(),
+							m_inputFilter,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleButtonUpEvent));
 	EVENTQUEUE->adoptHandler(IPlatformScreen::getMotionOnPrimaryEvent(),
@@ -118,7 +127,18 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 							m_primaryClient->getEventTarget(),
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleScreensaverDeactivatedEvent));
-
+	EVENTQUEUE->adoptHandler(getSwitchToScreenEvent(),
+							m_inputFilter,
+							new TMethodEventJob<CServer>(this,
+								&CServer::handleSwitchToScreenEvent));
+	EVENTQUEUE->adoptHandler(getSwitchInDirectionEvent(),
+							m_inputFilter,
+							new TMethodEventJob<CServer>(this,
+								&CServer::handleSwitchInDirectionEvent));
+	EVENTQUEUE->adoptHandler(getLockCursorToScreenEvent(),
+							m_inputFilter,
+							new TMethodEventJob<CServer>(this,
+								&CServer::handleLockCursorToScreenEvent));
 	// add connection
 	addClient(m_primaryClient);
 
@@ -129,21 +149,22 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 	sendOptions(m_primaryClient);
 
 	m_primaryClient->enable();
+	m_inputFilter->setPrimaryClient(m_primaryClient);
 }
 
 CServer::~CServer()
 {
 	// remove event handlers and timers
 	EVENTQUEUE->removeHandler(IPlatformScreen::getKeyDownEvent(),
-							m_primaryClient->getEventTarget());
+							m_inputFilter);
 	EVENTQUEUE->removeHandler(IPlatformScreen::getKeyUpEvent(),
-							m_primaryClient->getEventTarget());
+							m_inputFilter);
 	EVENTQUEUE->removeHandler(IPlatformScreen::getKeyRepeatEvent(),
-							m_primaryClient->getEventTarget());
+							m_inputFilter);
 	EVENTQUEUE->removeHandler(IPlatformScreen::getButtonDownEvent(),
-							m_primaryClient->getEventTarget());
+							m_inputFilter);
 	EVENTQUEUE->removeHandler(IPlatformScreen::getButtonUpEvent(),
-							m_primaryClient->getEventTarget());
+							m_inputFilter);
 	EVENTQUEUE->removeHandler(IPlatformScreen::getMotionOnPrimaryEvent(),
 							m_primaryClient->getEventTarget());
 	EVENTQUEUE->removeHandler(IPlatformScreen::getMotionOnSecondaryEvent(),
@@ -168,6 +189,9 @@ CServer::~CServer()
 		delete client;
 	}
 
+	// remove input filter
+	m_inputFilter->setPrimaryClient(NULL);
+
 	// disable and disconnect primary client
 	m_primaryClient->disable();
 	removeClient(m_primaryClient);
@@ -187,6 +211,7 @@ CServer::setConfig(const CConfig& config)
 
 	// cut over
 	m_config = config;
+
 	processOptions();
 
 	// tell primary screen about reconfiguration
@@ -280,6 +305,27 @@ CServer::getDisconnectedEvent()
 							"CServer::disconnected");
 }
 
+CEvent::Type
+CServer::getSwitchToScreenEvent()
+{
+	return CEvent::registerTypeOnce(s_switchToScreen,
+							"CServer::switchToScreen");
+}
+
+CEvent::Type
+CServer::getSwitchInDirectionEvent()
+{
+	return CEvent::registerTypeOnce(s_switchInDirection,
+							"CServer::switchInDirection");
+}
+
+CEvent::Type
+CServer::getLockCursorToScreenEvent()
+{
+	return CEvent::registerTypeOnce(s_lockCursorToScreen,
+							"CServer::lockCursorToScreen");
+}
+
 bool
 CServer::onCommandKey(KeyID id, KeyModifierMask /*mask*/, bool /*down*/)
 {
@@ -327,7 +373,7 @@ bool
 CServer::isLockedToScreenServer() const
 {
 	// locked if scroll-lock is toggled on
-	return ((m_primaryClient->getToggleMask() & KeyModifierScrollLock) != 0);
+	return m_lockedToScreen;
 }
 
 bool
@@ -427,6 +473,21 @@ CServer::switchScreen(IClient* dst, SInt32 x, SInt32 y, bool forScreensaver)
 	else {
 		m_active->mouseMove(x, y);
 	}
+}
+
+void
+CServer::jumpToScreen(IClient* newScreen)
+{
+	assert(newScreen != NULL);
+
+	// warp to the center of the new client
+	// XXX -- would be better to save and restore the last position
+	SInt32 ax, ay, aw, ah;
+	newScreen->getShape(ax, ay, aw, ah);
+	SInt32 x = ax + (aw >> 1);
+	SInt32 y = ay + (ah >> 1);
+	
+	switchScreen(newScreen, x, y, false);
 }
 
 IClient*
@@ -1212,6 +1273,45 @@ CServer::handleClientCloseTimeout(const CEvent&, void* vclient)
 }
 
 void
+CServer::handleSwitchToScreenEvent(const CEvent& event, void*)
+{
+	CSwitchToScreenInfo* info = 
+		reinterpret_cast<CSwitchToScreenInfo*>(event.getData());
+	
+	CClientList::const_iterator index = m_clients.find(info->m_screen);
+	if (index == m_clients.end()) {
+		LOG((CLOG_DEBUG1 "screen \"%s\" not active", info->m_screen));
+	}
+	else {
+		jumpToScreen(index->second);
+	}
+}
+
+void
+CServer::handleSwitchInDirectionEvent(const CEvent& event, void*)
+{
+	CSwitchInDirectionInfo* info = 
+		reinterpret_cast<CSwitchInDirectionInfo*>(event.getData());
+	
+	IClient* newScreen = getNeighbor(m_active, info->m_direction);
+	if (newScreen == NULL) {
+		LOG((CLOG_DEBUG1 "no neighbor %s", CConfig::dirName(info->m_direction)));
+	}
+	else {
+		jumpToScreen(newScreen);
+	}
+}
+
+void
+CServer::handleLockCursorToScreenEvent(const CEvent& event, void*)
+{
+	CLockCursorToScreenInfo* info = (CLockCursorToScreenInfo*)event.getData();
+	
+	m_lockedToScreen = info->m_state;
+	LOG((CLOG_DEBUG "cursor %s current screen", m_lockedToScreen ? "locked to" : "unlocked from"));
+}
+
+void
 CServer::onClipboardChanged(IClient* sender, ClipboardID id, UInt32 seqNum)
 {
 	CClipboardInfo& clipboard = m_clipboards[id];
@@ -1819,4 +1919,47 @@ CServer::CClipboardInfo::CClipboardInfo() :
 	m_clipboardSeqNum(0)
 {
 	// do nothing
+}
+
+
+//
+// CServer::CLockCursorToScreenInfo
+//
+
+CServer::CLockCursorToScreenInfo*
+CServer::CLockCursorToScreenInfo::alloc(bool state)
+{
+	CLockCursorToScreenInfo* info =
+		(CLockCursorToScreenInfo*)malloc(sizeof(CLockCursorToScreenInfo));
+	info->m_state = state;
+	return info;
+}
+
+
+//
+// CServer::CSwitchToScreenInfo
+//
+
+CServer::CSwitchToScreenInfo*
+CServer::CSwitchToScreenInfo::alloc(const CString& screen)
+{
+	CSwitchToScreenInfo* info =
+		(CSwitchToScreenInfo*)malloc(sizeof(CSwitchToScreenInfo) +
+								screen.size());
+	strcpy(info->m_screen, screen.c_str());
+	return info;
+}
+
+
+//
+// CServer::CSwitchInDirectionInfo
+//
+
+CServer::CSwitchInDirectionInfo*
+CServer::CSwitchInDirectionInfo::alloc(EDirection direction)
+{
+	CSwitchInDirectionInfo* info =
+		(CSwitchInDirectionInfo*)malloc(sizeof(CSwitchInDirectionInfo));
+	info->m_direction = direction;
+	return info;
 }

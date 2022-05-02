@@ -16,6 +16,7 @@
 #define COSXSCREEN_H
 
 #include "CPlatformScreen.h"
+#include "stdmap.h"
 #include "stdvector.h"
 #include <Carbon/Carbon.h>
 
@@ -27,6 +28,7 @@
 
 template <class T>
 class CCondVar;
+class CEventQueueTimer;
 class CMutex;
 class CThread;
 class COSXKeyState;
@@ -48,6 +50,8 @@ public:
 	// IPrimaryScreen overrides
 	virtual void		reconfigure(UInt32 activeSides);
 	virtual void		warpCursor(SInt32 x, SInt32 y);
+	virtual UInt32		registerHotKey(KeyID key, KeyModifierMask mask);
+	virtual void		unregisterHotKey(UInt32 id);
 	virtual SInt32		getJumpZoneSize() const;
 	virtual bool		isAnyMouseButtonDown() const;
 	virtual void		getCursorCenter(SInt32& x, SInt32& y) const;
@@ -92,12 +96,13 @@ private:
 	// mouse button handler.  pressed is true if this is a mousedown
 	// event, false if it is a mouseup event.  macButton is the index
 	// of the button pressed using the mac button mapping.
-	bool				onMouseButton(bool pressed, UInt16 macButton) const;
+	bool				onMouseButton(bool pressed, UInt16 macButton);
 	bool				onMouseWheel(SInt32 delta) const;
 
 	bool				onDisplayChange();
 
-	bool				onKey(EventRef event) const;
+	bool				onKey(EventRef event);
+	bool				onHotKey(EventRef event) const;
 
 	// map mac mouse button to synergy buttons
 	ButtonID			mapMacButtonToSynergy(UInt16) const;
@@ -114,38 +119,60 @@ private:
 	// get the current scroll wheel speed
 	double				getScrollSpeedFactor() const;
 
-	// map mac modifier mask to synergy modifier mask
-	KeyModifierMask		mapMacModifiersToSynergy(EventRef event) const;
+	// enable/disable drag handling for buttons 3 and up
+	void				enableDragTimer(bool enable);
+
+	// drag timer handler
+	void				handleDrag(const CEvent&, void*);
+
+	// clipboard check timer handler
+	void				handleClipboardCheck(const CEvent&, void*);
 
 	// Resolution switch callback
 	static pascal void	displayManagerCallback(void* inUserData,
 							SInt16 inMessage, void* inNotifyData);
 	
 	// fast user switch callback
-	static pascal OSStatus userSwitchCallback (EventHandlerCallRef nextHandler,
-											   EventRef theEvent,
-											   void* inUserData);
+	static pascal OSStatus
+						userSwitchCallback(EventHandlerCallRef nextHandler,
+						   EventRef theEvent, void* inUserData);
 	
 	// sleep / wakeup support
-	void watchSystemPowerThread(void*);
-	static void testCanceled (CFRunLoopTimerRef timer, void *info);
+	void				watchSystemPowerThread(void*);
+	static void			testCanceled(CFRunLoopTimerRef timer, void*info);
+	static void			powerChangeCallback(void* refcon, io_service_t service,
+							natural_t messageType, void* messageArgument);
+	void				handlePowerChangeRequest(natural_t messageType,
+							 void* messageArgument);
 
-
-	static void powerChangeCallback(void * refcon, io_service_t service,
-								natural_t messageType, void * messageArgument);
-	
-	void		handlePowerChangeRequest(natural_t messageType,
-										 void * messageArgument);
-
-	static CEvent::Type		getConfirmSleepEvent();
-	void		handleConfirmSleep(const CEvent& event, void*);
+	static CEvent::Type	getConfirmSleepEvent();
+	void				handleConfirmSleep(const CEvent& event, void*);
 	
 	// global hotkey operating mode
-	static bool isGlobalHotKeyOperatingModeAvailable();
-	static void setGlobalHotKeysEnabled(bool enabled);
-	static bool getGlobalHotKeysEnabled();
+	static bool			isGlobalHotKeyOperatingModeAvailable();
+	static void			setGlobalHotKeysEnabled(bool enabled);
+	static bool			getGlobalHotKeysEnabled();
 
 private:
+	struct CHotKeyItem {
+	public:
+		CHotKeyItem(UInt32, UInt32);
+		CHotKeyItem(EventHotKeyRef, UInt32, UInt32);
+
+		EventHotKeyRef	getRef() const;
+
+		bool			operator<(const CHotKeyItem&) const;
+
+	private:
+		EventHotKeyRef	m_ref;
+		UInt32			m_keycode;
+		UInt32			m_mask;
+	};
+	typedef std::map<UInt32, CHotKeyItem> HotKeyMap;
+	typedef std::vector<UInt32> HotKeyIDList;
+	typedef std::map<KeyModifierMask, UInt32> ModifierHotKeyMap;
+	typedef std::map<CHotKeyItem, UInt32> HotKeyToIDMap;
+
 	// true if screen is being used as a primary screen, false otherwise
 	bool				m_isPrimary;
 
@@ -165,6 +192,9 @@ private:
 	mutable bool		m_cursorPosValid;
 	mutable boolean_t	m_buttons[5];
 	bool				m_cursorHidden;
+	SInt32				m_dragNumButtonsDown;
+	Point				m_dragLastPoint;
+	CEventQueueTimer*	m_dragTimer;
 
 	// keyboard stuff
 	COSXKeyState*		m_keyState;
@@ -178,6 +208,7 @@ private:
 
 	// clipboard stuff
 	bool				m_ownClipboard;
+	CEventQueueTimer*	m_clipboardTimer;
 
 	// window object that gets user input events when the server
 	// has focus.
@@ -199,6 +230,14 @@ private:
     CCondVar<bool>*			m_pmThreadReady;
 	CFRunLoopRef			m_pmRunloop;
 	io_connect_t			m_pmRootPort;
+
+	// hot key stuff
+	HotKeyMap				m_hotKeys;
+	HotKeyIDList			m_oldHotKeyIDs;
+	ModifierHotKeyMap		m_modifierHotKeys;
+	UInt32					m_activeModifierHotKey;
+	KeyModifierMask			m_activeModifierHotKeyMask;
+	HotKeyToIDMap			m_hotKeyToIDMap;
 
 	// global hotkey operating mode
 	static bool				s_testedForGHOM;

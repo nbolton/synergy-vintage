@@ -91,6 +91,10 @@ SOURCE=.\CClipboard.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CKeyMap.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\CKeyState.cpp
 # End Source File
 # Begin Source File
@@ -144,6 +148,10 @@ SOURCE=.\XSynergy.cpp
 # Begin Source File
 
 SOURCE=.\CClipboard.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\CKeyMap.h
 # End Source File
 # Begin Source File
 
@@ -216,6 +224,10 @@ SOURCE=.\OptionTypes.h
 # Begin Source File
 
 SOURCE=.\ProtocolTypes.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\SpecialKeyNameMap.h
 # End Source File
 # Begin Source File
 

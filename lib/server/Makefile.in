@@ -118,6 +118,7 @@ libserver_a_SOURCES = \
 	CClientProxy1_2.cpp				\
 	CClientProxyUnknown.cpp			\
 	CConfig.cpp						\
+	CInputFilter.cpp				\
 	CPrimaryClient.cpp				\
 	CServer.cpp						\
 	CClientListener.h				\
@@ -127,6 +128,7 @@ libserver_a_SOURCES = \
 	CClientProxy1_2.h				\
 	CClientProxyUnknown.h			\
 	CConfig.h						\
+	CInputFilter.h					\
 	CPrimaryClient.h				\
 	CServer.h						\
 	$(NULL)
@@ -154,7 +156,8 @@ am_libserver_a_OBJECTS = CClientListener.$(OBJEXT) \
 	CClientProxy.$(OBJEXT) CClientProxy1_0.$(OBJEXT) \
 	CClientProxy1_1.$(OBJEXT) CClientProxy1_2.$(OBJEXT) \
 	CClientProxyUnknown.$(OBJEXT) CConfig.$(OBJEXT) \
-	CPrimaryClient.$(OBJEXT) CServer.$(OBJEXT)
+	CInputFilter.$(OBJEXT) CPrimaryClient.$(OBJEXT) \
+	CServer.$(OBJEXT)
 libserver_a_OBJECTS = $(am_libserver_a_OBJECTS)
 
 DEFS = @DEFS@
@@ -169,8 +172,8 @@ depcomp = $(SHELL) $(top_srcdir)/config/depcomp
 @AMDEP_TRUE@	$(DEPDIR)/CClientProxy1_1.Po \
 @AMDEP_TRUE@	$(DEPDIR)/CClientProxy1_2.Po \
 @AMDEP_TRUE@	$(DEPDIR)/CClientProxyUnknown.Po \
-@AMDEP_TRUE@	$(DEPDIR)/CConfig.Po $(DEPDIR)/CPrimaryClient.Po \
-@AMDEP_TRUE@	$(DEPDIR)/CServer.Po
+@AMDEP_TRUE@	$(DEPDIR)/CConfig.Po $(DEPDIR)/CInputFilter.Po \
+@AMDEP_TRUE@	$(DEPDIR)/CPrimaryClient.Po $(DEPDIR)/CServer.Po
 CXXCOMPILE = $(CXX) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \
 	$(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS)
 CXXLD = $(CXX)
@@ -220,6 +223,7 @@ distclean-compile:
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/CClientProxy1_2.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/CClientProxyUnknown.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/CConfig.Po@am__quote@
+@AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/CInputFilter.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/CPrimaryClient.Po@am__quote@
 @AMDEP_TRUE@@am__include@ @am__quote@$(DEPDIR)/CServer.Po@am__quote@
 

@@ -605,9 +605,6 @@ CMSWindowsDesks::deskLeave(CDesk* desk, HKL keyLayout)
 {
 	ShowCursor(FALSE);
 	if (m_isPrimary) {
-		// update key state
-		m_updateKeys->run();
-
 		// map a window to hide the cursor and to use whatever keyboard
 		// layout we choose rather than the keyboard layout of the last
 		// active window.
@@ -889,11 +886,12 @@ CMSWindowsDesks::checkDesk()
 		// inaccessible desktop to an accessible one we have to
 		// update the keyboard state.
 		LOG((CLOG_DEBUG "switched to desk \"%s\"", name.c_str()));
+		bool syncKeys = false;
 		bool isAccessible = isDeskAccessible(desk);
 		if (isDeskAccessible(m_activeDesk) != isAccessible) {
 			if (isAccessible) {
 				LOG((CLOG_DEBUG "desktop is now accessible"));
-				sendMessage(SYNERGY_MSG_SYNC_KEYS, 0, 0);
+				syncKeys = true;
 			}
 			else {
 				LOG((CLOG_DEBUG "desktop is now inaccessible"));
@@ -908,6 +906,11 @@ CMSWindowsDesks::checkDesk()
 		// hide cursor on new desk
 		if (!wasOnScreen) {
 			sendMessage(SYNERGY_MSG_LEAVE, (WPARAM)m_keyLayout, 0);
+		}
+
+		// update keys if necessary
+		if (syncKeys) {
+			updateKeys();
 		}
 	}
 	else if (name != m_activeDeskName) {

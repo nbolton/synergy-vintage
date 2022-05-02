@@ -13,6 +13,8 @@
  */
 
 #include "CConfig.h"
+#include "CServer.h"
+#include "CKeyMap.h"
 #include "KeyTypes.h"
 #include "XSocket.h"
 #include "stdistream.h"
@@ -524,6 +526,12 @@ CConfig::dirName(EDirection dir)
 	return s_name[dir - kFirstDirection];
 }
 
+CInputFilter*
+CConfig::getInputFilter()
+{
+	return &m_inputFilter;
+}
+
 bool
 CConfig::readLine(std::istream& s, CString& line)
 {
@@ -856,10 +864,20 @@ CConfig::readSection(std::istream& s)
 }
 
 void
+CConfig::checkStringBounds(CString::size_type i, const char* upperx, const char* lowerx)
+{
+	if (i == CString::npos) {
+		throw XConfigRead(upperx);
+	}
+	if (i == 0 && lowerx) {
+		throw XConfigRead(lowerx);
+	}
+}
+
+void
 CConfig::readSectionOptions(std::istream& s)
 {
 	CString line;
-	CString name;
 	while (readLine(s, line)) {
 		// check for end of section
 		if (line == "end") {
@@ -867,25 +885,70 @@ CConfig::readSectionOptions(std::istream& s)
 		}
 
 		// parse argument:  `<name>=<value>'
-		CString::size_type i = line.find_first_of(" \t=");
-		if (i == 0) {
-			throw XConfigRead("missing argument name");
-		}
-		if (i == CString::npos) {
-			throw XConfigRead("missing = in argument");
-		}
+		// name and value can also have optional function arguments enclosed in 
+		// paranthesis
+		CString::size_type i = line.find_first_of(" \t=(");
+		checkStringBounds(i, "missing = in argument", "missing argument name");
 		CString name = line.substr(0, i);
+		// skip to whitespaces to '=' or '('
 		i = line.find_first_not_of(" \t", i);
-		if (i == CString::npos || line[i] != '=') {
-			throw XConfigRead("missing = in argument");
+		checkStringBounds(i, "missing = in argument");
+		
+		std::vector<CString> condargs;
+		while ((line[i] == '(' && condargs.empty()) || line[i] == ',') {
+			CString::size_type j = line.find_first_not_of(" \t", i + 1);
+			i = line.find_first_of(" \t,)", j);
+			checkStringBounds(i, "missing )",
+							"missing arguments in parentheses");
+			condargs.push_back(line.substr(j, i - j));
+			i = line.find_first_not_of(" \t", i);
+			checkStringBounds(i, "missing )");
+			if (line[i] == ',') {
+				continue;
+			}
+			else if (line[i] == ')') {
+				break;
+			}
+			else {
+				throw XConfigRead("unexpected character in ()");
+			}
 		}
+		
+		// parse '='
+		i = line.find('=', i);
+		checkStringBounds(i, "missing = in argument");
 		i = line.find_first_not_of(" \t", i + 1);
-		CString value;
-		if (i != CString::npos) {
+		checkStringBounds(i, "missing value after =");
+		
+		// read value(valarg) argument
+		CString value = "";
+		CString::size_type j = line.find_first_of(" \t(", i);
+		if (j == CString::npos) {
 			value = line.substr(i);
 		}
-		if (value.empty()) {
-			throw XConfigRead("missing value after =");
+		else {
+			value = line.substr(i, j - i);
+			i = line.find_first_not_of(" \t", j);
+		}
+		
+		std::vector<CString> valargs;
+		while ((line[i] == '(' && valargs.empty()) || line[i] == ',') {
+			CString::size_type j=line.find_first_not_of(" \t", i + 1);
+			i = line.find_first_of(" \t,)", j);
+			checkStringBounds(i, "missing )",
+								"missing arguments in parentheses");
+			valargs.push_back(line.substr(j, i - j));
+			i = line.find_first_not_of(" \t", i);
+			checkStringBounds(i, "missing )");
+			if (line[i] == ',') {
+				continue;
+			}
+			else if (line[i] == ')') {
+				break;
+			}
+			else {
+				throw XConfigRead("unexpected character in ()");
+			}
 		}
 
 		if (name == "address") {
@@ -923,10 +986,191 @@ CConfig::readSectionOptions(std::istream& s)
 			addOption("", kOptionWin32KeepForeground, parseBoolean(value));
 		}
 		else {
+			createFilterRule(name, condargs, value, valargs);
+		}
+		/*
+		else {
 			throw XConfigRead("unknown argument");
 		}
+		*/
 	}
 	throw XConfigRead("unexpected end of screens section");
+}
+
+void
+CConfig::createFilterRule(CString &condition, std::vector<CString> &condargs,
+						  CString &action, std::vector<CString> &actargs)
+{
+	CInputFilter::CCondition* cond;
+	if (condition == "keystroke") {
+		CInputFilter::EActionMode	mode = CInputFilter::kModePass;
+		if (condargs.size() < 1 || condargs.size() > 2) {
+			throw XConfigRead("syntax for condition: keystroke(modifiers+key[,toggle])");
+		}
+		IPlatformScreen::CKeyInfo* keyInfo = parseKeystroke(condargs[0]);
+		
+		// second argument is an optional toggle flag
+		if (condargs.size() == 2) {
+			if (condargs[1] == "toggle") {
+				mode = CInputFilter::kModeToggle;
+			}
+			else {
+				throw XConfigRead("syntax for condition: keystroke(modifiers+key[,toggle])");
+			}
+		}
+		cond = new CInputFilter::CKeystrokeCondition(keyInfo, mode);
+	}
+	else if (condition == "mousebutton") {
+		CInputFilter::EActionMode	mode = CInputFilter::kModePass;
+		if (condargs.size() < 1 || condargs.size() > 2) {
+			throw XConfigRead("syntax for action: mousebutton(modifiers+button[,toggle])");
+		}
+		IPlatformScreen::CButtonInfo* mouseInfo = parseMouse(condargs[0]);
+		
+		// second argument is an optional toggle flag
+		if (condargs.size() == 2) {
+			if (condargs[1] == "toggle") {
+				mode = CInputFilter::kModeToggle;
+			}
+			else {
+				throw XConfigRead("syntax for action: mousebutton(modifiers+button[,toggle])");
+			}
+		}
+		cond = new CInputFilter::CMouseButtonCondition(mouseInfo, mode);
+	}
+	else {
+		throw XConfigRead("unknown argument");
+	}
+
+	CInputFilter::CAction* act;
+	if (action == "keystroke") {
+		if (actargs.size() != 1) {
+			throw XConfigRead("syntax for action: keystroke(modifiers+key)");
+		}
+		IPlatformScreen::CKeyInfo* keyInfo = parseKeystroke(actargs[0]);
+		act = new CInputFilter::CKeystrokeAction(keyInfo);
+	}
+	else if (action == "mousebutton") {
+		if (actargs.size() != 1) {
+			throw XConfigRead("syntax for action: mousebutton(modifiers+button)");
+		}
+		IPlatformScreen::CButtonInfo* mouseInfo = parseMouse(actargs[0]);
+		act = new CInputFilter::CMouseButtonAction(mouseInfo);
+	}
+	else if (action == "modifier") {
+		if (actargs.size() != 1) {
+			throw XConfigRead("syntax for action: modifier(modifiers)");
+		}
+		KeyModifierMask mask = parseModifier(actargs[0]);
+		act = new CInputFilter::CModifierAction(mask, ~mask);
+	}
+	else if (action == "switchToScreen") {
+		if (actargs.size() < 1 || actargs.size() > 1) {
+			throw XConfigRead("syntax for action: switchToScreen(name)");
+		}
+
+		if (!isScreen(actargs[0])) {
+			throw XConfigRead("unknown screen name in switchToScreen");
+		}
+
+		act = new CInputFilter::CSwitchToScreenAction(actargs[0]);
+	}
+	else if (action == "switchInDirection") {
+		if (actargs.size() < 1 || actargs.size() > 1) {
+			throw XConfigRead("syntax for action: switchInDirection(<left|right|up|down>)");
+		}
+
+		EDirection direction;
+		if (actargs[0] == "left") {
+			direction = kLeft;
+		}
+		else if (actargs[0] == "right") {
+			direction = kRight;
+		}
+		else if (actargs[0] == "up") {
+			direction = kTop;
+		}
+		else if (actargs[0] == "down") {
+			direction = kBottom;
+		}
+		else {
+			throw XConfigRead("unknown direction in switchToScreen");
+		}
+
+		act = new CInputFilter::CSwitchInDirectionAction(direction);
+	}
+	else if (action == "lockCursorToScreen") {
+		if (actargs.size() != 0) {
+			throw XConfigRead("syntax for action: lockCursorToScreen");
+		}
+		act = new CInputFilter::CLockCursorToScreenAction();
+	}
+	else {
+		throw XConfigRead("unknown argument");
+	}
+	
+	m_inputFilter.addFilterRule(cond ,act);
+}
+
+IPlatformScreen::CKeyInfo*
+CConfig::parseKeystroke(const CString& keystroke) const
+{
+	CString s = keystroke;
+
+	KeyModifierMask mask;
+	if (!CKeyMap::parseModifiers(s, mask)) {
+		throw XConfigRead("unable to parse key modifiers");
+	}
+
+	KeyID key;
+	if (!CKeyMap::parseKey(s, key)) {
+		throw XConfigRead("unable to parse key");
+	}
+
+	if (key == kKeyNone && mask == 0) {
+		throw XConfigRead("missing key and/or modifiers in keystroke");
+	}
+
+	return IPlatformScreen::CKeyInfo::alloc(key, mask, 0, 0);
+}
+
+IPlatformScreen::CButtonInfo*
+CConfig::parseMouse(const CString& mouse) const
+{
+	CString s = mouse;
+
+	KeyModifierMask mask;
+	if (!CKeyMap::parseModifiers(s, mask)) {
+		throw XConfigRead("unable to parse button modifiers");
+	}
+
+	char* end;
+	ButtonID button = (ButtonID)strtol(s.c_str(), &end, 10);
+	if (*end != '\0') {
+		throw XConfigRead("unable to parse button");
+	}
+	if (s.empty() || button <= 0) {
+		throw XConfigRead("invalid button");
+	}
+
+	return IPlatformScreen::CButtonInfo::alloc(button, mask);
+}
+
+KeyModifierMask
+CConfig::parseModifier(const CString& modifiers) const
+{
+	CString s = modifiers;
+
+	KeyModifierMask mask;
+	if (!CKeyMap::parseModifiers(s, mask)) {
+		throw XConfigRead("unable to parse modifiers");
+	}
+
+	if (mask == 0) {
+		throw XConfigRead("no modifiers specified");
+	}
+
+	return mask;
 }
 
 void
@@ -1176,27 +1420,6 @@ operator>>(std::istream& s, CConfig& config)
 std::ostream&
 operator<<(std::ostream& s, const CConfig& config)
 {
-	// options section
-	s << "section: options" << std::endl;
-	const CConfig::CScreenOptions* options = config.getOptions("");
-	if (options != NULL && options->size() > 0) {
-		for (CConfig::CScreenOptions::const_iterator
-							option  = options->begin();
-							option != options->end(); ++option) {
-			const char* name = CConfig::getOptionName(option->first);
-			CString value    = CConfig::getOptionValue(option->first,
-														option->second);
-			if (name != NULL && !value.empty()) {
-				s << "\t" << name << " = " << value << std::endl;
-			}
-		}
-	}
-	if (config.m_synergyAddress.isValid()) {
-		s << "\taddress = " <<
-			config.m_synergyAddress.getHostname().c_str() << std::endl;
-	}
-	s << "end" << std::endl;
-
 	// screens section
 	s << "section: screens" << std::endl;
 	for (CConfig::const_iterator screen = config.begin();
@@ -1275,6 +1498,34 @@ operator<<(std::ostream& s, const CConfig& config)
 		}
 		s << "end" << std::endl;
 	}
+
+	// options section
+	s << "section: options" << std::endl;
+	const CConfig::CScreenOptions* options = config.getOptions("");
+	if (options != NULL && options->size() > 0) {
+		for (CConfig::CScreenOptions::const_iterator
+							option  = options->begin();
+							option != options->end(); ++option) {
+			const char* name = CConfig::getOptionName(option->first);
+			CString value    = CConfig::getOptionValue(option->first,
+														option->second);
+			if (name != NULL && !value.empty()) {
+				s << "\t" << name << " = " << value << std::endl;
+			}
+		}
+	}
+	if (config.m_synergyAddress.isValid()) {
+		s << "\taddress = " <<
+			config.m_synergyAddress.getHostname().c_str() << std::endl;
+	}
+	const CInputFilter::CRuleList& rules = config.m_inputFilter.getRules();
+	for (CInputFilter::CRuleList::const_iterator i = rules.begin();
+								i != rules.end(); ++i) {
+		const CInputFilter::CRule& rule = *i;
+		s << "\t" << rule.first->format() << " = " <<
+								rule.second->format() << std::endl;
+	}
+	s << "end" << std::endl;
 
 	return s;
 }

@@ -16,6 +16,7 @@
 #define IPRIMARYSCREEN_H
 
 #include "IInterface.h"
+#include "KeyTypes.h"
 #include "MouseTypes.h"
 #include "CEvent.h"
 
@@ -29,10 +30,12 @@ public:
 	//! Button event data
 	class CButtonInfo {
 	public:
-		static CButtonInfo* alloc(ButtonID);
+		static CButtonInfo* alloc(ButtonID, KeyModifierMask);
+		static CButtonInfo* alloc(const CButtonInfo&);
 
 	public:
 		ButtonID		m_button;
+		KeyModifierMask	m_mask;
 	};
 	//! Motion event data
 	class CMotionInfo {
@@ -50,6 +53,14 @@ public:
 
 	public:
 		SInt32			m_wheel;
+	};
+	//! Hot key event data
+	class CHotKeyInfo {
+	public:
+		static CHotKeyInfo* alloc(UInt32 id);
+
+	public:
+		UInt32			m_id;
 	};
 
 	//! @name manipulators
@@ -71,6 +82,35 @@ public:
 	returning.
 	*/
 	virtual void		warpCursor(SInt32 x, SInt32 y) = 0;
+
+	//! Register a system hotkey
+	/*!
+	Registers a system-wide hotkey.  The screen should arrange for an event
+	to be delivered to itself when the hot key is pressed or released.  When
+	that happens the screen should post a \c getHotKeyDownEvent() or
+	\c getHotKeyUpEvent(), respectively.  The hot key is key \p key with
+	exactly the modifiers \p mask.  Returns 0 on failure otherwise an id
+	that can be used to unregister the hotkey.
+
+	A hot key is a set of modifiers and a key, which may itself be a modifier.
+	The hot key is pressed when the hot key's modifiers and only those
+	modifiers are logically down (active) and the key is pressed.  The hot
+	key is released when the key is released, regardless of the modifiers.
+
+	The hot key event should be generated no matter what window or application
+	has the focus.  No other window or application should receive the key
+	press or release events (they can and should see the modifier key events).
+	When the key is a modifier, it's acceptable to allow the user to press
+	the modifiers in any order or to require the user to press the given key
+	last.
+	*/
+	virtual UInt32		registerHotKey(KeyID key, KeyModifierMask mask) = 0;
+
+	//! Unregister a system hotkey
+	/*!
+	Unregisters a previously registered hot key.
+	*/
+	virtual void		unregisterHotKey(UInt32 id) = 0;
 
 	//@}
 	//! @name accessors
@@ -98,7 +138,7 @@ public:
 	the edges of the screen, typically the center.
 	*/
 	virtual void		getCursorCenter(SInt32& x, SInt32& y) const = 0;
-
+	
 	//! Get button down event type.  Event data is CButtonInfo*.
 	static CEvent::Type	getButtonDownEvent();
 	//! Get button up event type.  Event data is CButtonInfo*.
@@ -120,6 +160,10 @@ public:
 	static CEvent::Type	getScreensaverActivatedEvent();
 	//! Get screensaver deactivated event type
 	static CEvent::Type	getScreensaverDeactivatedEvent();
+	//! Get hot key down event type.  Event data is CHotKeyInfo*.
+	static CEvent::Type	getHotKeyDownEvent();
+	//! Get hot key up event type.  Event data is CHotKeyInfo*.
+	static CEvent::Type	getHotKeyUpEvent();
 
 	//@}
 
@@ -131,6 +175,8 @@ private:
 	static CEvent::Type	s_wheelEvent;
 	static CEvent::Type	s_ssActivatedEvent;
 	static CEvent::Type	s_ssDeactivatedEvent;
+	static CEvent::Type	s_hotKeyDownEvent;
+	static CEvent::Type	s_hotKeyUpEvent;
 };
 
 #endif

@@ -43,6 +43,19 @@ public:
 	*/
 	void				reconfigure(UInt32 activeSides);
 
+	//! Register a system hotkey
+	/*!
+	Registers a system-wide hotkey for key \p key with modifiers \p mask.
+	Returns an id used to unregister the hotkey.
+	*/
+	UInt32				registerHotKey(KeyID key, KeyModifierMask mask);
+
+	//! Unregister a system hotkey
+	/*!
+	Unregisters a previously registered hot key.
+	*/
+	void				unregisterHotKey(UInt32 id);
+
 	//@}
 	//! @name accessors
 	//@{
@@ -61,7 +74,7 @@ public:
 	the edges of the screen, typically the center.
 	*/
 	void				getCursorCenter(SInt32& x, SInt32& y) const;
-
+	
 	//! Get toggle key state
 	/*!
 	Returns the primary screen's current toggle modifier key state.

@@ -181,6 +181,19 @@ public:
 	*/
 	void				setSequenceNumber(UInt32);
 
+	//! Register a system hotkey
+	/*!
+	Registers a system-wide hotkey for key \p key with modifiers \p mask.
+	Returns an id used to unregister the hotkey.
+	*/
+	UInt32				registerHotKey(KeyID key, KeyModifierMask mask);
+
+	//! Unregister a system hotkey
+	/*!
+	Unregisters a previously registered hot key.
+	*/
+	void				unregisterHotKey(UInt32 id);
+
 	//@}
 	//! @name accessors
 	//@{
@@ -250,11 +263,6 @@ protected:
 	void				leaveSecondary();
 
 private:
-	void				releaseKeys();
-	void				setToggleState(KeyModifierMask);
-	KeyButton			isAnyKeyDown() const;
-
-private:
 	// our platform dependent screen
 	IPlatformScreen*	m_screen;
 
@@ -273,9 +281,6 @@ private:
 	// note toggle keys that toggles on up/down (false) or on
 	// transition (true)
 	KeyModifierMask		m_halfDuplex;
-
-	// the toggle key state when this screen was last entered
-	KeyModifierMask		m_toggleKeys;
 };
 
 #endif

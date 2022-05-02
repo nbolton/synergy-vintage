@@ -27,8 +27,7 @@ CScreen::CScreen(IPlatformScreen* platformScreen) :
 	m_isPrimary(platformScreen->isPrimary()),
 	m_enabled(false),
 	m_entered(m_isPrimary),
-	m_screenSaverSync(true),
-	m_toggleKeys(0)
+	m_screenSaverSync(true)
 {
 	assert(m_screen != NULL);
 
@@ -54,6 +53,8 @@ CScreen::enable()
 {
 	assert(!m_enabled);
 
+	m_screen->updateKeyMap();
+	m_screen->updateKeyState();
 	m_screen->enable();
 	if (m_isPrimary) {
 		enablePrimary();
@@ -272,7 +273,6 @@ CScreen::setOptions(const COptionsList& options)
 			else {
 				m_halfDuplex &= ~KeyModifierCapsLock;
 			}
-			m_screen->setHalfDuplexMask(m_halfDuplex);
 			LOG((CLOG_DEBUG1 "half-duplex caps-lock %s", ((m_halfDuplex & KeyModifierCapsLock) != 0) ? "on" : "off"));
 		}
 		else if (options[i] == kOptionHalfDuplexNumLock) {
@@ -282,7 +282,6 @@ CScreen::setOptions(const COptionsList& options)
 			else {
 				m_halfDuplex &= ~KeyModifierNumLock;
 			}
-			m_screen->setHalfDuplexMask(m_halfDuplex);
 			LOG((CLOG_DEBUG1 "half-duplex num-lock %s", ((m_halfDuplex & KeyModifierNumLock) != 0) ? "on" : "off"));
 		}
 		else if (options[i] == kOptionHalfDuplexScrollLock) {
@@ -292,10 +291,12 @@ CScreen::setOptions(const COptionsList& options)
 			else {
 				m_halfDuplex &= ~KeyModifierScrollLock;
 			}
-			m_screen->setHalfDuplexMask(m_halfDuplex);
 			LOG((CLOG_DEBUG1 "half-duplex scroll-lock %s", ((m_halfDuplex & KeyModifierScrollLock) != 0) ? "on" : "off"));
 		}
 	}
+
+	// update half-duplex options
+	m_screen->setHalfDuplexMask(m_halfDuplex);
 
 	// update screen saver synchronization
 	if (!m_isPrimary && oldScreenSaverSync != m_screenSaverSync) {
@@ -317,6 +318,18 @@ CScreen::setSequenceNumber(UInt32 seqNum)
 	m_screen->setSequenceNumber(seqNum);
 }
 
+UInt32
+CScreen::registerHotKey(KeyID key, KeyModifierMask mask)
+{
+	return m_screen->registerHotKey(key, mask);
+}
+
+void
+CScreen::unregisterHotKey(UInt32 id)
+{
+	m_screen->unregisterHotKey(id);
+}
+
 bool
 CScreen::isOnScreen() const
 {
@@ -331,35 +344,6 @@ CScreen::isLockedToScreen() const
 		LOG((CLOG_DEBUG "locked by mouse button"));
 		return true;
 	}
-
-// note -- we don't lock to the screen if a key is down.  key
-// reporting is simply not reliable enough to trust.  the effect
-// of switching screens with a key down is that the client will
-// receive key repeats and key releases for keys that it hasn't
-// see go down.  that's okay because CKeyState will ignore those
-// events.  the user might be surprised that any modifier keys
-// held while crossing to another screen don't apply on the
-// target screen.  if that ends up being a problem we can try
-// to synthesize a key press for those modifiers on entry.
-/*
-	// check for any pressed key
-	KeyButton key = isAnyKeyDown();
-	if (key != 0) {
-		// double check current state of the keys.  this shouldn't
-		// be necessary but we don't seem to get some key release
-		// events sometimes.  this is an emergency backup so the
-		// client doesn't get stuck on the screen.
-		m_screen->updateKeys();
-		KeyButton key2 = isAnyKeyDown();
-		if (key2 != 0) {
-			LOG((CLOG_DEBUG "locked by %s", m_screen->getKeyName(key2)));
-			return true;
-		}
-		else {
-			LOG((CLOG_DEBUG "spuriously locked by %s", m_screen->getKeyName(key)));
-		}
-	}
-*/
 
 	// not locked
 	return false;
@@ -463,13 +447,9 @@ CScreen::enterPrimary()
 }
 
 void
-CScreen::enterSecondary(KeyModifierMask toggleMask)
+CScreen::enterSecondary(KeyModifierMask)
 {
-	// remember toggle key state.  we'll restore this when we leave.
-	m_toggleKeys = getActiveModifiers();
-
-	// restore toggle key state
-	setToggleState(toggleMask);
+	// do nothing
 }
 
 void
@@ -478,55 +458,12 @@ CScreen::leavePrimary()
 	// we don't track keys while on the primary screen so update our
 	// idea of them now.  this is particularly to update the state of
 	// the toggle modifiers.
-	m_screen->updateKeys();
+	m_screen->updateKeyState();
 }
 
 void
 CScreen::leaveSecondary()
 {
 	// release any keys we think are still down
-	releaseKeys();
-
-	// restore toggle key state
-	setToggleState(m_toggleKeys);
-}
-
-void
-CScreen::releaseKeys()
-{
-	// release keys that we've synthesized a press for and only those
-	// keys.  we don't want to synthesize a release on a key the user
-	// is still physically pressing.
-	for (KeyButton i = 1; i < IKeyState::kNumButtons; ++i) {
-		if (m_screen->isServerKeyDown(i)) {
-			m_screen->fakeKeyUp(i);
-		}
-	}
-}
-
-void
-CScreen::setToggleState(KeyModifierMask mask)
-{
-	// toggle modifiers that don't match the desired state
-	KeyModifierMask different = (m_screen->getActiveModifiers() ^ mask);
-	if ((different & KeyModifierCapsLock)   != 0) {
-		m_screen->fakeToggle(KeyModifierCapsLock);
-	}
-	if ((different & KeyModifierNumLock)    != 0) {
-		m_screen->fakeToggle(KeyModifierNumLock);
-	}
-	if ((different & KeyModifierScrollLock) != 0) {
-		m_screen->fakeToggle(KeyModifierScrollLock);
-	}
-}
-
-KeyButton
-CScreen::isAnyKeyDown() const
-{
-	for (KeyButton i = 1; i < IKeyState::kNumButtons; ++i) {
-		if (m_screen->isKeyDown(i)) {
-			return i;
-		}
-	}
-	return 0;
+	m_screen->fakeAllKeysUp();
 }

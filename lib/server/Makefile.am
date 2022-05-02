@@ -30,6 +30,7 @@ libserver_a_SOURCES = 				\
 	CClientProxy1_2.cpp				\
 	CClientProxyUnknown.cpp			\
 	CConfig.cpp						\
+	CInputFilter.cpp				\
 	CPrimaryClient.cpp				\
 	CServer.cpp						\
 	CClientListener.h				\
@@ -39,6 +40,7 @@ libserver_a_SOURCES = 				\
 	CClientProxy1_2.h				\
 	CClientProxyUnknown.h			\
 	CConfig.h						\
+	CInputFilter.h					\
 	CPrimaryClient.h				\
 	CServer.h						\
 	$(NULL)

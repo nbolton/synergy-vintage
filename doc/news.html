@@ -7,6 +7,37 @@
 <body class="main">
 <h3>Synergy News</h3>
 
+<span class="date">Dec-18-2005</span> - Synergy 1.2.7 released
+
+<p>
+Made following changes:
+</p>
+<ul>
+<li>Added preliminary support for configurable hot keys (Lorenz Schori)
+<li>Major rewrite of keyboard handling code
+<li>Fixed non-US keyboard handling (AltGr and ISO_Level3_Shift)
+<li>Now supporting all installed keyboard layouts simultaneously
+<li>Fixed bug in handling remapped caps-lock on X11
+<li>Fixed control and alt keys getting stuck on on X11
+<li>Fixed desktop focus problems requiring extra clicks on win32
+<li>Fixed alt key event getting passed to server when on client on win32
+<li>Synergy would prevent alt+numpad character entry;  this is fixed
+<li>Fixed suppression of xscreensaver 2.21 on X11
+<li>Fixed middle mouse button dragging on OSX server (Brian Kendall)
+<li>Fixed caps/num/scroll lock toggles getting out of sync
+<li>Enhanced support for converting clipboard text to the Latin-1 encoding
+<li>Added autostart documentation for KDE users
+<li>Added more details about using Terminal for OSX users
+<li>Fixed crash when using --help on certain platforms
+</ul>
+
+<p>
+The hot key support is known to have bugs.  The configuration file
+syntax for hot keys is likely to change and the documentation for it
+is minimal.  The graphical UI on windows does not provide any support
+for editing hot keys.
+</p>
+
 <span class="date">Nov-12-2005</span> - Synergy 1.2.6 released
 
 <p>

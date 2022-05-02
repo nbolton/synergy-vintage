@@ -49,6 +49,8 @@ public:
 	// IPrimaryScreen overrides
 	virtual void		reconfigure(UInt32 activeSides);
 	virtual void		warpCursor(SInt32 x, SInt32 y);
+	virtual UInt32		registerHotKey(KeyID key, KeyModifierMask mask);
+	virtual void		unregisterHotKey(UInt32 id);
 	virtual SInt32		getJumpZoneSize() const;
 	virtual bool		isAnyMouseButtonDown() const;
 	virtual void		getCursorCenter(SInt32& x, SInt32& y) const;
@@ -120,6 +122,7 @@ private:
 	bool				grabMouseAndKeyboard();
 	void				onKeyPress(XKeyEvent&);
 	void				onKeyRelease(XKeyEvent&, bool isRepeat);
+	bool				onHotKey(XKeyEvent&, bool isRepeat);
 	void				onMousePress(const XButtonEvent&);
 	void				onMouseRelease(const XButtonEvent&);
 	void				onMouseMove(const XMotionEvent&);
@@ -138,7 +141,22 @@ private:
 	static Bool			findKeyEvent(Display*, XEvent* xevent, XPointer arg);
 
 private:
+	struct CHotKeyItem {
+	public:
+		CHotKeyItem(int, unsigned int);
+
+		bool			operator<(const CHotKeyItem&) const;
+
+	private:
+		int				m_keycode;
+		unsigned int	m_mask;
+	};
 	typedef std::set<bool> CFilteredKeycodes;
+	typedef std::vector<std::pair<int, unsigned int> > HotKeyList;
+	typedef std::map<UInt32, HotKeyList> HotKeyMap;
+	typedef std::vector<UInt32> HotKeyIDList;
+	typedef std::map<CHotKeyItem, UInt32> HotKeyToIDMap;
+
 	// true if screen is being used as a primary screen, false otherwise
 	bool				m_isPrimary;
 
@@ -159,6 +177,11 @@ private:
 
 	// keyboard stuff
 	CXWindowsKeyState*	m_keyState;
+
+	// hot key stuff
+	HotKeyMap			m_hotKeys;
+	HotKeyIDList		m_oldHotKeyIDs;
+	HotKeyToIDMap		m_hotKeyToIDMap;
 
 	// input focus stuff
 	Window				m_lastFocus;

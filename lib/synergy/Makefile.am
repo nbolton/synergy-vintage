@@ -24,6 +24,7 @@ MAINTAINERCLEANFILES =			\
 noinst_LIBRARIES = libsynergy.a
 libsynergy_a_SOURCES = 			\
 	CClipboard.cpp				\
+	CKeyMap.cpp					\
 	CKeyState.cpp				\
 	CPacketStreamFilter.cpp		\
 	CPlatformScreen.cpp			\
@@ -37,6 +38,7 @@ libsynergy_a_SOURCES = 			\
 	XScreen.cpp					\
 	XSynergy.cpp				\
 	CClipboard.h				\
+	CKeyMap.h					\
 	CKeyState.h					\
 	CPacketStreamFilter.h		\
 	CPlatformScreen.h			\
@@ -55,6 +57,7 @@ libsynergy_a_SOURCES = 			\
 	MouseTypes.h				\
 	OptionTypes.h				\
 	ProtocolTypes.h				\
+	SpecialKeyNameMap.h			\
 	XScreen.h					\
 	XSynergy.h					\
 	$(NULL)

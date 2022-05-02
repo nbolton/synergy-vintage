@@ -115,6 +115,10 @@ SOURCE=.\CConfig.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CInputFilter.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\CPrimaryClient.cpp
 # End Source File
 # Begin Source File
@@ -152,6 +156,10 @@ SOURCE=.\CClientProxyUnknown.h
 # Begin Source File
 
 SOURCE=.\CConfig.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\CInputFilter.h
 # End Source File
 # Begin Source File
 

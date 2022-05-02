@@ -42,6 +42,18 @@ CPrimaryClient::reconfigure(UInt32 activeSides)
 	m_screen->reconfigure(activeSides);
 }
 
+UInt32
+CPrimaryClient::registerHotKey(KeyID key, KeyModifierMask mask)
+{
+	return m_screen->registerHotKey(key, mask);
+}
+
+void
+CPrimaryClient::unregisterHotKey(UInt32 id)
+{
+	m_screen->unregisterHotKey(id);
+}
+
 SInt32
 CPrimaryClient::getJumpZoneSize() const
 {

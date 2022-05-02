@@ -1,3 +1,321 @@
+2005/12/18 16:15:42 crs
+lib/platform/CSynergyHook.cpp
+
+Removed use of function from C standard library in the hook DLL.
+
+----------
+2005/12/18 16:11:15 crs
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+
+Added workaround for not receiving drag events for any mouse buttons
+besides 1 and 2 (left and right).  That appears to be a limitation
+of the OS so we simply start polling the position while any buttons
+besides 1 and 2 are down.  Code based on a patch by Brian Kendall.
+
+----------
+2005/12/18 15:29:25 crs
+lib/common/Version.h
+
+Changed version to 1.2.7.
+
+----------
+2005/12/18 15:12:39 crs
+lib/platform/COSXKeyState.cpp
+
+Fixed mapping of unicode key layouts.  Was discarding some
+characters (backspace and return, in particular) that should
+not have been discarded.
+
+----------
+2005/12/18 10:49:23 crs
+cmd/launcher/launcher.rc
+lib/platform/CMSWindowsKeyState.cpp
+lib/platform/CMSWindowsKeyState.h
+lib/platform/CMSWindowsScreen.cpp
+lib/platform/CMSWindowsScreen.h
+lib/server/CConfig.cpp
+lib/server/CConfig.h
+lib/server/CInputFilter.cpp
+lib/server/CInputFilter.h
+lib/server/CServer.cpp
+lib/server/server.dsp
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyMap.h
+lib/synergy/IKeyState.cpp
+lib/synergy/IKeyState.h
+lib/synergy/IPrimaryScreen.cpp
+lib/synergy/IPrimaryScreen.h
+lib/synergy/libsynergy.dsp
+lib/synergy/SpecialKeyNameMap.h
+synergy.dsw
+
+Added support for hot keys on win32.  Also fixed memory leaks in
+CInputFilter and changed CConfig to write hot keys in its
+CInputFilter object to the options section.
+
+----------
+2005/12/15 18:57:38 crs
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+
+Fixed hot keys on OS X when on a secondary screen.  This worked
+in the original patch but broken during the modify/merge.  It
+was broken because we turn off all hot key processing by the OS
+while on a secondary screen.  The fix is to check on key press
+and release if the key and modifier state matches a hot key.
+
+This is known to be broken on hot key release if you press the
+hot key then change the modifiers before releasing the provoking
+key.
+
+----------
+2005/12/14 21:51:01 crs
+lib/platform/CXWindowsKeyState.cpp
+lib/platform/CXWindowsKeyState.h
+lib/platform/CXWindowsScreen.cpp
+lib/platform/CXWindowsScreen.h
+
+Added support for hotkeys on X11.
+
+----------
+2005/12/14 21:50:49 crs
+lib/server/CServer.cpp
+
+When jumping to another screen was computing the center using the
+size of the active screen instead of the size of the destination
+screen.
+
+----------
+2005/12/14 21:50:09 crs
+lib/server/CConfig.cpp
+
+Switched to ctype.h from cctype to fix linux build.
+
+----------
+2005/12/14 09:33:25 crs
+lib/base/CLog.cpp
+lib/base/CLog.h
+lib/base/CStringUtil.cpp
+lib/base/CStringUtil.h
+
+Fixed bug in CStringUtil::vsprint.  Was reusing va_list across
+calls to vnsprintf, which is not allowed.  Modified CStringUtil
+and CLog to avoid doing that.  This should fix a crash when
+using --help on some platforms.  Tthe --help message was the
+only message long enough to exceed the static buffer length
+which caused a va_list to get reused.
+
+----------
+2005/12/14 08:43:36 crs
+lib/platform/COSXKeyState.cpp
+lib/platform/COSXKeyState.h
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+lib/server/CConfig.cpp
+lib/server/CConfig.h
+lib/server/CInputFilter.cpp
+lib/server/CInputFilter.h
+lib/server/CPrimaryClient.cpp
+lib/server/CPrimaryClient.h
+lib/server/CServer.cpp
+lib/server/CServer.h
+lib/server/Makefile.am
+lib/synergy/CKeyState.cpp
+lib/synergy/CKeyState.h
+lib/synergy/CPlatformScreen.h
+lib/synergy/CScreen.cpp
+lib/synergy/CScreen.h
+lib/synergy/IPlatformScreen.h
+lib/synergy/IPrimaryScreen.cpp
+lib/synergy/IPrimaryScreen.h
+lib/synergy/Makefile.am
+lib/synergy/mkspecialkeynames.pl
+lib/synergy/SpecialKeyNameMap.h
+
+Checkpoint of configurable hotkey support.  Authored by Lorenz
+Schori, modified and merged by me.  Hotkeys are only implemented
+on OS X so far;  this change breaks the build on linux and win32.
+
+----------
+2005/11/29 21:22:02 crs
+lib/platform/CXWindowsKeyState.cpp
+
+Fixed bug in X11 keyboard code.  Wasn't checking for a NULL pointer.
+
+----------
+2005/11/28 22:12:49 crs
+doc/running.html
+
+Added a little more detail to the documentation for for OS X users
+not familiar with the shell.
+
+----------
+2005/11/28 20:59:39 crs
+doc/autostart.html
+
+Added X11 autostart info for kdm.
+
+----------
+2005/11/27 16:41:06 crs
+lib/platform/CMSWindowsDesks.cpp
+lib/platform/CMSWindowsKeyState.cpp
+lib/platform/CMSWindowsScreen.cpp
+lib/platform/CSynergyHook.cpp
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyState.cpp
+
+Fixed several win32 keyboard bugs.
+
+----------
+2005/11/27 16:30:50 crs
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyState.cpp
+lib/synergy/CKeyState.h
+
+Fixed a couple of problems with key event synthesis.
+
+----------
+2005/11/25 18:19:28 crs
+lib/platform/CXWindowsScreenSaver.cpp
+lib/platform/CXWindowsScreenSaver.h
+
+Now sending a more significant fake mouse motion to xscreensaver
+to keep it from activating.  xscreensaver since 2.21 requires a
+motion of at least 10 pixels to be considered significant.
+
+----------
+2005/11/25 14:42:30 crs
+lib/platform/COSXClipboard.cpp
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+
+Added periodic check for clipboard change on OS X.  We're polling
+because there doesn't seem to be any event to notify of a clipboard
+change.
+
+----------
+2005/11/24 11:00:39 crs
+cmd/launcher/launcher.cpp
+
+Fixed bug in win32 GUI.  If synergy wasn't previously installed for
+autostart then the GUI would incorrectly install it for autostart.
+It was incorrectly installed in such a way that synergy would think
+it wasn't installed and it would not function when the service
+manager tried to start it.
+
+----------
+2005/11/20 22:34:06 crs
+lib/platform/CMSWindowsKeyState.cpp
+lib/platform/CMSWindowsScreen.cpp
+lib/platform/COSXKeyState.cpp
+lib/platform/COSXKeyState.h
+lib/platform/COSXScreen.cpp
+lib/platform/COSXScreen.h
+lib/platform/CXWindowsScreen.cpp
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyMap.h
+lib/synergy/CKeyState.cpp
+lib/synergy/CKeyState.h
+lib/synergy/CPlatformScreen.cpp
+lib/synergy/CPlatformScreen.h
+lib/synergy/CScreen.cpp
+lib/synergy/IKeyState.h
+lib/synergy/IPlatformScreen.h
+
+Converted OS X to new keyboard handling.  Two known problems
+with OS X:  the thorn character is mapped incorrectly (because
+OS X lies) and we're using every keyboard layout, not just the
+enabled one, because we have no idea how to detect if a layout
+is enabled or not.  The latter problem only causes some startup
+slowness.
+
+----------
+2005/11/20 22:29:01 crs
+configure.in
+lib/arch/CMultibyte.cpp
+
+Added support for converting clipboard data to Latin-1 encoding
+if the default encoding is ASCII by switching to the en_US locale
+at startup.
+
+----------
+2005/11/14 18:35:07 crs
+lib/synergy/CKeyState.h
+
+Removed unnecessary headers.
+
+----------
+2005/11/13 17:08:45 crs
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyMap.h
+
+Added improved support for key combinations intended to perform a
+keyboard shortcut rather than synthesize a particular key.
+
+----------
+2005/11/13 12:52:16 crs
+lib/platform/CMSWindowsKeyState.cpp
+lib/platform/CXWindowsKeyState.cpp
+lib/platform/CXWindowsKeyState.h
+lib/platform/CXWindowsScreen.cpp
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyMap.h
+
+Finished X11 non-XKB keyboard mapping.  Also added a convenience
+function to CKeyMap used by both the X11 and win32 implemenetations.
+
+----------
+2005/11/13 10:31:32 crs
+lib/platform/CMSWindowsKeyState.cpp
+lib/platform/CMSWindowsKeyState.h
+lib/platform/CMSWindowsScreen.cpp
+lib/platform/CMSWindowsScreen.h
+lib/platform/COSXKeyState.cpp
+lib/platform/COSXKeyState.h
+lib/platform/CXWindowsKeyState.cpp
+lib/platform/CXWindowsKeyState.h
+lib/platform/CXWindowsScreen.cpp
+lib/platform/CXWindowsUtil.cpp
+lib/platform/CXWindowsUtil.h
+lib/synergy/CKeyMap.cpp
+lib/synergy/CKeyMap.h
+lib/synergy/CKeyState.cpp
+lib/synergy/CKeyState.h
+lib/synergy/CPlatformScreen.cpp
+lib/synergy/CPlatformScreen.h
+lib/synergy/CScreen.cpp
+lib/synergy/CScreen.h
+lib/synergy/IKeyState.h
+lib/synergy/IPlatformScreen.h
+lib/synergy/KeyTypes.h
+lib/synergy/libsynergy.dsp
+lib/synergy/Makefile.am
+
+Checkpointing keyboard handling refactoring.  This is a major change
+to the client side handling of key events.  This change converts the
+X11 and win32 handling but not the OS X handling.
+
+The new class CKeyMap contains the information necessary to convert
+a synergy key event to the platform events necessary to synthesize
+the key.  Platforms fill in a CKeyMap whenever their keyboard layouts
+change using the addKeyEntry(), calling it once for each unique way
+to synthesize a particular KeyID on the keyboard.  The CKeyMap takes
+it from there, first adding dead-key combinations and some other keys,
+then doing the translation from KeyID to platform keystroke sequences.
+Platforms no longer need to implement the KeyID to keystroke sequence
+conversion, simplifying the platform implementations.
+
+This change also supports multiple keyboard layouts, typically used
+to support various languages.  If a key is not available on the active
+layout but is on a different installed layout then synergy will switch
+layouts automatically.
+
+The X11 version now fully supports the XKB extension.  This should fix
+problems with Mode_switch vs ISO_Level3_Shift.  Non-XKB support is
+incomplete in this checkpoint.
+
+----------
 2005/11/12 11:43:54 crs
 lib/platform/CMSWindowsScreen.cpp
 

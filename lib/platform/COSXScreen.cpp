@@ -62,18 +62,23 @@ COSXScreen::COSXScreen(bool isPrimary) :
 	m_isOnScreen(m_isPrimary),
 	m_cursorPosValid(false),
 	m_cursorHidden(false),
+	m_dragNumButtonsDown(0),
+	m_dragTimer(NULL),
 	m_keyState(NULL),
 	m_sequenceNumber(0),
 	m_screensaver(NULL),
 	m_screensaverNotify(false),
 	m_ownClipboard(false),
+	m_clipboardTimer(NULL),
 	m_hiddenWindow(NULL),
 	m_userInputWindow(NULL),
 	m_displayManagerNotificationUPP(NULL),
 	m_switchEventHandlerRef(0),
 	m_pmMutex(new CMutex),
 	m_pmWatchThread(NULL),
-	m_pmThreadReady(new CCondVar<bool>(m_pmMutex, false))
+	m_pmThreadReady(new CCondVar<bool>(m_pmMutex, false)),
+	m_activeModifierHotKey(0),
+	m_activeModifierHotKeyMask(0)
 {
 	try {
 		m_displayID   = CGMainDisplayID();
@@ -292,8 +297,7 @@ COSXScreen::getJumpZoneSize() const
 bool
 COSXScreen::isAnyMouseButtonDown() const
 {
-	// FIXME
-	return false;
+	return (GetCurrentButtonState() != 0);
 }
 
 void
@@ -301,6 +305,105 @@ COSXScreen::getCursorCenter(SInt32& x, SInt32& y) const
 {
 	x = m_xCenter;
 	y = m_yCenter;
+}
+
+UInt32
+COSXScreen::registerHotKey(KeyID key, KeyModifierMask mask)
+{
+	// get mac virtual key and modifier mask matching synergy key and mask
+	UInt32 macKey, macMask;
+	if (!m_keyState->mapSynergyHotKeyToMac(key, mask, macKey, macMask)) {
+		LOG((CLOG_WARN "could not map hotkey id=%04x mask=%04x", key, mask));
+		return 0;
+	}
+	
+	// choose hotkey id
+	UInt32 id;
+	if (!m_oldHotKeyIDs.empty()) {
+		id = m_oldHotKeyIDs.back();
+		m_oldHotKeyIDs.pop_back();
+	}
+	else {
+		id = m_hotKeys.size() + 1;
+	}
+
+	// if this hot key has modifiers only then we'll handle it specially
+	EventHotKeyRef ref = NULL;
+	bool okay;
+	if (key == kKeyNone) {
+		if (m_modifierHotKeys.count(mask) > 0) {
+			// already registered
+			okay = false;
+		}
+		else {
+			m_modifierHotKeys[mask] = id;
+			okay = true;
+		}
+	}
+	else {
+		EventHotKeyID hkid = { 'SNRG', (UInt32)id };
+		OSStatus status = RegisterEventHotKey(macKey, macMask, hkid, 
+								GetApplicationEventTarget(), 0,
+								&ref);
+		okay = (status == noErr);
+LOG((CLOG_INFO "map hotkey %d %08x", macKey, macMask));
+		m_hotKeyToIDMap[CHotKeyItem(macKey, macMask)] = id;
+	}
+
+	if (!okay) {
+		m_oldHotKeyIDs.push_back(id);
+		m_hotKeyToIDMap.erase(CHotKeyItem(macKey, macMask));
+		LOG((CLOG_WARN "failed to register hotkey id=%04x mask=%04x", key, mask));
+		return 0;
+	}
+
+	m_hotKeys.insert(std::make_pair(id, CHotKeyItem(ref, macKey, macMask)));
+	
+	LOG((CLOG_DEBUG "registered hotkey id=%04x mask=%04x as id=%d", key, mask, id));
+	return id;
+}
+
+void
+COSXScreen::unregisterHotKey(UInt32 id)
+{
+	// look up hotkey
+	HotKeyMap::iterator i = m_hotKeys.find(id);
+	if (i == m_hotKeys.end()) {
+		return;
+	}
+
+	// unregister with OS
+	bool okay;
+	if (i->second.getRef() != NULL) {
+		okay = (UnregisterEventHotKey(i->second.getRef()) == noErr);
+	}
+	else {
+		okay = false;
+		// XXX -- this is inefficient
+		for (ModifierHotKeyMap::iterator j = m_modifierHotKeys.begin();
+								j != m_modifierHotKeys.end(); ++j) {
+			if (j->second == id) {
+				m_modifierHotKeys.erase(j);
+				okay = true;
+				break;
+			}
+		}
+	}
+	if (!okay) {
+		LOG((CLOG_WARN "failed to unregister hotkey id=%d", id));
+	}
+	else {
+		LOG((CLOG_DEBUG "unregistered hotkey id=%d", id));
+	}
+
+	// discard hot key from map and record old id for reuse
+	m_hotKeyToIDMap.erase(i->second);
+	m_hotKeys.erase(i);
+	m_oldHotKeyIDs.push_back(id);
+	if (m_activeModifierHotKey == id) {
+		m_activeModifierHotKey     = 0;
+		m_activeModifierHotKeyMask = 0;
+	}
 }
 
 void
@@ -396,7 +499,11 @@ COSXScreen::fakeMouseWheel(SInt32 delta) const
 void
 COSXScreen::enable()
 {
-	// FIXME -- install clipboard snooper (if we need one)
+	// watch the clipboard
+	m_clipboardTimer = EVENTQUEUE->newTimer(1.0, NULL);
+	EVENTQUEUE->adoptHandler(CEvent::kTimer, m_clipboardTimer,
+							new TMethodEventJob<COSXScreen>(this,
+								&COSXScreen::handleClipboardCheck));
 
 	if (m_isPrimary) {
 		// FIXME -- start watching jump zones
@@ -415,8 +522,6 @@ COSXScreen::enable()
 
 		// FIXME -- prepare to show cursor if it moves
 	}
-
-	updateKeys();
 }
 
 void
@@ -435,7 +540,16 @@ COSXScreen::disable()
 		// FIXME -- allow system to enter power saving mode
 	}
 
-	// FIXME -- uninstall clipboard snooper (if we needed one)
+	// disable drag handling
+	m_dragNumButtonsDown = 0;
+	enableDragTimer(false);
+
+	// uninstall clipboard timer
+	if (m_clipboardTimer != NULL) {
+		EVENTQUEUE->removeHandler(CEvent::kTimer, m_clipboardTimer);
+		EVENTQUEUE->deleteTimer(m_clipboardTimer);
+		m_clipboardTimer = NULL;
+	}
 
 	m_isOnScreen = m_isPrimary;
 }
@@ -475,12 +589,7 @@ COSXScreen::enter()
 bool
 COSXScreen::leave()
 {
-	// FIXME -- choose keyboard layout if per-process and activate it here
-
 	if (m_isPrimary) {
-		// update key and button state
-		updateKeys();
-
 		// warp to center
 		warpCursor(m_xCenter, m_yCenter);
 
@@ -526,10 +635,11 @@ bool
 COSXScreen::setClipboard(ClipboardID, const IClipboard* src)
 {
 	COSXClipboard dst;
-	m_ownClipboard = true;
 	if (src != NULL) {
 		// save clipboard data
-		return CClipboard::copy(&dst, src);
+		if (!CClipboard::copy(&dst, src)) {
+			return false;
+		}
 	}
 	else {
 		// assert clipboard ownership
@@ -538,24 +648,26 @@ COSXScreen::setClipboard(ClipboardID, const IClipboard* src)
 		}
 		dst.empty();
 		dst.close();
-		return true;
 	}
+	checkClipboards();
+	return true;
 }
 
 void
 COSXScreen::checkClipboards()
 {
-	if (m_ownClipboard && !COSXClipboard::isOwnedBySynergy()) {
-		static ScrapRef sScrapbook = NULL;
-		ScrapRef currentScrap;
-		GetCurrentScrap(&currentScrap);
-
-		if (sScrapbook != currentScrap) {
+	// check if clipboard ownership changed
+	if (!COSXClipboard::isOwnedBySynergy()) {
+		if (m_ownClipboard) {
+			LOG((CLOG_DEBUG "clipboard changed: lost ownership"));
 			m_ownClipboard = false;
 			sendClipboardEvent(getClipboardGrabbedEvent(), kClipboardClipboard);
 			sendClipboardEvent(getClipboardGrabbedEvent(), kClipboardSelection);
-			sScrapbook = currentScrap;
 		}
+	}
+	else if (!m_ownClipboard) {
+		LOG((CLOG_DEBUG "clipboard changed: synergy owned"));
+		m_ownClipboard = true;
 	}
 }
 
@@ -746,11 +858,15 @@ COSXScreen::handleSystemEvent(const CEvent& event, void*)
 		case kEventRawKeyDown:
 		case kEventRawKeyRepeat:
 		case kEventRawKeyModifiersChanged:
-//		case kEventHotKeyPressed:
-//		case kEventHotKeyReleased:
 			onKey(*carbonEvent);
 			break;
+
+		case kEventHotKeyPressed:
+		case kEventHotKeyReleased:
+			onHotKey(*carbonEvent);
+			break;
 		}
+
 		break;
 
 	case kEventClassWindow:
@@ -828,7 +944,7 @@ COSXScreen::onMouseMove(SInt32 mx, SInt32 my)
 }
 
 bool				
-COSXScreen::onMouseButton(bool pressed, UInt16 macButton) const
+COSXScreen::onMouseButton(bool pressed, UInt16 macButton)
 {
 	// Buttons 2 and 3 are inverted on the mac
 	ButtonID button = mapMacButtonToSynergy(macButton);
@@ -836,16 +952,32 @@ COSXScreen::onMouseButton(bool pressed, UInt16 macButton) const
 	if (pressed) {
 		LOG((CLOG_DEBUG1 "event: button press button=%d", button));
 		if (button != kButtonNone) {
-			sendEvent(getButtonDownEvent(), CButtonInfo::alloc(button));
+			sendEvent(getButtonDownEvent(), CButtonInfo::alloc(button, 0));
 		}
 	}
 	else {
 		LOG((CLOG_DEBUG1 "event: button release button=%d", button));
 		if (button != kButtonNone) {
-			sendEvent(getButtonUpEvent(), CButtonInfo::alloc(button));
+			sendEvent(getButtonUpEvent(), CButtonInfo::alloc(button, 0));
 		}
 	}
-	
+
+	// handle drags with any button other than button 1 or 2
+	if (macButton > 2) {
+		if (pressed) {
+			// one more button
+			if (m_dragNumButtonsDown++ == 0) {
+				enableDragTimer(true);
+			}
+		}
+		else {
+			// one less button
+			if (--m_dragNumButtonsDown == 0) {
+				enableDragTimer(false);
+			}
+		}
+	}
+
 	return true;
 }
 
@@ -855,6 +987,12 @@ COSXScreen::onMouseWheel(SInt32 delta) const
 	LOG((CLOG_DEBUG1 "event: button wheel delta=%d", delta));
 	sendEvent(getWheelEvent(), CWheelInfo::alloc(delta));
 	return true;
+}
+
+void
+COSXScreen::handleClipboardCheck(const CEvent&, void*)
+{
+	checkClipboards();
 }
 
 pascal void 
@@ -892,16 +1030,17 @@ COSXScreen::onDisplayChange()
 	return true;
 }
 
-
-bool				
-COSXScreen::onKey(EventRef event) const
+bool
+COSXScreen::onKey(EventRef event)
 {
 	UInt32 eventKind = GetEventKind(event);
 
-	// get the key
-	UInt32 virtualKey;
+	// get the key and active modifiers
+	UInt32 virtualKey, macMask;
 	GetEventParameter(event, kEventParamKeyCode, typeUInt32,
 							NULL, sizeof(virtualKey), NULL, &virtualKey);
+	GetEventParameter(event, kEventParamKeyModifiers, typeUInt32,
+							NULL, sizeof(macMask), NULL, &macMask);
 	LOG((CLOG_DEBUG1 "event: Key event kind: %d, keycode=%d", eventKind, virtualKey));
 
 	// sadly, OS X doesn't report the virtualKey for modifier keys.
@@ -910,9 +1049,65 @@ COSXScreen::onKey(EventRef event) const
 	if (virtualKey == 0 && eventKind == kEventRawKeyModifiersChanged) {
 		// get old and new modifier state
 		KeyModifierMask oldMask = getActiveModifiers();
-		KeyModifierMask newMask = mapMacModifiersToSynergy(event);
+		KeyModifierMask newMask = m_keyState->mapModifiersFromOSX(macMask);
 		m_keyState->handleModifierKeys(getEventTarget(), oldMask, newMask);
+
+		// if the current set of modifiers exactly matches a modifiers-only
+		// hot key then generate a hot key down event.
+		if (m_activeModifierHotKey == 0) {
+			if (m_modifierHotKeys.count(newMask) > 0) {
+				m_activeModifierHotKey     = m_modifierHotKeys[newMask];
+				m_activeModifierHotKeyMask = newMask;
+				EVENTQUEUE->addEvent(CEvent(getHotKeyDownEvent(),
+								getEventTarget(),
+								CHotKeyInfo::alloc(m_activeModifierHotKey)));
+			}
+		}
+
+		// if a modifiers-only hot key is active and should no longer be
+		// then generate a hot key up event.
+		else if (m_activeModifierHotKey != 0) {
+			KeyModifierMask mask = (newMask & m_activeModifierHotKeyMask);
+			if (mask != m_activeModifierHotKeyMask) {
+				EVENTQUEUE->addEvent(CEvent(getHotKeyUpEvent(),
+								getEventTarget(),
+								CHotKeyInfo::alloc(m_activeModifierHotKey)));
+				m_activeModifierHotKey     = 0;
+				m_activeModifierHotKeyMask = 0;
+			}
+		}
+			
 		return true;
+	}
+
+	// check for hot key.  when we're on a secondary screen we disable
+	// all hotkeys so we can capture the OS defined hot keys as regular
+	// keystrokes but that means we don't get our own hot keys either.
+	// so we check for a key/modifier match in our hot key map.
+	if (!m_isOnScreen) {
+		HotKeyToIDMap::const_iterator i =
+			m_hotKeyToIDMap.find(CHotKeyItem(virtualKey, macMask & 0xff00u));
+		if (i != m_hotKeyToIDMap.end()) {
+			UInt32 id = i->second;
+	
+			// determine event type
+			CEvent::Type type;
+			UInt32 eventKind = GetEventKind(event);
+			if (eventKind == kEventRawKeyDown) {
+				type = getHotKeyDownEvent();
+			}
+			else if (eventKind == kEventRawKeyUp) {
+				type = getHotKeyUpEvent();
+			}
+			else {
+				return false;
+			}
+	
+			EVENTQUEUE->addEvent(CEvent(type, getEventTarget(),
+										CHotKeyInfo::alloc(id)));
+		
+			return true;
+		}
 	}
 
 	// decode event type
@@ -930,14 +1125,14 @@ COSXScreen::onKey(EventRef event) const
 
 	// update button state
 	if (down) {
-		m_keyState->setKeyDown(button, true);
+		m_keyState->onKey(button, true, mask);
 	}
 	else if (up) {
-		if (!isKeyDown(button)) {
+		if (!m_keyState->isKeyDown(button)) {
 			// up event for a dead key.  throw it away.
 			return false;
 		}
-		m_keyState->setKeyDown(button, false);
+		m_keyState->onKey(button, false, mask);
 	}
 
 	// send key events
@@ -946,6 +1141,34 @@ COSXScreen::onKey(EventRef event) const
 		m_keyState->sendKeyEvent(getEventTarget(), down, isRepeat,
 							*i, mask, 1, button);
 	}
+
+	return true;
+}
+
+bool
+COSXScreen::onHotKey(EventRef event) const
+{
+	// get the hotkey id
+	EventHotKeyID hkid;
+	GetEventParameter(event, kEventParamDirectObject, typeEventHotKeyID,
+							NULL, sizeof(EventHotKeyID), NULL, &hkid);
+	UInt32 id = hkid.id;
+
+	// determine event type
+	CEvent::Type type;
+	UInt32 eventKind = GetEventKind(event);
+	if (eventKind == kEventHotKeyPressed) {
+		type = getHotKeyDownEvent();
+	}
+	else if (eventKind == kEventHotKeyReleased) {
+		type = getHotKeyUpEvent();
+	}
+	else {
+		return false;
+	}
+
+	EVENTQUEUE->addEvent(CEvent(type, getEventTarget(),
+								CHotKeyInfo::alloc(id)));
 
 	return true;
 }
@@ -1016,48 +1239,41 @@ COSXScreen::getScrollSpeedFactor() const
 	return pow(10.0, getScrollSpeed());
 }
 
-KeyModifierMask
-COSXScreen::mapMacModifiersToSynergy(EventRef event) const
+void
+COSXScreen::enableDragTimer(bool enable)
 {
-	// get native bit mask
-	UInt32 macMask;
-	GetEventParameter(event, kEventParamKeyModifiers, typeUInt32,
-							NULL, sizeof(macMask), NULL, &macMask);
+	if (enable && m_dragTimer == NULL) {
+		m_dragTimer = EVENTQUEUE->newTimer(0.01, NULL);
+		EVENTQUEUE->adoptHandler(CEvent::kTimer, m_dragTimer,
+							new TMethodEventJob<COSXScreen>(this,
+								&COSXScreen::handleDrag));
+		GetMouse(&m_dragLastPoint);
+	}
+	else if (!enable && m_dragTimer != NULL) {
+		EVENTQUEUE->removeHandler(CEvent::kTimer, m_dragTimer);
+		EVENTQUEUE->deleteTimer(m_dragTimer);
+		m_dragTimer = NULL;
+	}
+}
 
-	// convert
-	KeyModifierMask outMask = 0;
-	if ((macMask & shiftKey) != 0) {
-		outMask |= KeyModifierShift;
+void
+COSXScreen::handleDrag(const CEvent&, void*)
+{
+	Point p;
+	GetMouse(&p);
+	if (p.h != m_dragLastPoint.h || p.v != m_dragLastPoint.v) {
+		m_dragLastPoint = p;
+		onMouseMove((SInt32)p.h, (SInt32)p.v);
 	}
-	if ((macMask & rightShiftKey) != 0) {
-		outMask |= KeyModifierShift;
-	}
-	if ((macMask & controlKey) != 0) {
-		outMask |= KeyModifierControl;
-	}
-	if ((macMask & rightControlKey) != 0) {
-		outMask |= KeyModifierControl;
-	}
-	if ((macMask & cmdKey) != 0) {
-		outMask |= KeyModifierAlt;
-	}
-	if ((macMask & optionKey) != 0) {
-		outMask |= KeyModifierSuper;
-	}
-	if ((macMask & rightOptionKey) != 0) {
-		outMask |= KeyModifierSuper;
-	}
-	if ((macMask & alphaLock) != 0) {
-		outMask |= KeyModifierCapsLock;
-	}
-
-	return outMask;
 }
 
 void
 COSXScreen::updateButtons()
 {
-	// FIXME -- get current button state into m_buttons[]
+	UInt32 buttons = GetCurrentButtonState();
+	for (size_t i = 0; i < sizeof(m_buttons) / sizeof(m_buttons[0]); ++i) {
+		m_buttons[i] = ((buttons & (1u << i)) != 0);
+	}
 }
 
 IKeyState*
@@ -1373,3 +1589,37 @@ COSXScreen::getGlobalHotKeysEnabled()
 	return (mode == CGSGlobalHotKeyEnable);
 }
 
+
+//
+// COSXScreen::CHotKeyItem
+//
+
+COSXScreen::CHotKeyItem::CHotKeyItem(UInt32 keycode, UInt32 mask) :
+	m_ref(NULL),
+	m_keycode(keycode),
+	m_mask(mask)
+{
+	// do nothing
+}
+
+COSXScreen::CHotKeyItem::CHotKeyItem(EventHotKeyRef ref,
+				UInt32 keycode, UInt32 mask) :
+	m_ref(ref),
+	m_keycode(keycode),
+	m_mask(mask)
+{
+	// do nothing
+}
+
+EventHotKeyRef
+COSXScreen::CHotKeyItem::getRef() const
+{
+	return m_ref;
+}
+
+bool
+COSXScreen::CHotKeyItem::operator<(const CHotKeyItem& x) const
+{
+	return (m_keycode < x.m_keycode ||
+			(m_keycode == x.m_keycode && m_mask < x.m_mask));
+}
