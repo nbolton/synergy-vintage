@@ -104,21 +104,34 @@ protected:
 private:
 	void				updateKeysymMap(CKeyMap&);
 	void				updateKeysymMapXKB(CKeyMap&);
+	bool				hasModifiersXKB() const;
+	int					getEffectiveGroup(KeyCode, int group) const;
 	UInt32				getGroupFromState(unsigned int state) const;
 
 	static void			remapKeyModifiers(KeyID, SInt32,
 							CKeyMap::KeyItem&, void*);
 
 private:
+	struct XKBModifierInfo {
+	public:
+		unsigned char	m_level;
+		UInt32			m_mask;
+		bool			m_lock;
+	};
+
 	typedef std::vector<KeyModifierMask> KeyModifierMaskList;
 	typedef std::map<KeyModifierMask, unsigned int> KeyModifierToXMask;
 	typedef std::multimap<KeyID, KeyCode> KeyToKeyCodeMap;
+	typedef std::map<KeyCode, unsigned int> NonXKBModifierMap;
+	typedef std::map<UInt32, XKBModifierInfo> XKBModifierMap;
 
 	Display*			m_display;
 #if HAVE_XKB_EXTENSION
 	XkbDescPtr			m_xkb;
 #endif
 	SInt32				m_group;
+	XKBModifierMap		m_lastGoodXKBModifiers;
+	NonXKBModifierMap	m_lastGoodNonXKBModifiers;
 
 	// X modifier (bit number) to synergy modifier (mask) mapping
 	KeyModifierMaskList	m_modifierFromX;

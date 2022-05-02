@@ -18,6 +18,7 @@
 #include "IInterface.h"
 #include "KeyTypes.h"
 #include "CEvent.h"
+#include "CString.h"
 #include "stdset.h"
 
 //! Key state interface
@@ -35,13 +36,19 @@ public:
 	class CKeyInfo {
 	public:
 		static CKeyInfo* alloc(KeyID, KeyModifierMask, KeyButton, SInt32 count);
+		static CKeyInfo* alloc(KeyID, KeyModifierMask, KeyButton, SInt32 count,
+							const std::set<CString>& destinations);
 		static CKeyInfo* alloc(const CKeyInfo&);
+
+		static bool isDefault(const char* screens);
+		static bool contains(const char* screens, const CString& name);
 
 	public:
 		KeyID			m_key;
 		KeyModifierMask	m_mask;
 		KeyButton		m_button;
 		SInt32			m_count;
+		char			m_screens[1];
 	};
 
 	typedef std::set<KeyButton> KeyButtonSet;

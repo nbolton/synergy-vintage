@@ -40,10 +40,12 @@ public:
 	//! Lock cursor to screen data
 	class CLockCursorToScreenInfo {
 	public:
-		static CLockCursorToScreenInfo* alloc(bool state);
+		enum State { kOff, kOn, kToggle };
+
+		static CLockCursorToScreenInfo* alloc(State state = kToggle);
 
 	public:
-		bool			m_state;
+		State			m_state;
 	};
 
 	//! Switch to screen data
@@ -63,6 +65,16 @@ public:
 
 	public:
 		EDirection		m_direction;
+	};
+
+	//! Screen connected data
+	class CScreenConnectedInfo {
+	public:
+		static CScreenConnectedInfo* alloc(const CString& screen);
+
+	public:
+		// this is a C-string;  this type is a variable size structure
+		char			m_screen[1];
 	};
 
 	/*!
@@ -123,13 +135,21 @@ public:
 	*/
 	static CEvent::Type	getErrorEvent();
 
+	//! Get connected event type
+	/*!
+	Returns the connected event type.  This is sent when a client screen
+	has connected.  The event data is a \c CScreenConnectedInfo* that
+	indicates the connected screen.
+	*/
+	static CEvent::Type	getConnectedEvent();
+
 	//! Get disconnected event type
 	/*!
 	Returns the disconnected event type.  This is sent when all the
 	clients have disconnected.
 	*/
 	static CEvent::Type	getDisconnectedEvent();
-	
+
 	//! Get switch to screen event type
 	/*!
 	Returns the switch to screen event type.  The server responds to this
@@ -137,7 +157,7 @@ public:
 	that indicates the target screen.
 	*/
 	static CEvent::Type	getSwitchToScreenEvent();
-	
+
 	//! Get switch in direction event type
 	/*!
 	Returns the switch in direction event type.  The server responds to this
@@ -155,13 +175,6 @@ public:
 	static CEvent::Type	getLockCursorToScreenEvent();
 
 	//@}
-
-protected:
-	//! Handle special keys
-	/*!
-	Handles keys with special meaning.
-	*/
-	bool				onCommandKey(KeyID, KeyModifierMask, bool down);
 
 private:
 	// get canonical name of client
@@ -189,15 +202,36 @@ private:
 	// jump to screen
 	void				jumpToScreen(IClient*);
 
-	// lookup neighboring screen
-	IClient*			getNeighbor(IClient*, EDirection) const;
+	// convert pixel position to fraction, using x or y depending on the
+	// direction.
+	float				mapToFraction(IClient*, EDirection,
+							SInt32 x, SInt32 y) const;
+
+	// convert fraction to pixel position, writing only x or y depending
+	// on the direction.
+	void				mapToPixel(IClient*, EDirection, float f,
+							SInt32& x, SInt32& y) const;
+
+	// returns true if the client has a neighbor anywhere along the edge
+	// indicated by the direction.
+	bool				hasAnyNeighbor(IClient*, EDirection) const;
+
+	// lookup neighboring screen, mapping the coordinate independent of
+	// the direction to the neighbor's coordinate space.
+	IClient*			getNeighbor(IClient*, EDirection,
+							SInt32& x, SInt32& y) const;
 
 	// lookup neighboring screen.  given a position relative to the
 	// source screen, find the screen we should move onto and where.
 	// if the position is sufficiently far from the source then we
 	// cross multiple screens.  if there is no suitable screen then
 	// return NULL and x,y are not modified.
-	IClient*			getNeighbor(IClient*, EDirection,
+	IClient*			mapToNeighbor(IClient*, EDirection,
+							SInt32& x, SInt32& y) const;
+
+	// adjusts x and y or neither to avoid ending up in a jump zone
+	// after entering the client in the given direction.
+	void				avoidJumpZone(IClient*, EDirection,
 							SInt32& x, SInt32& y) const;
 
 	// test if a switch is permitted.  this includes testing user
@@ -276,14 +310,16 @@ private:
 	void				onClipboardChanged(IClient* sender,
 							ClipboardID id, UInt32 seqNum);
 	void				onScreensaver(bool activated);
-	void				onKeyDown(KeyID, KeyModifierMask, KeyButton);
-	void				onKeyUp(KeyID, KeyModifierMask, KeyButton);
+	void				onKeyDown(KeyID, KeyModifierMask, KeyButton,
+							const char* screens);
+	void				onKeyUp(KeyID, KeyModifierMask, KeyButton,
+							const char* screens);
 	void				onKeyRepeat(KeyID, KeyModifierMask, SInt32, KeyButton);
 	void				onMouseDown(ButtonID);
 	void				onMouseUp(ButtonID);
 	bool				onMouseMovePrimary(SInt32 x, SInt32 y);
 	void				onMouseMoveSecondary(SInt32 dx, SInt32 dy);
-	void				onMouseWheel(SInt32 delta);
+	void				onMouseWheel(SInt32 xDelta, SInt32 yDelta);
 
 	// add client to list and attach event handlers for client
 	bool				addClient(IClient*);
@@ -387,6 +423,7 @@ private:
 	bool				m_lockedToScreen;
 
 	static CEvent::Type	s_errorEvent;
+	static CEvent::Type	s_connectedEvent;
 	static CEvent::Type	s_disconnectedEvent;
 	static CEvent::Type	s_switchToScreen;
 	static CEvent::Type	s_switchInDirection;

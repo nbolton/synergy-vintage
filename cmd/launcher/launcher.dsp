@@ -111,6 +111,10 @@ SOURCE=.\CGlobalOptions.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\CInfo.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\CScreensLinks.cpp
 # End Source File
 # Begin Source File
@@ -144,6 +148,10 @@ SOURCE=.\CAutoStart.h
 # Begin Source File
 
 SOURCE=.\CGlobalOptions.h
+# End Source File
+# Begin Source File
+
+SOURCE=.\CInfo.h
 # End Source File
 # Begin Source File
 

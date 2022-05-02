@@ -293,6 +293,20 @@ CXWindowsKeyState::updateKeysymMap(CKeyMap& keyMap)
 	XFreeModifiermap(modifiers);
 	modifierButtons.erase(0);
 
+	// Hack to deal with VMware.  When a VMware client grabs input the
+	// player clears out the X modifier map for whatever reason.  We're
+	// notified of the change and arrive here to discover that there
+	// are no modifiers at all.  Since this prevents the modifiers from
+	// working in the VMware client we'll use the last known good set
+	// of modifiers when there are no modifiers.  If there are modifiers
+	// we update the last known good set.
+	if (!modifierButtons.empty()) {
+		m_lastGoodNonXKBModifiers = modifierButtons;
+	}
+	else {
+		modifierButtons = m_lastGoodNonXKBModifiers;
+	}
+
 	// add entries for each keycode
 	CKeyMap::KeyItem item;
 	for (int i = 0; i < numKeycodes; ++i) {
@@ -466,6 +480,18 @@ CXWindowsKeyState::updateKeysymMapXKB(CKeyMap& keyMap)
 	// prepare map from KeyID to KeyCode
 	m_keyCodeFromKey.clear();
 
+	// Hack to deal with VMware.  When a VMware client grabs input the
+	// player clears out the X modifier map for whatever reason.  We're
+	// notified of the change and arrive here to discover that there
+	// are no modifiers at all.  Since this prevents the modifiers from
+	// working in the VMware client we'll use the last known good set
+	// of modifiers when there are no modifiers.  If there are modifiers
+	// we update the last known good set.
+	bool useLastGoodModifiers = !hasModifiersXKB();
+	if (!useLastGoodModifiers) {
+		m_lastGoodXKBModifiers.clear();
+	}
+
 	// check every button.  on this pass we save all modifiers as native
 	// X modifier masks.
 	CKeyMap::KeyItem item;
@@ -475,8 +501,7 @@ CXWindowsKeyState::updateKeysymMapXKB(CKeyMap& keyMap)
 		item.m_client   = 0;
 
 		// skip keys with no groups (they generate no symbols)
-		int numGroups = XkbKeyNumGroups(m_xkb, keycode);
-		if (numGroups == 0) {
+		if (XkbKeyNumGroups(m_xkb, keycode) == 0) {
 			continue;
 		}
 
@@ -489,29 +514,7 @@ CXWindowsKeyState::updateKeysymMapXKB(CKeyMap& keyMap)
 		// iterate over all groups
 		for (int group = 0; group < maxNumGroups; ++group) {
 			item.m_group = group;
-
-			// get effective group for key
-			int eGroup = group;
-			if (eGroup >= numGroups) {
-				unsigned char groupInfo = XkbKeyGroupInfo(m_xkb, keycode);
-				switch (XkbOutOfRangeGroupAction(groupInfo)) {
-				case XkbClampIntoRange:
-					eGroup = numGroups - 1;
-					break;
-
-				case XkbRedirectIntoRange:
-					eGroup = XkbOutOfRangeGroupNumber(groupInfo);
-					if (eGroup >= numGroups) {
-						eGroup = 0;
-					}
-					break;
-
-				default:
-					// wrap
-					eGroup %= numGroups;
-					break;
-				}
-			}
+			int eGroup   = getEffectiveGroup(keycode, group);
 
 			// get key info
 			XkbKeyTypePtr type = XkbKeyKeyType(m_xkb, keycode, eGroup);
@@ -572,6 +575,28 @@ CXWindowsKeyState::updateKeysymMapXKB(CKeyMap& keyMap)
 						continue;
 					}
 				}
+				level = mapEntry->level;
+
+				// VMware modifier hack
+				if (useLastGoodModifiers) {
+					XKBModifierMap::const_iterator k =
+						m_lastGoodXKBModifiers.find(eGroup * 256 + keycode);
+					if (k != m_lastGoodXKBModifiers.end()) {
+						// Use last known good modifier
+						isModifier   = true;
+						level        = k->second.m_level;
+						modifierMask = k->second.m_mask;
+						item.m_lock  = k->second.m_lock;
+					}
+				}
+				else if (isModifier) {
+					// Save known good modifier
+					XKBModifierInfo& info =
+						m_lastGoodXKBModifiers[eGroup * 256 + keycode];
+					info.m_level = level;
+					info.m_mask  = modifierMask;
+					info.m_lock  = item.m_lock;
+				}
 
 				// record the modifier mask for this key.  don't bother
 				// for keys that change the group.
@@ -592,10 +617,10 @@ CXWindowsKeyState::updateKeysymMapXKB(CKeyMap& keyMap)
 						// and we know of a key that combines with fewer
 						// modifiers (or no modifiers) then prefer the
 						// other key.
-						if (mapEntry->level >= modifierLevel[8 * group + j]) {
+						if (level >= modifierLevel[8 * group + j]) {
 							continue;
 						}
-						modifierLevel[8 * group + j] = mapEntry->level;
+						modifierLevel[8 * group + j] = level;
 
 						// save modifier
 						m_modifierFromX[8 * group + j] |= (1u << modifierBit);
@@ -670,6 +695,69 @@ CXWindowsKeyState::remapKeyModifiers(KeyID id, SInt32 group,
 		self->mapModifiersFromX(XkbBuildCoreState(item.m_required, group));
 	item.m_sensitive =
 		self->mapModifiersFromX(XkbBuildCoreState(item.m_sensitive, group));
+}
+
+bool
+CXWindowsKeyState::hasModifiersXKB() const
+{
+#if HAVE_XKB_EXTENSION
+	// iterate over all keycodes
+	for (int i = m_xkb->min_key_code; i <= m_xkb->max_key_code; ++i) {
+		KeyCode keycode = static_cast<KeyCode>(i);
+		if (XkbKeyHasActions(m_xkb, keycode)) {
+			// iterate over all groups
+			int numGroups = XkbKeyNumGroups(m_xkb, keycode);
+			for (int group = 0; group < numGroups; ++group) {
+				// iterate over all shift levels for the button (including none)
+				XkbKeyTypePtr type = XkbKeyKeyType(m_xkb, keycode, group);
+				for (int j = -1; j < type->map_count; ++j) {
+					if (j != -1 && !type->map[j].active) {
+						continue;
+					}
+					int level = ((j == -1) ? 0 : type->map[j].level);
+					XkbAction* action =
+						XkbKeyActionEntry(m_xkb, keycode, level, group);
+					if (action->type == XkbSA_SetMods ||
+						action->type == XkbSA_LockMods) {
+						return true;
+					}
+				}
+			}
+		}
+	}
+#endif
+	return false;
+}
+
+int
+CXWindowsKeyState::getEffectiveGroup(KeyCode keycode, int group) const
+{
+	(void)keycode;
+#if HAVE_XKB_EXTENSION
+	// get effective group for key
+	int numGroups = XkbKeyNumGroups(m_xkb, keycode);
+	if (group >= numGroups) {
+		unsigned char groupInfo = XkbKeyGroupInfo(m_xkb, keycode);
+		switch (XkbOutOfRangeGroupAction(groupInfo)) {
+		case XkbClampIntoRange:
+			group = numGroups - 1;
+			break;
+
+		case XkbRedirectIntoRange:
+			group = XkbOutOfRangeGroupNumber(groupInfo);
+			if (group >= numGroups) {
+				group = 0;
+			}
+			break;
+
+		default:
+			// wrap
+			group %= numGroups;
+			break;
+		}
+	}
+#endif
+	return group;
 }
 
 UInt32

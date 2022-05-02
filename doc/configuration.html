@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <head>
 	<link rel="stylesheet" type="text/css" href="synergy.css" media="screen" />
@@ -182,37 +182,58 @@ A screen can have the following options:
     <span class="arg">args</span> is a list of screen names just like
     in the <span class="code">screens</span> section except each screen
     is followed by a list of links, one per line.  Each link has the
-    form <span class="code">{left|right|up|down}</span> =
-    <span class="code">name</span>.  A link indicates which screen is
-    adjacent in the given direction.
+    form <span class="code">{left|right|up|down}[&lt;range&gt;]</span> =
+    <span class="code">name[&lt;range&gt;]</span>.  A link indicates which
+    screen is adjacent in the given direction.
+</p>
+<p>
+    Each side of a link can specify a range which defines a portion
+    of an edge.  A range on the direction is the portion of edge you can
+    leave from while a range on the screen is the portion of edge you'll
+    enter into.  Ranges are optional and default to the entire edge.  All
+    ranges on a particular direction of a particular screen must not
+    overlap.
+</p>
+<p>
+    A &lt;range&gt; is written as <span class="code">(&lt;start&gt;,&lt;end&gt;)</span>.
+    Both <span class="code">start</span> and <span class="code">end</span>
+    are percentages in the range 0 to 100, inclusive.  The start must be
+    less than the end.  0 is the left or top of an edge and 100 is the
+    right or bottom.
 </p>
 <p> 
     Example:
 <pre>
     section: links
         moe:
-            right = larry
-            up    = curly
+            right        = larry
+            up(50,100)   = curly(0,50)
         larry:
-            left  = moe
-            up    = curly
+            left         = moe
+            up(0,50)     = curly(50,100)
         curly:
-            down  = larry
+            down(0,50)   = moe
+            down(50,100) = larry(0,50)
     end
 </pre>
     This indicates that screen <span class="code">larry</span> is to
     the right of screen <span class="code">moe</span> (so moving the
     cursor off the right edge of <span class="code">moe</span> would
     make it appear at the left edge of <span class="code">larry</span>),
-    <span class="code">curly</span> is above <span class="code">moe</span>,
+    the left half of
+    <span class="code">curly</span> is above the right half of
+    <span class="code">moe</span>,
     <span class="code">moe</span> is to the left of
-    <span class="code">larry</span>, <span class="code">curly</span> is
-    above <span class="code">larry</span>, and
-    <span class="code">larry</span> is below
+    <span class="code">larry</span> (edges are not necessarily symmetric
+    so you have to provide both directions), the right half of
+    <span class="code">curly</span> is above the left half of
+    <span class="code">larry</span>, all of <span class="code">moe</span>
+    is below the left half of <span class="code">curly</span>, and the
+    left half of <span class="code">larry</span> is below the right half of
     <span class="code">curly</span>.  Note that links do not have to be
-    symmetrical;  moving up from <span class="code">moe</span> then down
-    from <span class="code">curly</span> lands the cursor on
-    <span class="code">larry</span>.
+    symmetrical;  for instance, here the edge between
+    <span class="code">moe</span> and <span class="code">curly</span>
+    maps to different ranges depending on if you're going up or down.
 </p>
 
 <h4>options</h4>
@@ -322,10 +343,10 @@ A screen can have the following options:
 		games.  If set to <span class="code">false</span> or not
 		set then all mouse moves are absolute.
 </p>
-<li><span class="code">keystroke(<span class="arg">key</span>) = <span class="arg">action</span></span>
+<li><span class="code">keystroke(<span class="arg">key</span>) = <span class="arg">actions</span></span>
 <p>
 		Binds the key combination <span class="arg">key</span> to the
-		given <span class="arg">action</span>.  <span class="arg">key</span>
+		given <span class="arg">actions</span>.  <span class="arg">key</span>
 		is an optional list of modifiers (<span class="code">shift</span>,
 		<span class="code">control</span>, <span class="code">alt</span>,
 		<span class="code">meta</span> or <span class="code">super</span>)
@@ -335,31 +356,18 @@ A screen can have the following options:
 		<a href="#keynames">valid key names</a>.
 </p>
 <p>
-		The <span class="arg">key</span> can be optionally followed by
-		<span class="code">,toggle</span> which, for certain actions,
-		causes the action to toggle on and off.  This is useful in particular
-		for the <span class="code">lockCursorToScreen</span> action.
-</p>
-<p>
 		Actions are described <a href="#actions">below</a>.
 </p>
 <p>
-		Keyboard hot keys are handled on the primary screen and secondary
-		screens.
+		Keyboard hot keys are handled while the cursor is on the primary
+		screen and secondary screens.  Separate actions can be assigned
+		to press and release.
 </p>
-<p>
-		Examples:
-		<span class="code"><ul>
-		<li>keystroke(alt+left) = switchInDirection(left)
-		<li>keystroke(alt+f1,toggle) = lockCursorToScreen
-		<li>keystroke(shift+control+alt+super) = switchToScreen(moe)
-		</ul></span>
-</p>
-<li><span class="code">mousebutton(<span class="arg">button</span>) = <span class="arg">action</span></span>
+<li><span class="code">mousebutton(<span class="arg">button</span>) = <span class="arg">actions</span></span>
 <p>
 		Binds the modifier and mouse button combination
 		<span class="arg">button</span> to the given
-		<span class="arg">action</span>.  <span class="arg">button</span>
+		<span class="arg">actions</span>.  <span class="arg">button</span>
 		is an optional list of modifiers (<span class="code">shift</span>,
 		<span class="code">control</span>, <span class="code">alt</span>,
 		<span class="code">meta</span> or <span class="code">super</span>)
@@ -368,17 +376,13 @@ A screen can have the following options:
 		is 2, etc.
 </p>
 <p>
-		The <span class="arg">button</span> can be optionally followed by
-		<span class="code">,toggle</span> which, for certain actions,
-		causes the action to toggle on and off.  This is useful in particular
-		for the <span class="code">lockCursorToScreen</span> action.
-</p>
-<p>
 		Actions are described <a href="#actions">below</a>.
 </p>
 <p>
-		Mouse button actions are not handled on the primary screen.  You
-		cannot use these to perform an action while on the primary screen.
+		Mouse button actions are not handled while the cursor is on the
+		primary screen.  You cannot use these to perform an action while
+		on the primary screen.  Separate actions can be assigned to press
+		and release.
 </p>
 </ul>
     You can use both the <span class="code">switchDelay</span> and
@@ -386,26 +390,69 @@ A screen can have the following options:
     time.  Synergy will switch when either requirement is satisfied.
 </p>
 <p>
-<a name="actions">Actions</a> are:
+<a name="actions">Actions</a> are two lists of individual actions separated
+by commas.  The two lists are separated by a semicolon.  Either list can be
+empty and if the second list is empty then the semicolon is optional.  The
+first list lists actions to take when the condition becomes true (e.g. the
+hot key or mouse button is pressed) and the second lists actions to take
+when the condition becomes false (e.g. the hot key or button is released).
+The condition becoming true is called activation and becoming false is
+called deactivation.
+Allowed individual actions are:
 <ul>
-<li><span class="code">keystroke(<span class="arg">key</span>)</span>
+<li><span class="code">keystroke(<span class="arg">key</span>[,<span class="arg">screens</span>])</span>
+<li><span class="code">keyDown(<span class="arg">key</span>[,<span class="arg">screens</span>])</span>
+<li><span class="code">keyUp(<span class="arg">key</span>[,<span class="arg">screens</span>])</span>
 <p>
 		Synthesizes the modifiers and key given in <span class="arg">key</span>
 		which has the same form as described in the
-		<span class="code">keystroke</span> option.
+		<span class="code">keystroke</span> option.  If given,
+		<span class="arg">screens</span> lists the screen or screens to
+		direct the event to, regardless of the active screen.  If not
+		given then the event is directed to the active screen only.
+</p>
+<p>
+		<span class="code">keyDown</span> synthesizes a key press and
+		<span class="code">keyUp</span> synthesizes a key release.
+		<span class="code">keystroke</span> synthesizes a key press on
+		activation and a release on deactivation and is equivalent to
+		a <span class="code">keyDown</span> on activation and
+		<span class="code">keyUp</span> on deactivation.
+</p>
+<p>
+		<span class="arg">screens</span> is either <span class="code">*</span>
+		to indicate all screens or a colon (:) separated list of screen
+		names.  (Note that the screen name must have already been encountered
+		in the configuration file so you'll probably want to put actions at
+		the bottom of the file.)
 </p>
 <li><span class="code">mousebutton(<span class="arg">button</span>)</span>
+<li><span class="code">mouseDown(<span class="arg">button</span>)</span>
+<li><span class="code">mouseUp(<span class="arg">button</span>)</span>
 <p>
 		Synthesizes the modifiers and mouse button given in
 		<span class="arg">button</span>
 		which has the same form as described in the
 		<span class="code">mousebutton</span> option.
 </p>
-<li><span class="code">lockCursorToScreen</span>
+<p>
+		<span class="code">mouseDown</span> synthesizes a mouse press and
+		<span class="code">mouseUp</span> synthesizes a mouse release.
+		<span class="code">mousestroke</span> synthesizes a mouse press on
+		activation and a release on deactivation and is equivalent to
+		a <span class="code">mouseDown</span> on activation and
+		<span class="code">mouseUp</span> on deactivation.
+</p>
+<li><span class="code">lockCursorToScreen(<span class="arg">mode</span>)</span>
 <p>
 		Locks the cursor to or unlocks the cursor from the active screen.
-		Use the <span class="code">toggle</span> modifier in the option
-		when using this action.  Scroll lock also performs the function.
+		<span class="arg">mode</span> can be <span class="code">off</span>
+		to unlock the cursor, <span class="code">on</span> to lock the
+		cursor, or <span class="code">toggle</span> to toggle the current
+		state.  The default is <span class="code">toggle</span>.  If the
+		configuration has no <span class="code">lockCursorToScreen</span>
+		action and Scroll Lock is not used as a hot key then Scroll Lock
+		toggles cursor locking.
 </p>
 <li><span class="code">switchToScreen(<span class="arg">screen</span>)</span>
 <p>
@@ -419,6 +466,36 @@ A screen can have the following options:
 		<span class="code">down</span>.
 </p>
 </ul>
+</p>
+<p>
+Examples:
+<ul>
+<li><span class="code">keystroke(alt+left) = switchInDirection(left)</span>
+<p>
+	Switches to the screen to left when the left arrow key is pressed
+	in combination with the Alt key.
+</p>
+<li><span class="code">keystroke(shift+control+alt+super) = switchToScreen(moe)</span>
+<p>
+	Switches to screen <span class="code">moe</span> when all of the
+	Shift, Control, Alt, and Super modifier keys are pressed together.
+</p>
+<li><span class="code">keystroke(alt+f1) = ; lockCursorToScreen(toggle)</span>
+<p>
+	Toggles locking the cursor to the screen when Alt+F1 is released.
+</p>
+<li><span class="code">mousebutton(2) = mouseDown(control+1) ; mouseUp(control+1)</span>
+<p>
+	While on a secondary screen clicking the middle mouse button will
+	become a Control click of the primary button.
+</p>
+<li><span class="code">keystroke(super+f1) = keystroke(super+L,larry), keystroke(control+alt+delete,curly)</span>
+<p>
+	Pressing Super+F1 (on any screen) will synthesize Super+L on screen
+	<span class="code">larry</span> and Control+Alt+Delete on screen
+	<span class="code">curly</span>.
+</p>
+</ul></span>
 </p>
 <p>
 <a name="keynames">Valid key names</a> are:
@@ -438,6 +515,7 @@ A screen can have the following options:
 <li>Begin
 <li>Break
 <li>Cancel
+<li>CapsLock
 <li>Clear
 <li>Delete
 <li>Down
@@ -523,6 +601,7 @@ A screen can have the following options:
 <li>LeftTab
 <li>Linefeed
 <li>Menu
+<li>NumLock
 <li>PageDown
 <li>PageUp
 <li>Pause
@@ -530,6 +609,7 @@ A screen can have the following options:
 <li>Redo
 <li>Return
 <li>Right
+<li>ScrollLock
 <li>Select
 <li>Sleep
 <li>Space
@@ -544,8 +624,44 @@ A screen can have the following options:
 <li>WWWRefresh
 <li>WWWSearch
 <li>WWWStop
+<li>Space
+<li>Exclaim
+<li>DoubleQuote
+<li>Number
+<li>Dollar
+<li>Percent
+<li>Ampersand
+<li>Apostrophe
+<li>ParenthesisL
+<li>ParenthesisR
+<li>Asterisk
+<li>Plus
+<li>Comma
+<li>Minus
+<li>Period
+<li>Slash
+<li>Colon
+<li>Semicolon
+<li>Less
+<li>Equal
+<li>Greater
+<li>Question
+<li>At
+<li>BracketL
+<li>Backslash
+<li>BracketR
+<li>Circumflex
+<li>Underscore
+<li>Grave
+<li>BraceL
+<li>Bar
+<li>BraceR
+<li>Tilde
 </ul></span>
-Key (and modifier) names are case-insensitive.  Keys that don't exist on
+Additionally, a name of the form <span class="code">\uXXXX</span> where
+<span class="code">XXXX</span> is a hexadecimal number is interpreted as
+a unicode character code.
+Key and modifier names are case-insensitive.  Keys that don't exist on
 the keyboard or in the default keyboard layout will not work.
 </p>
 </body>

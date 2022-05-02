@@ -28,6 +28,7 @@ libserver_a_SOURCES = 				\
 	CClientProxy1_0.cpp				\
 	CClientProxy1_1.cpp				\
 	CClientProxy1_2.cpp				\
+	CClientProxy1_3.cpp				\
 	CClientProxyUnknown.cpp			\
 	CConfig.cpp						\
 	CInputFilter.cpp				\
@@ -38,6 +39,7 @@ libserver_a_SOURCES = 				\
 	CClientProxy1_0.h				\
 	CClientProxy1_1.h				\
 	CClientProxy1_2.h				\
+	CClientProxy1_3.h				\
 	CClientProxyUnknown.h			\
 	CConfig.h						\
 	CInputFilter.h					\

@@ -28,14 +28,11 @@
 // these must come after the above because it includes windows.h
 #include "LaunchUtil.h"
 #include "CAddScreen.h"
+#include "CAdvancedOptions.h"
 #include "CAutoStart.h"
 #include "CGlobalOptions.h"
-#include "CAdvancedOptions.h"
+#include "CInfo.h"
 #include "CScreensLinks.h"
-
-#define CONFIG_NAME "synergy.sgc"
-#define CLIENT_APP "synergyc.exe"
-#define SERVER_APP "synergys.exe"
 
 typedef std::vector<CString> CStringList;
 
@@ -65,9 +62,20 @@ HINSTANCE s_instance = NULL;
 static CGlobalOptions*		s_globalOptions   = NULL;
 static CAdvancedOptions*	s_advancedOptions = NULL;
 static CScreensLinks*		s_screensLinks    = NULL;
+static CInfo*				s_info            = NULL;
+
+static bool		s_userConfig = true;
+static time_t	s_configTime = 0;
+static CConfig	s_lastConfig;
 
 static const TCHAR* s_mainClass   = TEXT("GoSynergy");
 static const TCHAR* s_layoutClass = TEXT("SynergyLayout");
+
+enum SaveMode {
+	SAVE_QUITING,
+	SAVE_NORMAL,
+	SAVE_QUIET
+};
 
 //
 // program arguments
@@ -375,7 +383,11 @@ initMainWindow(HWND hwnd)
 	setWindowText(hwnd, CStringUtil::format(titleFormat.c_str(), VERSION));
 
 	// load configuration
-	bool configLoaded = loadConfig(ARG->m_config);
+	bool configLoaded =
+		loadConfig(ARG->m_config, s_configTime, s_userConfig);
+	if (configLoaded) {
+		s_lastConfig = ARG->m_config;
+	}
 
 	// get settings from registry
 	bool isServer = configLoaded;
@@ -425,7 +437,7 @@ initMainWindow(HWND hwnd)
 
 static
 bool
-saveMainWindow(HWND hwnd, bool quiting, CString* cmdLineOut = NULL)
+saveMainWindow(HWND hwnd, SaveMode mode, CString* cmdLineOut = NULL)
 {
 	DWORD errorID = 0;
 	CString arg;
@@ -446,28 +458,42 @@ saveMainWindow(HWND hwnd, bool quiting, CString* cmdLineOut = NULL)
 	}
 
 	// save user's configuration
-	if (!saveConfig(ARG->m_config, false)) {
-		errorID = IDS_SAVE_FAILED;
-		arg     = getErrorString(GetLastError());
-		goto failed;
+	if (!s_userConfig || ARG->m_config != s_lastConfig) {
+		time_t t;
+		if (!saveConfig(ARG->m_config, false, t)) {
+			errorID = IDS_SAVE_FAILED;
+			arg     = getErrorString(GetLastError());
+			goto failed;
+		}
+		if (s_userConfig) {
+			s_configTime = t;
+			s_lastConfig = ARG->m_config;
+		}
 	}
 
 	// save autostart configuration
 	if (CAutoStart::isDaemonInstalled()) {
-		if (!saveConfig(ARG->m_config, true)) {
-			errorID = IDS_AUTOSTART_SAVE_FAILED;
-			arg     = getErrorString(GetLastError());
-			goto failed;
+		if (s_userConfig || ARG->m_config != s_lastConfig) {
+			time_t t;
+			if (!saveConfig(ARG->m_config, true, t)) {
+				errorID = IDS_AUTOSTART_SAVE_FAILED;
+				arg     = getErrorString(GetLastError());
+				goto failed;
+			}
+			if (!s_userConfig) {
+				s_configTime = t;
+				s_lastConfig = ARG->m_config;
+			}
 		}
 	}
 
 	// get autostart command
-	cmdLine = getCommandLine(hwnd, false, quiting);
+	cmdLine = getCommandLine(hwnd, false, mode == SAVE_QUITING);
 	if (cmdLineOut != NULL) {
 		*cmdLineOut = cmdLine;
 	}
 	if (cmdLine.empty()) {
-		return quiting;
+		return (mode == SAVE_QUITING);
 	}
 
 	// save autostart command
@@ -488,14 +514,14 @@ saveMainWindow(HWND hwnd, bool quiting, CString* cmdLineOut = NULL)
 failed:
 	CString errorMessage =
 		CStringUtil::format(getString(errorID).c_str(), arg.c_str());
-	if (quiting) {
+	if (mode == SAVE_QUITING) {
 		errorMessage += "\n";
 		errorMessage += getString(IDS_UNSAVED_DATA_REALLY_QUIT);
 		if (askVerify(hwnd, errorMessage)) {
 			return true;
 		}
 	}
-	else {
+	else if (mode == SAVE_NORMAL) {
 		showError(hwnd, errorMessage);
 	}
 	return false;
@@ -506,11 +532,43 @@ LRESULT CALLBACK
 mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
 	switch (message) {
+	case WM_ACTIVATE:
+		if (LOWORD(wParam) != WA_INACTIVE) {
+			// activated
+
+			// see if the configuration changed
+			if (isConfigNewer(s_configTime, s_userConfig)) {
+				CString message = getString(IDS_CONFIG_CHANGED);
+				if (askVerify(hwnd, message)) {
+					time_t configTime;
+					bool userConfig;
+					CConfig newConfig;
+					if (loadConfig(newConfig, configTime, userConfig) &&
+						userConfig == s_userConfig) {
+						ARG->m_config = newConfig;
+						s_lastConfig  = ARG->m_config;
+					}
+					else {
+						message = getString(IDS_LOAD_FAILED);
+						showError(hwnd, message);
+						s_lastConfig = CConfig();
+					}
+				}
+			}
+		}
+		else {
+			// deactivated;  write configuration
+			if (!isShowingDialog()) {
+				saveMainWindow(hwnd, SAVE_QUIET);
+			}
+		}
+		break;
+
 	case WM_COMMAND:
 		switch (LOWORD(wParam)) {
 		case IDCANCEL:
 			// save data
-			if (saveMainWindow(hwnd, true)) {
+			if (saveMainWindow(hwnd, SAVE_QUITING)) {
 				// quit
 				PostQuitMessage(0);
 			}
@@ -522,7 +580,7 @@ mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			const bool testing = (LOWORD(wParam) == IDC_MAIN_TEST);
 
 			// save data
-			if (saveMainWindow(hwnd, false)) {
+			if (saveMainWindow(hwnd, SAVE_NORMAL)) {
 				// launch child app
 				DWORD threadID;
 				HANDLE thread = launchApp(hwnd, testing, &threadID);
@@ -555,7 +613,7 @@ mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case IDC_MAIN_AUTOSTART: {
 			CString cmdLine;
-			if (saveMainWindow(hwnd, false, &cmdLine)) {
+			if (saveMainWindow(hwnd, SAVE_NORMAL, &cmdLine)) {
 				// run dialog
 				CAutoStart autoStart(hwnd, !isClientChecked(hwnd), cmdLine);
 				autoStart.doModal();
@@ -578,6 +636,10 @@ mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case IDC_MAIN_ADVANCED:
 			s_advancedOptions->doModal(isClientChecked(hwnd));
+			break;
+
+		case IDC_MAIN_INFO:
+			s_info->doModal();
 			break;
 		}
 
@@ -636,6 +698,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 	s_globalOptions   = new CGlobalOptions(mainWindow, &ARG->m_config);
 	s_advancedOptions = new CAdvancedOptions(mainWindow, &ARG->m_config);
 	s_screensLinks    = new CScreensLinks(mainWindow, &ARG->m_config);
+	s_info            = new CInfo(mainWindow);
 
 	// show window
 	ShowWindow(mainWindow, nCmdShow);

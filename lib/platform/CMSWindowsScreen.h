@@ -78,7 +78,7 @@ public:
 	virtual void		fakeMouseButton(ButtonID id, bool press) const;
 	virtual void		fakeMouseMove(SInt32 x, SInt32 y) const;
 	virtual void		fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const;
-	virtual void		fakeMouseWheel(SInt32 delta) const;
+	virtual void		fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
 	// IKeyState overrides
 	virtual void		updateKeys();
@@ -144,7 +144,7 @@ private:
 	bool				onHotKey(WPARAM, LPARAM);
 	bool				onMouseButton(WPARAM, LPARAM);
 	bool				onMouseMove(SInt32 x, SInt32 y);
-	bool				onMouseWheel(SInt32 delta);
+	bool				onMouseWheel(SInt32 xDelta, SInt32 yDelta);
 	bool				onScreensaver(bool activated);
 	bool				onDisplayChange();
 	bool				onClipboardChange();

@@ -66,6 +66,7 @@ static const CKeyEntry	s_controlKeys[] = {
 	{ kKeyF13,			105 },
 	{ kKeyF14,			107 },
 	{ kKeyF15,			113 },
+	{ kKeyF16,			106 },
 
 	// virtual key 110 is fn+enter and i have no idea what that's supposed
 	// to map to.  also the enter key with numlock on is a modifier but i
@@ -680,8 +681,7 @@ COSXKeyState::CKeyResource::getKeyID(UInt8 c)
 			return kKeyKP_Enter;
 
 		case 0x03:
-			// this is really the enter key;  could remap to something else
-			return kKeyNone;
+			return kKeyKP_Enter;
 
 		case 0x04:
 			return kKeyEnd;
@@ -794,7 +794,7 @@ COSXKeyState::CKeyResource::unicharToKeyID(UniChar c)
 {
 	switch (c) {
 	case 3:
-		return kKeyNone;	// enter key
+		return kKeyKP_Enter;
 
 	case 8:
 		return kKeyBackSpace;

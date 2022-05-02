@@ -235,6 +235,8 @@
 		6828A1C2081DF9EB003D9989 /* OSXScreenSaverControl.h in Headers */ = {isa = PBXBuildFile; fileRef = 6828A1C1081DF9EB003D9989 /* OSXScreenSaverControl.h */; };
 		6828A238081DFAF9003D9989 /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6828A237081DFAF9003D9989 /* ScreenSaver.framework */; };
 		6828A239081DFAF9003D9989 /* ScreenSaver.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 6828A237081DFAF9003D9989 /* ScreenSaver.framework */; };
+		684B63620996FB2800FE7CC7 /* CClientProxy1_3.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 684B63600996FB2800FE7CC7 /* CClientProxy1_3.cpp */; };
+		684B63630996FB2800FE7CC7 /* CClientProxy1_3.h in Headers */ = {isa = PBXBuildFile; fileRef = 684B63610996FB2800FE7CC7 /* CClientProxy1_3.h */; };
 		68871685073EBF7000C5ABE7 /* CArchSystemUnix.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68871676073EBF6F00C5ABE7 /* CArchSystemUnix.cpp */; };
 		68871686073EBF7000C5ABE7 /* CArchSystemUnix.h in Headers */ = {isa = PBXBuildFile; fileRef = 68871677073EBF6F00C5ABE7 /* CArchSystemUnix.h */; };
 		68871687073EBF7000C5ABE7 /* IArchConsole.h in Headers */ = {isa = PBXBuildFile; fileRef = 68871678073EBF6F00C5ABE7 /* IArchConsole.h */; };
@@ -254,11 +256,11 @@
 		68968F5D073EC484004B2F9B /* CArchDaemonNone.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68968F5A073EC484004B2F9B /* CArchDaemonNone.cpp */; };
 		68968F5E073EC484004B2F9B /* CArchTaskBarXWindows.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68968F5B073EC484004B2F9B /* CArchTaskBarXWindows.cpp */; };
 		68968F5F073EC484004B2F9B /* CArchTaskBarXWindows.h in Headers */ = {isa = PBXBuildFile; fileRef = 68968F5C073EC484004B2F9B /* CArchTaskBarXWindows.h */; };
-		689D7331095648DA00FFAB1D /* SpecialKeyNameMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 689D7330095648DA00FFAB1D /* SpecialKeyNameMap.h */; };
 		689D73340956490500FFAB1D /* CInputFilter.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 689D73320956490500FFAB1D /* CInputFilter.cpp */; };
 		689D73350956490500FFAB1D /* CInputFilter.h in Headers */ = {isa = PBXBuildFile; fileRef = 689D73330956490500FFAB1D /* CInputFilter.h */; };
 		689D7339095649AF00FFAB1D /* CKeyMap.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 689D7337095649AF00FFAB1D /* CKeyMap.cpp */; };
 		689D733A095649AF00FFAB1D /* CKeyMap.h in Headers */ = {isa = PBXBuildFile; fileRef = 689D7338095649AF00FFAB1D /* CKeyMap.h */; };
+		68D87A6509A00D8800856835 /* KeyTypes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 68D87A6409A00D8800856835 /* KeyTypes.cpp */; };
 		68FBBB21089F06DC0016DF44 /* COSXScreenSaverUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 68FBBB20089F06DC0016DF44 /* COSXScreenSaverUtil.m */; };
 		68FBBB22089F06DC0016DF44 /* COSXScreenSaverUtil.m in Sources */ = {isa = PBXBuildFile; fileRef = 68FBBB20089F06DC0016DF44 /* COSXScreenSaverUtil.m */; };
 		68FBBB24089F06F20016DF44 /* COSXScreenSaverUtil.h in Headers */ = {isa = PBXBuildFile; fileRef = 68FBBB23089F06F20016DF44 /* COSXScreenSaverUtil.h */; };
@@ -758,6 +760,8 @@
 		6828A1A9081DF7AB003D9989 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = /System/Library/Frameworks/IOKit.framework; sourceTree = "<absolute>"; };
 		6828A1C1081DF9EB003D9989 /* OSXScreenSaverControl.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = OSXScreenSaverControl.h; path = lib/platform/OSXScreenSaverControl.h; sourceTree = "<group>"; };
 		6828A237081DFAF9003D9989 /* ScreenSaver.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ScreenSaver.framework; path = /System/Library/Frameworks/ScreenSaver.framework; sourceTree = "<absolute>"; };
+		684B63600996FB2800FE7CC7 /* CClientProxy1_3.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CClientProxy1_3.cpp; path = lib/server/CClientProxy1_3.cpp; sourceTree = "<group>"; };
+		684B63610996FB2800FE7CC7 /* CClientProxy1_3.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CClientProxy1_3.h; path = lib/server/CClientProxy1_3.h; sourceTree = "<group>"; };
 		68871676073EBF6F00C5ABE7 /* CArchSystemUnix.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CArchSystemUnix.cpp; path = lib/arch/CArchSystemUnix.cpp; sourceTree = "<group>"; };
 		68871677073EBF6F00C5ABE7 /* CArchSystemUnix.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CArchSystemUnix.h; path = lib/arch/CArchSystemUnix.h; sourceTree = "<group>"; };
 		68871678073EBF6F00C5ABE7 /* IArchConsole.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = IArchConsole.h; path = lib/arch/IArchConsole.h; sourceTree = "<group>"; };
@@ -777,11 +781,11 @@
 		68968F5A073EC484004B2F9B /* CArchDaemonNone.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CArchDaemonNone.cpp; path = lib/arch/CArchDaemonNone.cpp; sourceTree = "<group>"; };
 		68968F5B073EC484004B2F9B /* CArchTaskBarXWindows.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CArchTaskBarXWindows.cpp; path = lib/arch/CArchTaskBarXWindows.cpp; sourceTree = "<group>"; };
 		68968F5C073EC484004B2F9B /* CArchTaskBarXWindows.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CArchTaskBarXWindows.h; path = lib/arch/CArchTaskBarXWindows.h; sourceTree = "<group>"; };
-		689D7330095648DA00FFAB1D /* SpecialKeyNameMap.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = SpecialKeyNameMap.h; path = lib/synergy/SpecialKeyNameMap.h; sourceTree = "<group>"; };
 		689D73320956490500FFAB1D /* CInputFilter.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CInputFilter.cpp; path = lib/server/CInputFilter.cpp; sourceTree = "<group>"; };
 		689D73330956490500FFAB1D /* CInputFilter.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CInputFilter.h; path = lib/server/CInputFilter.h; sourceTree = "<group>"; };
 		689D7337095649AF00FFAB1D /* CKeyMap.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = CKeyMap.cpp; path = lib/synergy/CKeyMap.cpp; sourceTree = "<group>"; };
 		689D7338095649AF00FFAB1D /* CKeyMap.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = CKeyMap.h; path = lib/synergy/CKeyMap.h; sourceTree = "<group>"; };
+		68D87A6409A00D8800856835 /* KeyTypes.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = KeyTypes.cpp; path = lib/synergy/KeyTypes.cpp; sourceTree = "<group>"; };
 		68FBBB20089F06DC0016DF44 /* COSXScreenSaverUtil.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; name = COSXScreenSaverUtil.m; path = lib/platform/COSXScreenSaverUtil.m; sourceTree = "<group>"; };
 		68FBBB23089F06F20016DF44 /* COSXScreenSaverUtil.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; name = COSXScreenSaverUtil.h; path = lib/platform/COSXScreenSaverUtil.h; sourceTree = "<group>"; };
 		68FBBB26089F072D0016DF44 /* COSXScreenSaver.cpp */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.cpp; name = COSXScreenSaver.cpp; path = lib/platform/COSXScreenSaver.cpp; sourceTree = "<group>"; };
@@ -921,6 +925,8 @@
 				4C537F39064E2A0F00D3815C /* CClientProxy1_1.h */,
 				4C537F3A064E2A0F00D3815C /* CClientProxy1_2.cpp */,
 				4C537F3B064E2A0F00D3815C /* CClientProxy1_2.h */,
+				684B63600996FB2800FE7CC7 /* CClientProxy1_3.cpp */,
+				684B63610996FB2800FE7CC7 /* CClientProxy1_3.h */,
 				4C537F3C064E2A0F00D3815C /* CClientProxyUnknown.cpp */,
 				4C537F3D064E2A0F00D3815C /* CClientProxyUnknown.h */,
 				4C537F3E064E2A0F00D3815C /* CConfig.cpp */,
@@ -1136,12 +1142,12 @@
 				4C5E87750648C8BD003C637B /* IScreen.h */,
 				4C5E87760648C8BD003C637B /* IScreenSaver.h */,
 				4C5E87770648C8BD003C637B /* ISecondaryScreen.h */,
+				68D87A6409A00D8800856835 /* KeyTypes.cpp */,
 				4C5E87780648C8BD003C637B /* KeyTypes.h */,
 				4C5E87790648C8BD003C637B /* MouseTypes.h */,
 				4C5E877A0648C8BD003C637B /* OptionTypes.h */,
 				68FBBB5A089F1BA00016DF44 /* ProtocolTypes.cpp */,
 				4C5E877B0648C8BD003C637B /* ProtocolTypes.h */,
-				689D7330095648DA00FFAB1D /* SpecialKeyNameMap.h */,
 				4C5E877C0648C8BD003C637B /* XScreen.cpp */,
 				4C5E877D0648C8BD003C637B /* XScreen.h */,
 				4C5E877E0648C8BD003C637B /* XSynergy.cpp */,
@@ -1212,6 +1218,7 @@
 				4C537F49064E2A0F00D3815C /* CClientProxy1_0.h in Headers */,
 				4C537F4B064E2A0F00D3815C /* CClientProxy1_1.h in Headers */,
 				4C537F4D064E2A0F00D3815C /* CClientProxy1_2.h in Headers */,
+				684B63630996FB2800FE7CC7 /* CClientProxy1_3.h in Headers */,
 				4C537F4F064E2A0F00D3815C /* CClientProxyUnknown.h in Headers */,
 				4C537F51064E2A0F00D3815C /* CConfig.h in Headers */,
 				689D73350956490500FFAB1D /* CInputFilter.h in Headers */,
@@ -1374,7 +1381,6 @@
 				4C5E879A0648C8BD003C637B /* MouseTypes.h in Headers */,
 				4C5E879B0648C8BD003C637B /* OptionTypes.h in Headers */,
 				4C5E879C0648C8BD003C637B /* ProtocolTypes.h in Headers */,
-				689D7331095648DA00FFAB1D /* SpecialKeyNameMap.h in Headers */,
 				4C5E879E0648C8BD003C637B /* XScreen.h in Headers */,
 				4C5E87A00648C8BD003C637B /* XSynergy.h in Headers */,
 				4C7D7CE2066319560097CA11 /* common.h in Headers */,
@@ -1823,6 +1829,7 @@
 				4C537F48064E2A0F00D3815C /* CClientProxy1_0.cpp in Sources */,
 				4C537F4A064E2A0F00D3815C /* CClientProxy1_1.cpp in Sources */,
 				4C537F4C064E2A0F00D3815C /* CClientProxy1_2.cpp in Sources */,
+				684B63620996FB2800FE7CC7 /* CClientProxy1_3.cpp in Sources */,
 				4C537F4E064E2A0F00D3815C /* CClientProxyUnknown.cpp in Sources */,
 				4C537F50064E2A0F00D3815C /* CConfig.cpp in Sources */,
 				689D73340956490500FFAB1D /* CInputFilter.cpp in Sources */,
@@ -1943,6 +1950,7 @@
 				4C5E87900648C8BD003C637B /* IKeyState.cpp in Sources */,
 				4C5E87930648C8BD003C637B /* IPrimaryScreen.cpp in Sources */,
 				4C5E87950648C8BD003C637B /* IScreen.cpp in Sources */,
+				68D87A6509A00D8800856835 /* KeyTypes.cpp in Sources */,
 				68FBBB5D089F1BCE0016DF44 /* ProtocolTypes.cpp in Sources */,
 				4C5E879D0648C8BD003C637B /* XScreen.cpp in Sources */,
 				4C5E879F0648C8BD003C637B /* XSynergy.cpp in Sources */,

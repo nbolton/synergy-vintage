@@ -478,6 +478,13 @@ CXWindowsScreen::warpCursor(SInt32 x, SInt32 y)
 UInt32
 CXWindowsScreen::registerHotKey(KeyID key, KeyModifierMask mask)
 {
+	// only allow certain modifiers
+	if ((mask & ~(KeyModifierShift | KeyModifierControl |
+				  KeyModifierAlt   | KeyModifierSuper)) != 0) {
+		LOG((CLOG_WARN "could not map hotkey id=%04x mask=%04x", key, mask));
+		return 0;
+	}
+
 	// fail if no keys
 	if (key == kKeyNone && mask == 0) {
 		return 0;
@@ -598,15 +605,47 @@ CXWindowsScreen::registerHotKey(KeyID key, KeyModifierMask mask)
 		XFreeModifiermap(modKeymap);
 	}
 
-	// a non-modifier key is simple
+	// a non-modifier key must be insensitive to CapsLock, NumLock and
+	// ScrollLock, so we have to grab the key with every combination of
+	// those.
 	else {
+		// collect available toggle modifiers
+		unsigned int modifier;
+		unsigned int toggleModifiers[3];
+		size_t numToggleModifiers = 0;
+		if (m_keyState->mapModifiersToX(KeyModifierCapsLock, modifier)) {
+			toggleModifiers[numToggleModifiers++] = modifier;
+		}
+		if (m_keyState->mapModifiersToX(KeyModifierNumLock, modifier)) {
+			toggleModifiers[numToggleModifiers++] = modifier;
+		}
+		if (m_keyState->mapModifiersToX(KeyModifierScrollLock, modifier)) {
+			toggleModifiers[numToggleModifiers++] = modifier;
+		}
+
+
 		for (CXWindowsKeyState::CKeycodeList::iterator j = keycodes.begin();
 								j != keycodes.end() && !err; ++j) {
-			XGrabKey(m_display, *j, modifiers, m_root,
-								False, GrabModeAsync, GrabModeAsync);
-			if (!err) {
-				hotKeys.push_back(std::make_pair(*j, modifiers));
-				m_hotKeyToIDMap[CHotKeyItem(*j, modifiers)] = id;
+			for (size_t i = 0; i < (1u << numToggleModifiers); ++i) {
+				// add toggle modifiers for index i
+				unsigned int tmpModifiers = modifiers;
+				if ((i & 1) != 0) {
+					tmpModifiers |= toggleModifiers[0];
+				}
+				if ((i & 2) != 0) {
+					tmpModifiers |= toggleModifiers[1];
+				}
+				if ((i & 4) != 0) {
+					tmpModifiers |= toggleModifiers[2];
+				}
+
+				// add grab
+				XGrabKey(m_display, *j, tmpModifiers, m_root,
+									False, GrabModeAsync, GrabModeAsync);
+				if (!err) {
+					hotKeys.push_back(std::make_pair(*j, tmpModifiers));
+					m_hotKeyToIDMap[CHotKeyItem(*j, tmpModifiers)] = id;
+				}
 			}
 		}
 	}
@@ -725,17 +764,22 @@ CXWindowsScreen::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 }
 
 void
-CXWindowsScreen::fakeMouseWheel(SInt32 delta) const
+CXWindowsScreen::fakeMouseWheel(SInt32, SInt32 yDelta) const
 {
+	// XXX -- support x-axis scrolling
+	if (yDelta == 0) {
+		return;
+	}
+
 	// choose button depending on rotation direction
 	const unsigned int xButton = mapButtonToX(static_cast<ButtonID>(
-												(delta >= 0) ? -1 : -2));
+												(yDelta >= 0) ? -1 : -2));
 	if (xButton == 0) {
 		// If we get here, then the XServer does not support the scroll
 		// wheel buttons, so send PageUp/PageDown keystrokes instead.
 		// Patch by Tom Chadwick.
 		KeyCode keycode = 0;
-		if (delta >= 0) {
+		if (yDelta >= 0) {
 			keycode = XKeysymToKeycode(m_display, XK_Page_Up);
 		}
 		else {
@@ -749,12 +793,12 @@ CXWindowsScreen::fakeMouseWheel(SInt32 delta) const
 	}
 
 	// now use absolute value of delta
-	if (delta < 0) {
-		delta = -delta;
+	if (yDelta < 0) {
+		yDelta = -yDelta;
 	}
 
 	// send as many clicks as necessary
-	for (; delta >= 120; delta -= 120) {
+	for (; yDelta >= 120; yDelta -= 120) {
 		XTestFakeButtonEvent(m_display, xButton, True, CurrentTime);
 		XTestFakeButtonEvent(m_display, xButton, False, CurrentTime);
 	}
@@ -1349,12 +1393,13 @@ CXWindowsScreen::onMouseRelease(const XButtonEvent& xbutton)
 	}
 	else if (xbutton.button == 4) {
 		// wheel forward (away from user)
-		sendEvent(getWheelEvent(), CWheelInfo::alloc(120));
+		sendEvent(getWheelEvent(), CWheelInfo::alloc(0, 120));
 	}
 	else if (xbutton.button == 5) {
 		// wheel backward (toward user)
-		sendEvent(getWheelEvent(), CWheelInfo::alloc(-120));
+		sendEvent(getWheelEvent(), CWheelInfo::alloc(0, -120));
 	}
+	// XXX -- support x-axis scrolling
 }
 
 void

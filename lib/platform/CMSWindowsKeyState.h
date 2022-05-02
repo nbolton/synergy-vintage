@@ -153,6 +153,20 @@ private:
 	GroupList			m_groups;
 	GroupMap			m_groupMap;
 
+	// whether any key require AltGr.  if so we reserve the right alt
+	// key to be AltGr.
+	bool				m_anyAltGr;
+
+	// pointer to ToUnicodeEx.  on win95 family this will be NULL.
+	typedef int (WINAPI *ToUnicodeEx_t)(UINT wVirtKey,
+										UINT wScanCode,
+										PBYTE lpKeyState,
+										LPWSTR pwszBuff,
+										int cchBuff,
+										UINT wFlags,
+										HKL dwhkl);
+	ToUnicodeEx_t		m_ToUnicodeEx;
+
 	static const KeyID	s_virtualKey[];
 };
 

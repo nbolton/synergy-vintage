@@ -17,16 +17,15 @@
 #include "CPrimaryClient.h"
 #include "CKeyMap.h"
 #include "CEventQueue.h"
+#include "CLog.h"
 #include "TMethodEventJob.h"
 #include <stdlib.h>
+#include <string.h>
 
 // -----------------------------------------------------------------------------
 // Input Filter Condition Classes
 // -----------------------------------------------------------------------------
-CInputFilter::CCondition::CCondition(EActionMode actionMode) :
-	m_actionMode(actionMode),
-	m_clearMask(0),
-	m_inputFilter(NULL)
+CInputFilter::CCondition::CCondition()
 {
 	// do nothing
 }
@@ -48,40 +47,8 @@ CInputFilter::CCondition::disablePrimary(CPrimaryClient*)
 	// do nothing
 }
 
-void
-CInputFilter::CCondition::setInputFilter(CInputFilter* inputFilter)
-{
-	m_inputFilter = inputFilter;
-}
-
-KeyModifierMask
-CInputFilter::CCondition::getClearMask() const
-{
-	return m_clearMask;
-}
-
-void
-CInputFilter::CCondition::setClearMask(KeyModifierMask mask)
-{
-	m_clearMask = mask;
-	m_inputFilter->setClearMaskDirty();
-}
-
-KeyModifierMask
-CInputFilter::CCondition::getLastMask() const
-{
-	return m_inputFilter->getLastMask();
-}
-
-CInputFilter::EActionMode
-CInputFilter::CCondition::getActionMode() const
-{
-	return m_actionMode;
-}
-
 CInputFilter::CKeystrokeCondition::CKeystrokeCondition(
-		IPlatformScreen::CKeyInfo* info, EActionMode actionMode) :
-	CCondition(actionMode),
+		IPlatformScreen::CKeyInfo* info) :
 	m_id(0),
 	m_key(info->m_key),
 	m_mask(info->m_mask)
@@ -90,8 +57,7 @@ CInputFilter::CKeystrokeCondition::CKeystrokeCondition(
 }
 
 CInputFilter::CKeystrokeCondition::CKeystrokeCondition(
-		KeyID key, KeyModifierMask mask, EActionMode actionMode) :
-	CCondition(actionMode),
+		KeyID key, KeyModifierMask mask) :
 	m_id(0),
 	m_key(key),
 	m_mask(mask)
@@ -107,28 +73,28 @@ CInputFilter::CKeystrokeCondition::~CKeystrokeCondition()
 CInputFilter::CCondition*
 CInputFilter::CKeystrokeCondition::clone() const
 {
-	return new CKeystrokeCondition(*this);
+	return new CKeystrokeCondition(m_key, m_mask);
 }
 
 CString
 CInputFilter::CKeystrokeCondition::format() const
 {
-	return CStringUtil::print("keystroke(%s%s)",
-							CKeyMap::formatKey(m_key, m_mask).c_str(),
-							getActionMode() == kModeToggle ? ",toggle" : "");
+	return CStringUtil::print("keystroke(%s)",
+							CKeyMap::formatKey(m_key, m_mask).c_str());
 }
 
 CInputFilter::EFilterStatus
-CInputFilter::CKeystrokeCondition::match(CEvent& event, void*,
-				EActionMode& outMode)
+CInputFilter::CKeystrokeCondition::match(const CEvent& event)
 {
+	EFilterStatus status;
+
 	// check for hotkey events
 	CEvent::Type type = event.getType();
 	if (type == IPrimaryScreen::getHotKeyDownEvent()) {
-		outMode = kModeTurnOn;
+		status = kActivate;
 	}
 	else if (type == IPrimaryScreen::getHotKeyUpEvent()) {
-		outMode = kModeTurnOff;
+		status = kDeactivate;
 	}
 	else {
 		return kNoMatch;
@@ -141,14 +107,7 @@ CInputFilter::CKeystrokeCondition::match(CEvent& event, void*,
 		return kNoMatch;
 	}
 
-	// convert event type for toggled conditions
-	if (getActionMode() != kModePass) {
-		if (type != IPlatformScreen::getHotKeyDownEvent()) {
-			return kDiscard;
-		}
-		outMode = getActionMode();
-	}
-	return kMatch;
+	return status;
 }
 
 void
@@ -165,8 +124,7 @@ CInputFilter::CKeystrokeCondition::disablePrimary(CPrimaryClient* primary)
 }
 
 CInputFilter::CMouseButtonCondition::CMouseButtonCondition(
-		IPlatformScreen::CButtonInfo* info, EActionMode actionMode) :
-	CCondition(actionMode),
+		IPlatformScreen::CButtonInfo* info) :
 	m_button(info->m_button),
 	m_mask(info->m_mask)
 {
@@ -174,8 +132,7 @@ CInputFilter::CMouseButtonCondition::CMouseButtonCondition(
 }
 
 CInputFilter::CMouseButtonCondition::CMouseButtonCondition(
-		ButtonID button, KeyModifierMask mask, EActionMode actionMode) :
-	CCondition(actionMode),
+		ButtonID button, KeyModifierMask mask) :
 	m_button(button),
 	m_mask(mask)
 {
@@ -190,32 +147,31 @@ CInputFilter::CMouseButtonCondition::~CMouseButtonCondition()
 CInputFilter::CCondition*
 CInputFilter::CMouseButtonCondition::clone() const
 {
-	return new CMouseButtonCondition(*this);
+	return new CMouseButtonCondition(m_button, m_mask);
 }
 
 CString
 CInputFilter::CMouseButtonCondition::format() const
 {
-	return CStringUtil::print("mousebutton(%s+%d%s)",
-							CKeyMap::formatKey(kKeyNone, m_mask).c_str(),
-							m_button,
-							getActionMode() == kModeToggle ? ",toggle" : "");
+	CString key = CKeyMap::formatKey(kKeyNone, m_mask);
+	if (!key.empty()) {
+		key += "+";
+	}
+	return CStringUtil::print("mousebutton(%s%d)", key.c_str(), m_button);
 }
 
 CInputFilter::EFilterStatus		
-CInputFilter::CMouseButtonCondition::match(CEvent& event, void*,
-				EActionMode& outMode)
+CInputFilter::CMouseButtonCondition::match(const CEvent& event)
 {
+	EFilterStatus status;
+
 	// check for hotkey events
-	bool down;
 	CEvent::Type type = event.getType();
 	if (type == IPrimaryScreen::getButtonDownEvent()) {
-		outMode = kModeTurnOn;
-		down    = true;
+		status = kActivate;
 	}
 	else if (type == IPrimaryScreen::getButtonUpEvent()) {
-		outMode = kModeTurnOff;
-		down    = false;
+		status = kDeactivate;
 	}
 	else {
 		return kNoMatch;
@@ -224,29 +180,55 @@ CInputFilter::CMouseButtonCondition::match(CEvent& event, void*,
 	// check if it's the right button and modifiers
 	IPlatformScreen::CButtonInfo* minfo =
 		reinterpret_cast<IPlatformScreen::CButtonInfo*>(event.getData());
-	if (minfo->m_button != m_button || getLastMask() != m_mask) {
+	if (minfo->m_button != m_button || minfo->m_mask != m_mask) {
 		return kNoMatch;
 	}
 
-	// convert event type for toggled conditions
-	if (getActionMode() != kModePass) {
-		if (type != IPlatformScreen::getButtonDownEvent()) {
-			return kDiscard;
+	return status;
+}
+
+CInputFilter::CScreenConnectedCondition::CScreenConnectedCondition(
+				const CString& screen) :
+	m_screen(screen)
+{
+	// do nothing
+}
+
+CInputFilter::CScreenConnectedCondition::~CScreenConnectedCondition()
+{
+	// do nothing
+}
+
+CInputFilter::CCondition*
+CInputFilter::CScreenConnectedCondition::clone() const
+{
+	return new CScreenConnectedCondition(m_screen);
+}
+
+CString
+CInputFilter::CScreenConnectedCondition::format() const
+{
+	return CStringUtil::print("connect(%s)", m_screen.c_str());
+}
+
+CInputFilter::EFilterStatus
+CInputFilter::CScreenConnectedCondition::match(const CEvent& event)
+{
+	if (event.getType() == CServer::getConnectedEvent()) {
+		CServer::CScreenConnectedInfo* info = 
+			reinterpret_cast<CServer::CScreenConnectedInfo*>(event.getData());
+		if (m_screen == info->m_screen || m_screen.empty()) {
+			return kActivate;
 		}
-		outMode = getActionMode();
 	}
 
-	setClearMask(down ? m_mask : 0);
-	return kMatch;
+	return kNoMatch;
 }
 
 // -----------------------------------------------------------------------------
 // Input Filter Action Classes
 // -----------------------------------------------------------------------------
-CInputFilter::CAction::CAction(EActionState actionState) :
-	m_state(actionState),
-	m_modifierMask(0),
-	m_inputFilter(NULL)
+CInputFilter::CAction::CAction()
 {
 	// do nothing
 }
@@ -256,75 +238,10 @@ CInputFilter::CAction::~CAction()
 	// do nothing
 }
 
-void
-CInputFilter::CAction::enablePrimary(CPrimaryClient*)
+CInputFilter::CLockCursorToScreenAction::CLockCursorToScreenAction(Mode mode):
+	m_mode(mode)
 {
 	// do nothing
-}
-
-void
-CInputFilter::CAction::disablePrimary(CPrimaryClient*)
-{
-	// do nothing
-}
-
-void
-CInputFilter::CAction::setInputFilter(CInputFilter* inputFilter)
-{
-	m_inputFilter = inputFilter;
-}
-
-KeyModifierMask
-CInputFilter::CAction::getModifierMask() const
-{
-	return m_modifierMask;
-}
-
-void
-CInputFilter::CAction::setModifierMask(KeyModifierMask mask)
-{
-	m_modifierMask = mask;
-	m_inputFilter->setModifierMaskDirty();
-}
-
-CInputFilter::EActionState
-CInputFilter::CAction::switchMode(EActionMode actionMode)
-{
-	EActionState newState;
-	switch (actionMode) {
-	case kModeTrigger:
-		newState = m_state;
-		break;
-
-	case kModeToggle:
-		if (m_state == kStateOff) {
-			newState = kStateOn;
-		}
-		else {
-			newState = kStateOff;
-		}
-		break;
-
-	case kModeTurnOn:
-		newState = kStateOn;
-		break;
-
-	case kModeTurnOff:
-		newState = kStateOff;
-		break;
-
-	default:
-		newState = kStateInvalid;
-		break;
-	}
-
-	return newState;
-}
-
-void
-CInputFilter::CAction::setState(EActionState state)
-{
-	m_state = state;
 }
 
 CInputFilter::CAction*
@@ -336,29 +253,26 @@ CInputFilter::CLockCursorToScreenAction::clone() const
 CString
 CInputFilter::CLockCursorToScreenAction::format() const
 {
-	return "lockCursorToScreen";
+	static const char* s_mode[] = { "off", "on", "toggle" };
+
+	return CStringUtil::print("lockCursorToScreen(%s)", s_mode[m_mode]);
 }
 
-CInputFilter::EFilterStatus
-CInputFilter::CLockCursorToScreenAction::perform(
-				CEvent& event, void*, EActionMode actionMode)
+void
+CInputFilter::CLockCursorToScreenAction::perform(const CEvent& event)
 {
-	EActionState newState = switchMode(actionMode);
+	static const CServer::CLockCursorToScreenInfo::State s_state[] = {
+		CServer::CLockCursorToScreenInfo::kOff,
+		CServer::CLockCursorToScreenInfo::kOn,
+		CServer::CLockCursorToScreenInfo::kToggle
+	};
 
-	if (newState != kStateOn && newState != kStateOff) {
-		return kNotHandled;
-	}
-
-	setState(newState);
-
-	// prepare event
+	// send event
 	CServer::CLockCursorToScreenInfo* info = 
-		CServer::CLockCursorToScreenInfo::alloc(newState != kStateOff);
-	event = CEvent(CServer::getLockCursorToScreenEvent(),
+		CServer::CLockCursorToScreenInfo::alloc(s_state[m_mode]);
+	EVENTQUEUE->addEvent(CEvent(CServer::getLockCursorToScreenEvent(),
 								event.getTarget(), info,
-								CEvent::kDeliverImmediately);
-
-	return kHandled;
+								CEvent::kDeliverImmediately));
 }
 
 CInputFilter::CSwitchToScreenAction::CSwitchToScreenAction(
@@ -380,26 +294,28 @@ CInputFilter::CSwitchToScreenAction::format() const
 	return CStringUtil::print("switchToScreen(%s)", m_screen.c_str());
 }
 
-CInputFilter::EFilterStatus
-CInputFilter::CSwitchToScreenAction::perform(
-				CEvent& event, void*, EActionMode actionMode)
+void
+CInputFilter::CSwitchToScreenAction::perform(const CEvent& event)
 {
-	// only process "on" or "trigger" action modes
-	if (actionMode != kModeTrigger && actionMode != kModeTurnOn) {
-		return kNotHandled;
+	// pick screen name.  if m_screen is empty then use the screen from
+	// event if it has one.
+	CString screen = m_screen;
+	if (screen.empty() && event.getType() == CServer::getConnectedEvent()) {
+		CServer::CScreenConnectedInfo* info = 
+			reinterpret_cast<CServer::CScreenConnectedInfo*>(event.getData());
+		screen = info->m_screen;
 	}
 
+	// send event
 	CServer::CSwitchToScreenInfo* info =
-		CServer::CSwitchToScreenInfo::alloc(m_screen);
-	event = CEvent(CServer::getSwitchToScreenEvent(),
+		CServer::CSwitchToScreenInfo::alloc(screen);
+	EVENTQUEUE->addEvent(CEvent(CServer::getSwitchToScreenEvent(),
 								event.getTarget(), info,
-								CEvent::kDeliverImmediately);
-
-	return kHandled;
+								CEvent::kDeliverImmediately));
 }
 
 CInputFilter::CSwitchInDirectionAction::CSwitchInDirectionAction(
-		EDirection direction) :
+				EDirection direction) :
 	m_direction(direction)
 {
 	// do nothing
@@ -425,27 +341,20 @@ CInputFilter::CSwitchInDirectionAction::format() const
 	return CStringUtil::print("switchInDirection(%s)", s_names[m_direction]);
 }
 
-CInputFilter::EFilterStatus
-CInputFilter::CSwitchInDirectionAction::perform(
-				CEvent& event, void*, EActionMode actionMode)
+void
+CInputFilter::CSwitchInDirectionAction::perform(const CEvent& event)
 {
-	// only process "on" or "trigger" action modes
-	if (actionMode != kModeTrigger && actionMode != kModeTurnOn) {
-		return kNotHandled;
-	}
-
 	CServer::CSwitchInDirectionInfo* info =
 		CServer::CSwitchInDirectionInfo::alloc(m_direction);
-	event = CEvent(CServer::getSwitchInDirectionEvent(),
+	EVENTQUEUE->addEvent(CEvent(CServer::getSwitchInDirectionEvent(),
 								event.getTarget(), info,
-								CEvent::kDeliverImmediately);
-
-	return kHandled;
+								CEvent::kDeliverImmediately));
 }
 
 CInputFilter::CKeystrokeAction::CKeystrokeAction(
-		IPlatformScreen::CKeyInfo* info) :
-	m_keyInfo(info)
+		IPlatformScreen::CKeyInfo* info, bool press) :
+	m_keyInfo(info),
+	m_press(press)
 {
 	// do nothing
 }
@@ -459,91 +368,47 @@ CInputFilter::CAction*
 CInputFilter::CKeystrokeAction::clone() const
 {
 	IKeyState::CKeyInfo* info = IKeyState::CKeyInfo::alloc(*m_keyInfo);
-	return new CKeystrokeAction(info);
+	return new CKeystrokeAction(info, m_press);
 }
 
 CString
 CInputFilter::CKeystrokeAction::format() const
 {
-	return CStringUtil::print("keystroke(%s)",
+	const char* type = m_press ? "Down" : "Up";
+
+	if (m_keyInfo->m_screens[0] == '\0') {
+		return CStringUtil::print("key%s(%s)", type,
 							CKeyMap::formatKey(m_keyInfo->m_key,
 								m_keyInfo->m_mask).c_str());
-}
-
-CInputFilter::EFilterStatus
-CInputFilter::CKeystrokeAction::perform(
-				CEvent& event, void*, EActionMode actionMode)
-{
-	EActionState newState = switchMode(actionMode);
-	CEvent::Type type;
-
-	if (newState == kStateOn) {
-		type = IPlatformScreen::getKeyDownEvent();
 	}
-	else if (newState == kStateOff) {
-		type = IPlatformScreen::getKeyUpEvent();
+	else if (m_keyInfo->m_screens[0] == '*') {
+		return CStringUtil::print("key%s(%s,*)", type,
+							CKeyMap::formatKey(m_keyInfo->m_key,
+								m_keyInfo->m_mask).c_str());
 	}
 	else {
-		return kNotHandled;
+		return CStringUtil::print("key%s(%s,%.*s)", type,
+							CKeyMap::formatKey(m_keyInfo->m_key,
+								m_keyInfo->m_mask).c_str(),
+							strlen(m_keyInfo->m_screens + 1) - 1,
+							m_keyInfo->m_screens + 1);
 	}
+}
 
-	setState(newState);
-
-	event = CEvent(type, event.getTarget(), m_keyInfo,
+void
+CInputFilter::CKeystrokeAction::perform(const CEvent& event)
+{
+	CEvent::Type type = m_press ? IPlatformScreen::getKeyDownEvent() :
+								IPlatformScreen::getKeyUpEvent();
+	EVENTQUEUE->addEvent(CEvent(type, event.getTarget(), m_keyInfo,
 								CEvent::kDeliverImmediately |
-								CEvent::kDontFreeData);
-
-	return kHandled;
-}
-
-CInputFilter::CModifierAction::CModifierAction(
-				KeyModifierMask modifiers, KeyModifierMask bitmask) :
-	m_modifiers(modifiers),
-	m_bitmask(bitmask)
-{
-	// do nothing
-}
-
-CInputFilter::CAction*
-CInputFilter::CModifierAction::clone() const
-{
-	return new CModifierAction(m_modifiers, m_bitmask);
-}
-
-CString
-CInputFilter::CModifierAction::format() const
-{
-	return CStringUtil::print("modifier(%s)",
-							CKeyMap::formatKey(kKeyNone, m_modifiers).c_str());
-}
-
-CInputFilter::EFilterStatus		
-CInputFilter::CModifierAction::perform(
-				CEvent&, void*, EActionMode actionMode)
-{
-	EActionState newState = switchMode(actionMode);
-
-	if (newState == kStateOn) {
-		setModifierMask(m_modifiers);
-	}
-	else if (newState == kStateOff) {
-		setModifierMask(0);
-	}
-	else {
-		return kNotHandled;
-	}
-
-	setState(newState);
-
-	// FIXME. set proper key event, so updateModifiers will get called from
-	// within sendEvent automatically
-
-	return kUpdateModifiers;
+								CEvent::kDontFreeData));
 }
 
 CInputFilter::CMouseButtonAction::CMouseButtonAction(
-		IPlatformScreen::CButtonInfo* info) : 
-	m_buttonInfo(info)
+		IPlatformScreen::CButtonInfo* info, bool press) : 
+	m_buttonInfo(info),
+	m_press(press)
 {
 	// do nothing
 }
@@ -558,119 +423,258 @@ CInputFilter::CMouseButtonAction::clone() const
 {
 	IPlatformScreen::CButtonInfo* info =
 		IPrimaryScreen::CButtonInfo::alloc(*m_buttonInfo);
-	return new CMouseButtonAction(info);
+	return new CMouseButtonAction(info, m_press);
 }
 
 CString
 CInputFilter::CMouseButtonAction::format() const
 {
-	return CStringUtil::print("mousebutton(%s+%d)",
+	const char* type = m_press ? "Down" : "Up";
+
+	return CStringUtil::print("mouse%s(%s+%d)", type,
 							CKeyMap::formatKey(kKeyNone,
 								m_buttonInfo->m_mask).c_str(),
 							m_buttonInfo->m_button);
 }
 
-CInputFilter::EFilterStatus
-CInputFilter::CMouseButtonAction::perform(
-				CEvent& event, void*, EActionMode actionMode)
+void
+CInputFilter::CMouseButtonAction::perform(const CEvent& event)
 
 {
-	EActionState newState = switchMode(actionMode);
-	CEvent::Type type;
-
-	if (newState == kStateOn) {
-		type = IPlatformScreen::getButtonDownEvent();
-	}
-	else if (newState == kStateOff) {
-		type = IPlatformScreen::getButtonUpEvent();
-	}
-	else {
-		return kNotHandled;
+	// send modifiers
+	IPlatformScreen::CKeyInfo* modifierInfo = NULL;
+	if (m_buttonInfo->m_mask != 0) {
+		KeyID key = m_press ? kKeySetModifiers : kKeyClearModifiers;
+		modifierInfo =
+			IKeyState::CKeyInfo::alloc(key, m_buttonInfo->m_mask, 0, 1);
+		EVENTQUEUE->addEvent(CEvent(IPlatformScreen::getKeyDownEvent(),
+								event.getTarget(), modifierInfo,
+								CEvent::kDeliverImmediately));
 	}
 
-	setState(newState);
-
-	event = CEvent(type, event.getTarget(), m_buttonInfo,
+	// send button
+	CEvent::Type type = m_press ? IPlatformScreen::getButtonDownEvent() :
+								IPlatformScreen::getButtonUpEvent();
+	EVENTQUEUE->addEvent(CEvent(type, event.getTarget(), m_buttonInfo,
 								CEvent::kDeliverImmediately |
-								CEvent::kDontFreeData);
-
-	return kHandled;
+								CEvent::kDontFreeData));
 }
+
+//
+// CInputFilter::CRule
+//
+
+CInputFilter::CRule::CRule() :
+	m_condition(NULL)
+{
+	// do nothing
+}
+
+CInputFilter::CRule::CRule(CCondition* adoptedCondition) :
+	m_condition(adoptedCondition)
+{
+	// do nothing
+}
+
+CInputFilter::CRule::CRule(const CRule& rule) :
+	m_condition(NULL)
+{
+	copy(rule);
+}
+
+CInputFilter::CRule::~CRule()
+{
+	clear();
+}
+
+CInputFilter::CRule&
+CInputFilter::CRule::operator=(const CRule& rule)
+{
+	if (&rule != this) {
+		copy(rule);
+	}
+	return *this;
+}
+
+void
+CInputFilter::CRule::clear()
+{
+	delete m_condition;
+	for (CActionList::iterator i = m_activateActions.begin();
+								i != m_activateActions.end(); ++i) {
+		delete *i;
+	}
+	for (CActionList::iterator i = m_deactivateActions.begin();
+								i != m_deactivateActions.end(); ++i) {
+		delete *i;
+	}
+
+	m_condition = NULL;
+	m_activateActions.clear();
+	m_deactivateActions.clear();
+}
+
+void
+CInputFilter::CRule::copy(const CRule& rule)
+{
+	clear();
+	if (rule.m_condition != NULL) {
+		m_condition = rule.m_condition->clone();
+	}
+	for (CActionList::const_iterator i = rule.m_activateActions.begin();
+								i != rule.m_activateActions.end(); ++i) {
+		m_activateActions.push_back((*i)->clone());
+	}
+	for (CActionList::const_iterator i = rule.m_deactivateActions.begin();
+								i != rule.m_deactivateActions.end(); ++i) {
+		m_deactivateActions.push_back((*i)->clone());
+	}
+}
+
+void
+CInputFilter::CRule::adoptAction(CAction* action, bool onActivation)
+{
+	if (action != NULL) {
+		if (onActivation) {
+			m_activateActions.push_back(action);
+		}
+		else {
+			m_deactivateActions.push_back(action);
+		}
+	}
+}
+
+void
+CInputFilter::CRule::enable(CPrimaryClient* primaryClient)
+{
+	if (m_condition != NULL) {
+		m_condition->enablePrimary(primaryClient);
+	}
+}
+
+void
+CInputFilter::CRule::disable(CPrimaryClient* primaryClient)
+{
+	if (m_condition != NULL) {
+		m_condition->disablePrimary(primaryClient);
+	}
+}
+
+bool
+CInputFilter::CRule::handleEvent(const CEvent& event)
+{
+	// NULL condition never matches
+	if (m_condition == NULL) {
+		return false;
+	}
+
+	// match
+	const CActionList* actions;
+	switch (m_condition->match(event)) {
+	default:
+		// not handled
+		return false;
+
+	case kActivate:
+		actions = &m_activateActions;
+		LOG((CLOG_DEBUG1 "activate actions"));
+		break;
+
+	case kDeactivate:
+		actions = &m_deactivateActions;
+		LOG((CLOG_DEBUG1 "deactivate actions"));
+		break;
+	}
+
+	// perform actions
+	for (CActionList::const_iterator i = actions->begin();
+								i != actions->end(); ++i) {
+		LOG((CLOG_DEBUG1 "hotkey: %s", (*i)->format().c_str()));
+		(*i)->perform(event);
+	}
+
+	return true;
+}
+
+CString
+CInputFilter::CRule::format() const
+{
+	CString s;
+	if (m_condition != NULL) {
+		// condition
+		s += m_condition->format();
+		s += " = ";
+
+		// activate actions
+		CActionList::const_iterator i = m_activateActions.begin();
+		if (i != m_activateActions.end()) {
+			s += (*i)->format();
+			while (++i != m_activateActions.end()) {
+				s += ", ";
+				s += (*i)->format();
+			}
+		}
+
+		// deactivate actions
+		if (!m_deactivateActions.empty()) {
+			s += "; ";
+			i = m_deactivateActions.begin();
+			if (i != m_deactivateActions.end()) {
+				s += (*i)->format();
+				while (++i != m_deactivateActions.end()) {
+					s += ", ";
+					s += (*i)->format();
+				}
+			}
+		}
+	}
+	return s;
+}
+
 
 // -----------------------------------------------------------------------------
 // Input Filter Class
 // -----------------------------------------------------------------------------
 CInputFilter::CInputFilter() :
-	m_primaryClient(NULL),
-	m_lastMask(0),
-	m_dirtyFlag(kNotDirty),
-	m_clearMask(0),
-	m_modifierMask(0)
+	m_primaryClient(NULL)
 {
 	// do nothing
 }
 
 CInputFilter::CInputFilter(const CInputFilter& x) :
+	m_ruleList(x.m_ruleList),
 	m_primaryClient(NULL)
 {
-	copyRules(x.m_ruleList);
-	m_lastMask     = x.m_lastMask;
-	m_dirtyFlag    = x.m_dirtyFlag;
-	m_clearMask    = x.m_clearMask;
-	m_modifierMask = x.m_modifierMask;
 	setPrimaryClient(x.m_primaryClient);
 }
 
 CInputFilter::~CInputFilter()
 {
 	setPrimaryClient(NULL);
-	deleteRules(m_ruleList);
 }
 
 CInputFilter&
 CInputFilter::operator=(const CInputFilter& x)
 {
 	if (&x != this) {
+		CPrimaryClient* oldClient = m_primaryClient;
 		setPrimaryClient(NULL);
 
-		copyRules(x.m_ruleList);
-		m_lastMask     = x.m_lastMask;
-		m_dirtyFlag    = x.m_dirtyFlag;
-		m_clearMask    = x.m_clearMask;
-		m_modifierMask = x.m_modifierMask;
+		CRuleList newRules(x.m_ruleList);
+		m_ruleList.swap(newRules);
 
-		setPrimaryClient(x.m_primaryClient);
+		setPrimaryClient(oldClient);
 	}
 	return *this;
 }
 
 void
-CInputFilter::copyRules(const CRuleList& rules)
+CInputFilter::addFilterRule(const CRule& rule)
 {
-	CRuleList newRules;
-	for (CRuleList::const_iterator i = rules.begin(); i != rules.end(); ++i) {
-		CCondition* cond = i->first->clone();
-		CAction* action  = i->second->clone();
-		newRules.push_back(std::make_pair(cond, action));
+	m_ruleList.push_back(rule);
+	if (m_primaryClient != NULL) {
+		m_ruleList.back().enable(m_primaryClient);
 	}
-	m_ruleList.swap(newRules);
-	deleteRules(newRules);
-}
-
-void
-CInputFilter::deleteRules(CRuleList& rules) const
-{
-	for (CRuleList::iterator i = rules.begin(); i != rules.end(); ++i) {
-		delete i->first;
-		delete i->second;
-	}
-	rules.clear();
-}
-
-void
-CInputFilter::addFilterRule(CCondition* cond, CAction* action)
-{
-	m_ruleList.push_back(std::make_pair(cond, action));
 }
 
 void
@@ -683,7 +687,7 @@ CInputFilter::setPrimaryClient(CPrimaryClient* client)
 	if (m_primaryClient != NULL) {
 		for (CRuleList::iterator rule  = m_ruleList.begin();
 								 rule != m_ruleList.end(); ++rule) {
-			rule->first->disablePrimary(m_primaryClient);
+			rule->disable(m_primaryClient);
 		}
 
 		EVENTQUEUE->removeHandler(IPlatformScreen::getKeyDownEvent(),
@@ -699,6 +703,8 @@ CInputFilter::setPrimaryClient(CPrimaryClient* client)
 		EVENTQUEUE->removeHandler(IPlatformScreen::getHotKeyDownEvent(),
 							m_primaryClient->getEventTarget());
 		EVENTQUEUE->removeHandler(IPlatformScreen::getHotKeyUpEvent(),
+							m_primaryClient->getEventTarget());
+		EVENTQUEUE->removeHandler(CServer::getConnectedEvent(),
 							m_primaryClient->getEventTarget());
 	}
 
@@ -733,137 +739,48 @@ CInputFilter::setPrimaryClient(CPrimaryClient* client)
 							m_primaryClient->getEventTarget(),
 							new TMethodEventJob<CInputFilter>(this,
 								&CInputFilter::handleEvent));
+		EVENTQUEUE->adoptHandler(CServer::getConnectedEvent(),
+							m_primaryClient->getEventTarget(),
+							new TMethodEventJob<CInputFilter>(this,
+								&CInputFilter::handleEvent));
 
 		for (CRuleList::iterator rule  = m_ruleList.begin();
 								 rule != m_ruleList.end(); ++rule) {
-			rule->first->enablePrimary(m_primaryClient);
-
-			// workaround for "this" problem of addFilterRule
-			rule->first->setInputFilter(this);
-			rule->second->setInputFilter(this);
+			rule->enable(m_primaryClient);
 		}
 	}
 }
 
-KeyModifierMask
-CInputFilter::getLastMask() const
+CString
+CInputFilter::format(const CString& linePrefix) const
 {
-	return m_lastMask;
+	CString s;
+	for (CRuleList::const_iterator i = m_ruleList.begin();
+								i != m_ruleList.end(); ++i) {
+		s += linePrefix;
+		s += i->format();
+		s += "\n";
+	}
+	return s;
 }
 
 void
-CInputFilter::setClearMaskDirty()
+CInputFilter::handleEvent(const CEvent& event, void*)
 {
-	m_dirtyFlag |= kClearDirty;
-}
-
-void
-CInputFilter::setModifierMaskDirty()
-{
-	m_dirtyFlag |= kModifiersDirty;
-}
-
-const CInputFilter::CRuleList&
-CInputFilter::getRules() const
-{
-	return m_ruleList;
-}
-
-void
-CInputFilter::handleEvent(const CEvent& event, void* arg)
-{
-	// get a modifiable copy of this event.
-	// set target to us, set kDontFreeData and kDeliverImmediately because the
-	// original event will be destroyed after this method exits.
-	CEvent evt(event.getType(), this, event.getData(),
+	// copy event and adjust target
+	CEvent myEvent(event.getType(), this, event.getData(),
 								event.getFlags() | CEvent::kDontFreeData |
 								CEvent::kDeliverImmediately);
 
-	// clear dirty flag
-	m_dirtyFlag = kNotDirty;
-
-	EActionMode	actionMode = kModePass;
-	// match event against filter rules and perform actions
+	// let each rule try to match the event until one does
 	for (CRuleList::iterator rule  = m_ruleList.begin();
 							 rule != m_ruleList.end(); ++rule) {
-		EFilterStatus conditionStatus;
-		EFilterStatus actionStatus;
-		conditionStatus = rule->first->match(evt, arg, actionMode);
-		if (conditionStatus == kDiscard) {
+		if (rule->handleEvent(myEvent)) {
+			// handled
 			return;
 		}
-		else if (conditionStatus == kNoMatch) {
-			continue;
-		}
-
-		actionStatus = rule->second->perform(evt, arg, actionMode);
-		if (actionStatus == kDiscard) {
-			// discard event
-			return;
-		}
-		else if (actionStatus == kNotHandled) {
-			continue;
-		}
-		else if (actionStatus == kUpdateModifiers) {
-			updateModifiers();
-			return;
-		}
-
-		// if we got here then the rule has matched and action returned
-		// kHandled, so send the event.
-		break;
 	}
 
-	sendEvent(evt);
-}
-
-void
-CInputFilter::sendEvent(CEvent& event)
-{
-	CEvent::Type type = event.getType();
-	// process keyboard modifiers here
-	if (type == IPlatformScreen::getKeyDownEvent() ||
-		type == IPlatformScreen::getKeyUpEvent() || 
-		type == IPlatformScreen::getKeyRepeatEvent()) {
-		// get CKeyInfo from event
-		IPlatformScreen::CKeyInfo* kinfo =
-			reinterpret_cast<IPlatformScreen::CKeyInfo*>(event.getData());
-
-		// save mask
-		m_lastMask = kinfo->m_mask;
-
-		// prepare new mask
-		KeyModifierMask newMask = kinfo->m_mask;
-		updateModifiers();
-		newMask &= ~m_clearMask;
-		newMask |= m_modifierMask;
-
-		// set new mask
-		kinfo->m_mask = newMask;
-	}
-
-	// add event to eventqueue
-	EVENTQUEUE->addEvent(event);
-}
-
-void
-CInputFilter::updateModifiers()
-{
-	// FIXME: clearMasks of all conditions and modifier masks of all actions
-	// are aggregated here.  a proper implementation would generate required
-	// key up and down events here.
-	if ((m_dirtyFlag & kClearDirty) != 0) {
-		m_clearMask = 0;
-		for (CRuleList::iterator rule  = m_ruleList.begin();
-								 rule != m_ruleList.end(); ++rule) {
-			m_clearMask |= rule->first->getClearMask();
-		}
-	}
-	if ((m_dirtyFlag & kModifiersDirty) != 0) {
-		m_modifierMask = 0;
-		for (CRuleList::iterator rule  = m_ruleList.begin();
-								 rule != m_ruleList.end(); ++rule) {
-			m_modifierMask |= rule->second->getModifierMask();
-		}
-	}
+	// not handled so pass through
+	EVENTQUEUE->addEvent(myEvent);
 }

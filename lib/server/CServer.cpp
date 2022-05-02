@@ -35,6 +35,7 @@
 //
 
 CEvent::Type			CServer::s_errorEvent         = CEvent::kUnknown;
+CEvent::Type			CServer::s_connectedEvent     = CEvent::kUnknown;
 CEvent::Type			CServer::s_disconnectedEvent  = CEvent::kUnknown;
 CEvent::Type			CServer::s_switchToScreen     = CEvent::kUnknown;
 CEvent::Type			CServer::s_switchInDirection  = CEvent::kUnknown;
@@ -48,7 +49,7 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 	m_yDelta(0),
 	m_xDelta2(0),
 	m_yDelta2(0),
-	m_config(config),
+	m_config(),
 	m_inputFilter(m_config.getInputFilter()),
 	m_activeSaver(NULL),
 	m_switchDir(kNoDirection),
@@ -64,7 +65,7 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 {
 	// must have a primary client and it must have a canonical name
 	assert(m_primaryClient != NULL);
-	assert(m_config.isScreen(primaryClient->getName()));
+	assert(config.isScreen(primaryClient->getName()));
 
 	CString primaryName = getName(primaryClient);
 
@@ -79,9 +80,6 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 		}
 		clipboard.m_clipboardData   = clipboard.m_clipboard.marshall();
 	}
-
-	// get input filter
-	m_inputFilter = m_config.getInputFilter();
 
 	// install event handlers
 	EVENTQUEUE->adoptHandler(CEvent::kTimer, this,
@@ -142,12 +140,10 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 	// add connection
 	addClient(m_primaryClient);
 
-	// process options locally
-	processOptions();
+	// set initial configuration
+	setConfig(config);
 
-	// tell primary client about its options
-	sendOptions(m_primaryClient);
-
+	// enable primary client
 	m_primaryClient->enable();
 	m_inputFilter->setPrimaryClient(m_primaryClient);
 }
@@ -211,8 +207,22 @@ CServer::setConfig(const CConfig& config)
 
 	// cut over
 	m_config = config;
-
 	processOptions();
+
+	// add ScrollLock as a hotkey to lock to the screen.  this was a
+	// built-in feature in earlier releases and is now supported via
+	// the user configurable hotkey mechanism.  if the user has already
+	// registered ScrollLock for something else then that will win but
+	// we will unfortunately generate a warning.  if the user has
+	// configured a CLockCursorToScreenAction then we don't add
+	// ScrollLock as a hotkey.
+	if (!m_config.hasLockToScreenAction()) {
+		IPlatformScreen::CKeyInfo* key =
+			IPlatformScreen::CKeyInfo::alloc(kKeyScrollLock, 0, 0, 0);
+		CInputFilter::CRule rule(new CInputFilter::CKeystrokeCondition(key));
+		rule.adoptAction(new CInputFilter::CLockCursorToScreenAction, true);
+		m_inputFilter->addFilterRule(rule);
+	}
 
 	// tell primary screen about reconfiguration
 	m_primaryClient->reconfigure(getActivePrimarySides());
@@ -260,6 +270,12 @@ CServer::adoptClient(IClient* client)
 	if (m_activeSaver != NULL) {
 		client->screensaver(true);
 	}
+
+	// send notification
+	CServer::CScreenConnectedInfo* info =
+		CServer::CScreenConnectedInfo::alloc(getName(client));
+	EVENTQUEUE->addEvent(CEvent(CServer::getConnectedEvent(),
+								m_primaryClient->getEventTarget(), info));
 }
 
 void
@@ -299,6 +315,13 @@ CServer::getErrorEvent()
 }
 
 CEvent::Type
+CServer::getConnectedEvent()
+{
+	return CEvent::registerTypeOnce(s_connectedEvent,
+							"CServer::connected");
+}
+
+CEvent::Type
 CServer::getDisconnectedEvent()
 {
 	return CEvent::registerTypeOnce(s_disconnectedEvent,
@@ -326,18 +349,6 @@ CServer::getLockCursorToScreenEvent()
 							"CServer::lockCursorToScreen");
 }
 
-bool
-CServer::onCommandKey(KeyID id, KeyModifierMask /*mask*/, bool /*down*/)
-{
-	if (id == kKeyScrollLock) {
-		m_primaryClient->reconfigure(getActivePrimarySides());
-		if (!isLockedToScreenServer()) {
-			stopRelativeMoves();
-		}
-	}
-	return false;
-}
-
 CString
 CServer::getName(const IClient* client) const
 {
@@ -353,16 +364,16 @@ CServer::getActivePrimarySides() const
 {
 	UInt32 sides = 0;
 	if (!isLockedToScreenServer()) {
-		if (getNeighbor(m_primaryClient, kLeft) != NULL) {
+		if (hasAnyNeighbor(m_primaryClient, kLeft)) {
 			sides |= kLeftMask;
 		}
-		if (getNeighbor(m_primaryClient, kRight) != NULL) {
+		if (hasAnyNeighbor(m_primaryClient, kRight)) {
 			sides |= kRightMask;
 		}
-		if (getNeighbor(m_primaryClient, kTop) != NULL) {
+		if (hasAnyNeighbor(m_primaryClient, kTop)) {
 			sides |= kTopMask;
 		}
-		if (getNeighbor(m_primaryClient, kBottom) != NULL) {
+		if (hasAnyNeighbor(m_primaryClient, kBottom)) {
 			sides |= kBottomMask;
 		}
 	}
@@ -381,7 +392,7 @@ CServer::isLockedToScreen() const
 {
 	// locked if we say we're locked
 	if (isLockedToScreenServer()) {
-		LOG((CLOG_DEBUG "locked by ScrollLock"));
+		LOG((CLOG_DEBUG "locked to screen"));
 		return true;
 	}
 
@@ -490,8 +501,61 @@ CServer::jumpToScreen(IClient* newScreen)
 	switchScreen(newScreen, x, y, false);
 }
 
+float
+CServer::mapToFraction(IClient* client,
+				EDirection dir, SInt32 x, SInt32 y) const
+{
+	SInt32 sx, sy, sw, sh;
+	client->getShape(sx, sy, sw, sh);
+	switch (dir) {
+	case kLeft:
+	case kRight:
+		return static_cast<float>(y - sy + 0.5f) / static_cast<float>(sh);
+
+	case kTop:
+	case kBottom:
+		return static_cast<float>(x - sx + 0.5f) / static_cast<float>(sw);
+
+	case kNoDirection:
+		assert(0 && "bad direction");
+		break;
+	}
+	return 0.0f;
+}
+
+void
+CServer::mapToPixel(IClient* client,
+				EDirection dir, float f, SInt32& x, SInt32& y) const
+{
+	SInt32 sx, sy, sw, sh;
+	client->getShape(sx, sy, sw, sh);
+	switch (dir) {
+	case kLeft:
+	case kRight:
+		y = static_cast<SInt32>(f * sh) + sy;
+		break;
+
+	case kTop:
+	case kBottom:
+		x = static_cast<SInt32>(f * sw) + sx;
+		break;
+
+	case kNoDirection:
+		assert(0 && "bad direction");
+		break;
+	}
+}
+
+bool
+CServer::hasAnyNeighbor(IClient* client, EDirection dir) const
+{
+	assert(client != NULL);
+
+	return m_config.hasNeighbor(getName(client), dir);
+}
+
 IClient*
-CServer::getNeighbor(IClient* src, EDirection dir) const
+CServer::getNeighbor(IClient* src, EDirection dir, SInt32& x, SInt32& y) const
 {
 	// note -- must be locked on entry
 
@@ -502,21 +566,19 @@ CServer::getNeighbor(IClient* src, EDirection dir) const
 	assert(!srcName.empty());
 	LOG((CLOG_DEBUG2 "find neighbor on %s of \"%s\"", CConfig::dirName(dir), srcName.c_str()));
 
-	// get first neighbor.  if it's the source then the source jumps
-	// to itself and we return the source.
-	CString dstName(m_config.getNeighbor(srcName, dir));
-	if (dstName == srcName) {
-		LOG((CLOG_DEBUG2 "\"%s\" is on %s of \"%s\"", dstName.c_str(), CConfig::dirName(dir), srcName.c_str()));
-		return src;
-	}
+	// convert position to fraction
+	float t = mapToFraction(src, dir, x, y);
 
-	// keep checking
+	// search for the closest neighbor that exists in direction dir
+	float tTmp;
 	for (;;) {
+		CString dstName(m_config.getNeighbor(srcName, dir, t, &tTmp));
+
 		// if nothing in that direction then return NULL. if the
 		// destination is the source then we can make no more
 		// progress in this direction.  since we haven't found a
 		// connected neighbor we return NULL.
-		if (dstName.empty() || dstName == srcName) {
+		if (dstName.empty()) {
 			LOG((CLOG_DEBUG2 "no neighbor on %s of \"%s\"", CConfig::dirName(dir), srcName.c_str()));
 			return NULL;
 		}
@@ -525,7 +587,8 @@ CServer::getNeighbor(IClient* src, EDirection dir) const
 		// ready then we can stop.
 		CClientList::const_iterator index = m_clients.find(dstName);
 		if (index != m_clients.end()) {
-			LOG((CLOG_DEBUG2 "\"%s\" is on %s of \"%s\"", dstName.c_str(), CConfig::dirName(dir), srcName.c_str()));
+			LOG((CLOG_DEBUG2 "\"%s\" is on %s of \"%s\" at %f", dstName.c_str(), CConfig::dirName(dir), srcName.c_str(), t));
+			mapToPixel(index->second, dir, tTmp, x, y);
 			return index->second;
 		}
 
@@ -533,13 +596,13 @@ CServer::getNeighbor(IClient* src, EDirection dir) const
 		LOG((CLOG_DEBUG2 "ignored \"%s\" on %s of \"%s\"", dstName.c_str(), CConfig::dirName(dir), srcName.c_str()));
 		srcName = dstName;
 
-		// look up name of neighbor of skipped screen
-		dstName = m_config.getNeighbor(srcName, dir);
+		// use position on skipped screen
+		t = tTmp;
 	}
 }
 
 IClient*
-CServer::getNeighbor(IClient* src,
+CServer::mapToNeighbor(IClient* src,
 				EDirection srcSide, SInt32& x, SInt32& y) const
 {
 	// note -- must be locked on entry
@@ -547,16 +610,14 @@ CServer::getNeighbor(IClient* src,
 	assert(src != NULL);
 
 	// get the first neighbor
-	IClient* dst = getNeighbor(src, srcSide);
+	IClient* dst = getNeighbor(src, srcSide, x, y);
 	if (dst == NULL) {
 		return NULL;
 	}
 
-	// get the source screen's size (needed for kRight and kBottom)
-	SInt32 sx, sy, sw, sh;
+	// get the source screen's size
 	SInt32 dx, dy, dw, dh;
 	IClient* lastGoodScreen = src;
-	lastGoodScreen->getShape(sx, sy, sw, sh);
 	lastGoodScreen->getShape(dx, dy, dw, dh);
 
 	// find destination screen, adjusting x or y (but not both).  the
@@ -575,7 +636,7 @@ CServer::getNeighbor(IClient* src,
 				break;
 			}
 			LOG((CLOG_DEBUG2 "skipping over screen %s", getName(dst).c_str()));
-			dst = getNeighbor(lastGoodScreen, srcSide);
+			dst = getNeighbor(lastGoodScreen, srcSide, x, y);
 		}
 		assert(lastGoodScreen != NULL);
 		x += dx;
@@ -591,7 +652,7 @@ CServer::getNeighbor(IClient* src,
 				break;
 			}
 			LOG((CLOG_DEBUG2 "skipping over screen %s", getName(dst).c_str()));
-			dst = getNeighbor(lastGoodScreen, srcSide);
+			dst = getNeighbor(lastGoodScreen, srcSide, x, y);
 		}
 		assert(lastGoodScreen != NULL);
 		x += dx;
@@ -607,7 +668,7 @@ CServer::getNeighbor(IClient* src,
 				break;
 			}
 			LOG((CLOG_DEBUG2 "skipping over screen %s", getName(dst).c_str()));
-			dst = getNeighbor(lastGoodScreen, srcSide);
+			dst = getNeighbor(lastGoodScreen, srcSide, x, y);
 		}
 		assert(lastGoodScreen != NULL);
 		y += dy;
@@ -619,11 +680,11 @@ CServer::getNeighbor(IClient* src,
 			y -= dh;
 			lastGoodScreen = dst;
 			lastGoodScreen->getShape(dx, dy, dw, dh);
-			if (y < sh) {
+			if (y < dh) {
 				break;
 			}
 			LOG((CLOG_DEBUG2 "skipping over screen %s", getName(dst).c_str()));
-			dst = getNeighbor(lastGoodScreen, srcSide);
+			dst = getNeighbor(lastGoodScreen, srcSide, x, y);
 		}
 		assert(lastGoodScreen != NULL);
 		y += dy;
@@ -642,84 +703,56 @@ CServer::getNeighbor(IClient* src,
 	// to avoid the jump zone.  if entering a side that doesn't have
 	// a neighbor (i.e. an asymmetrical side) then we don't need to
 	// move inwards because that side can't provoke a jump.
-	if (dst == m_primaryClient) {
-		const CString dstName(getName(dst));
-		switch (srcSide) {
-		case kLeft:
-			if (!m_config.getNeighbor(dstName, kRight).empty() &&
-				x > dx + dw - 1 - getJumpZoneSize(dst))
-				x = dx + dw - 1 - getJumpZoneSize(dst);
-			break;
+	avoidJumpZone(dst, srcSide, x, y);
 
-		case kRight:
-			if (!m_config.getNeighbor(dstName, kLeft).empty() &&
-				x < dx + getJumpZoneSize(dst))
-				x = dx + getJumpZoneSize(dst);
-			break;
+	return dst;
+}
 
-		case kTop:
-			if (!m_config.getNeighbor(dstName, kBottom).empty() &&
-				y > dy + dh - 1 - getJumpZoneSize(dst))
-				y = dy + dh - 1 - getJumpZoneSize(dst);
-			break;
-
-		case kBottom:
-			if (!m_config.getNeighbor(dstName, kTop).empty() &&
-				y < dy + getJumpZoneSize(dst))
-				y = dy + getJumpZoneSize(dst);
-			break;
-
-		case kNoDirection:
-			assert(0 && "bad direction");
-			return NULL;
-		}
+void
+CServer::avoidJumpZone(IClient* dst, EDirection dir, SInt32& x, SInt32& y) const
+{
+	// we only need to avoid jump zones on the primary screen
+	if (dst != m_primaryClient) {
+		return;
 	}
 
-	// adjust the coordinate orthogonal to srcSide to account for
-	// resolution differences.  for example, if y is 200 pixels from
-	// the top on a screen 1000 pixels high (20% from the top) when
-	// we cross the left edge onto a screen 600 pixels high then y
-	// should be set 120 pixels from the top (again 20% from the
-	// top).
-	switch (srcSide) {
+	const CString dstName(getName(dst));
+	SInt32 dx, dy, dw, dh;
+	dst->getShape(dx, dy, dw, dh);
+	float t = mapToFraction(dst, dir, x, y);
+	SInt32 z = getJumpZoneSize(dst);
+
+	// move in far enough to avoid the jump zone.  if entering a side
+	// that doesn't have a neighbor (i.e. an asymmetrical side) then we
+	// don't need to move inwards because that side can't provoke a jump.
+	switch (dir) {
 	case kLeft:
+		if (!m_config.getNeighbor(dstName, kRight, t, NULL).empty() &&
+			x > dx + dw - 1 - z)
+			x = dx + dw - 1 - z;
+		break;
+
 	case kRight:
-		y -= sy;
-		if (y < 0) {
-			y = 0;
-		}
-		else if (y >= sh) {
-			y = dh - 1;
-		}
-		else {
-			y = static_cast<SInt32>(0.5 + y *
-								static_cast<double>(dh - 1) / (sh - 1));
-		}
-		y += dy;
+		if (!m_config.getNeighbor(dstName, kLeft, t, NULL).empty() &&
+			x < dx + z)
+			x = dx + z;
 		break;
 
 	case kTop:
+		if (!m_config.getNeighbor(dstName, kBottom, t, NULL).empty() &&
+			y > dy + dh - 1 - z)
+			y = dy + dh - 1 - z;
+		break;
+
 	case kBottom:
-		x -= sx;
-		if (x < 0) {
-			x = 0;
-		}
-		else if (x >= sw) {
-			x = dw - 1;
-		}
-		else {
-			x = static_cast<SInt32>(0.5 + x *
-								static_cast<double>(dw - 1) / (sw - 1));
-		}
-		x += dx;
+		if (!m_config.getNeighbor(dstName, kTop, t, NULL).empty() &&
+			y < dy + z)
+			y = dy + z;
 		break;
 
 	case kNoDirection:
 		assert(0 && "bad direction");
-		return NULL;
 	}
-
-	return dst;
 }
 
 bool
@@ -1035,6 +1068,7 @@ CServer::sendOptions(IClient* client) const
 	}
 
 	// send the options
+	client->resetOptions();
 	client->setOptions(optionsList);
 }
 
@@ -1166,7 +1200,7 @@ CServer::handleKeyDownEvent(const CEvent& event, void*)
 {
 	IPlatformScreen::CKeyInfo* info =
 		reinterpret_cast<IPlatformScreen::CKeyInfo*>(event.getData());
-	onKeyDown(info->m_key, info->m_mask, info->m_button);
+	onKeyDown(info->m_key, info->m_mask, info->m_button, info->m_screens);
 }
 
 void
@@ -1174,7 +1208,7 @@ CServer::handleKeyUpEvent(const CEvent& event, void*)
 {
 	IPlatformScreen::CKeyInfo* info =
 		 reinterpret_cast<IPlatformScreen::CKeyInfo*>(event.getData());
-	onKeyUp(info->m_key, info->m_mask, info->m_button);
+	onKeyUp(info->m_key, info->m_mask, info->m_button, info->m_screens);
 }
 
 void
@@ -1222,7 +1256,7 @@ CServer::handleWheelEvent(const CEvent& event, void*)
 {
 	IPlatformScreen::CWheelInfo* info =
 		reinterpret_cast<IPlatformScreen::CWheelInfo*>(event.getData());
-	onMouseWheel(info->m_wheel);
+	onMouseWheel(info->m_xDelta, info->m_yDelta);
 }
 
 void
@@ -1277,7 +1311,7 @@ CServer::handleSwitchToScreenEvent(const CEvent& event, void*)
 {
 	CSwitchToScreenInfo* info = 
 		reinterpret_cast<CSwitchToScreenInfo*>(event.getData());
-	
+
 	CClientList::const_iterator index = m_clients.find(info->m_screen);
 	if (index == m_clients.end()) {
 		LOG((CLOG_DEBUG1 "screen \"%s\" not active", info->m_screen));
@@ -1292,8 +1326,10 @@ CServer::handleSwitchInDirectionEvent(const CEvent& event, void*)
 {
 	CSwitchInDirectionInfo* info = 
 		reinterpret_cast<CSwitchInDirectionInfo*>(event.getData());
-	
-	IClient* newScreen = getNeighbor(m_active, info->m_direction);
+
+	// jump to screen in chosen direction from center of this screen
+	SInt32 x = m_x, y = m_y;
+	IClient* newScreen = getNeighbor(m_active, info->m_direction, x, y);
 	if (newScreen == NULL) {
 		LOG((CLOG_DEBUG1 "no neighbor %s", CConfig::dirName(info->m_direction)));
 	}
@@ -1306,9 +1342,34 @@ void
 CServer::handleLockCursorToScreenEvent(const CEvent& event, void*)
 {
 	CLockCursorToScreenInfo* info = (CLockCursorToScreenInfo*)event.getData();
-	
-	m_lockedToScreen = info->m_state;
-	LOG((CLOG_DEBUG "cursor %s current screen", m_lockedToScreen ? "locked to" : "unlocked from"));
+
+	// choose new state
+	bool newState;
+	switch (info->m_state) {
+	case CLockCursorToScreenInfo::kOff:
+		newState = false;
+		break;
+
+	default:
+	case CLockCursorToScreenInfo::kOn:
+		newState = true;
+		break;
+
+	case CLockCursorToScreenInfo::kToggle:
+		newState = !m_lockedToScreen;
+		break;
+	}
+
+	// enter new state
+	if (newState != m_lockedToScreen) {
+		m_lockedToScreen = newState;
+		LOG((CLOG_DEBUG "cursor %s current screen", m_lockedToScreen ? "locked to" : "unlocked from"));
+
+		m_primaryClient->reconfigure(getActivePrimarySides());
+		if (!isLockedToScreenServer()) {
+			stopRelativeMoves();
+		}
+	}
 }
 
 void
@@ -1318,7 +1379,7 @@ CServer::onClipboardChanged(IClient* sender, ClipboardID id, UInt32 seqNum)
 
 	// ignore update if sequence number is old
 	if (seqNum < clipboard.m_clipboardSeqNum) {
-		LOG((CLOG_INFO "ignored screen \"%s\" update of clipboard %d (missequenced)", clipboard.m_clipboardOwner.c_str(), id));
+		LOG((CLOG_INFO "ignored screen \"%s\" update of clipboard %d (missequenced)", getName(sender).c_str(), id));
 		return;
 	}
 
@@ -1406,33 +1467,45 @@ CServer::onScreensaver(bool activated)
 }
 
 void
-CServer::onKeyDown(KeyID id, KeyModifierMask mask, KeyButton button)
+CServer::onKeyDown(KeyID id, KeyModifierMask mask, KeyButton button,
+				const char* screens)
 {
 	LOG((CLOG_DEBUG1 "onKeyDown id=%d mask=0x%04x button=0x%04x", id, mask, button));
 	assert(m_active != NULL);
 
-	// handle command keys
-	if (onCommandKey(id, mask, true)) {
-		return;
-	}
-
 	// relay
-	m_active->keyDown(id, mask, button);
+	if (IKeyState::CKeyInfo::isDefault(screens)) {
+		m_active->keyDown(id, mask, button);
+	}
+	else {
+		for (CClientList::const_iterator index = m_clients.begin();
+								index != m_clients.end(); ++index) {
+			if (IKeyState::CKeyInfo::contains(screens, index->first)) {
+				index->second->keyDown(id, mask, button);
+			}
+		}
+	}
 }
 
 void
-CServer::onKeyUp(KeyID id, KeyModifierMask mask, KeyButton button)
+CServer::onKeyUp(KeyID id, KeyModifierMask mask, KeyButton button,
+				const char* screens)
 {
 	LOG((CLOG_DEBUG1 "onKeyUp id=%d mask=0x%04x button=0x%04x", id, mask, button));
 	assert(m_active != NULL);
 
-	// handle command keys
-	if (onCommandKey(id, mask, false)) {
-		return;
-	}
-
 	// relay
-	m_active->keyUp(id, mask, button);
+	if (IKeyState::CKeyInfo::isDefault(screens)) {
+		m_active->keyUp(id, mask, button);
+	}
+	else {
+		for (CClientList::const_iterator index = m_clients.begin();
+								index != m_clients.end(); ++index) {
+			if (IKeyState::CKeyInfo::contains(screens, index->first)) {
+				index->second->keyUp(id, mask, button);
+			}
+		}
+	}
 }
 
 void
@@ -1441,12 +1514,6 @@ CServer::onKeyRepeat(KeyID id, KeyModifierMask mask,
 {
 	LOG((CLOG_DEBUG1 "onKeyRepeat id=%d mask=0x%04x count=%d button=0x%04x", id, mask, count, button));
 	assert(m_active != NULL);
-
-	// handle command keys
-	if (onCommandKey(id, mask, false)) {
-		onCommandKey(id, mask, true);
-		return;
-	}
 
 	// relay
 	m_active->keyRepeat(id, mask, count, button);
@@ -1540,7 +1607,7 @@ CServer::onMouseMovePrimary(SInt32 x, SInt32 y)
 	}
 
 	// get jump destination
-	IClient* newScreen = getNeighbor(m_active, dir, x, y);
+	IClient* newScreen = mapToNeighbor(m_active, dir, x, y);
 
 	// should we switch or not?
 	if (isSwitchOkay(newScreen, dir, x, y, xc, yc)) {
@@ -1672,7 +1739,7 @@ CServer::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
 		}
 
 		// try to switch screen.  get the neighbor.
-		newScreen = getNeighbor(m_active, dir, m_x, m_y);
+		newScreen = mapToNeighbor(m_active, dir, m_x, m_y);
 
 		// see if we should switch
 		if (!isSwitchOkay(newScreen, dir, m_x, m_y, xc, yc)) {
@@ -1715,13 +1782,13 @@ CServer::onMouseMoveSecondary(SInt32 dx, SInt32 dy)
 }
 
 void
-CServer::onMouseWheel(SInt32 delta)
+CServer::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
 {
-	LOG((CLOG_DEBUG1 "onMouseWheel %+d", delta));
+	LOG((CLOG_DEBUG1 "onMouseWheel %+d,%+d", xDelta, yDelta));
 	assert(m_active != NULL);
 
 	// relay
-	m_active->mouseWheel(delta);
+	m_active->mouseWheel(xDelta, yDelta);
 }
 
 bool
@@ -1927,7 +1994,7 @@ CServer::CClipboardInfo::CClipboardInfo() :
 //
 
 CServer::CLockCursorToScreenInfo*
-CServer::CLockCursorToScreenInfo::alloc(bool state)
+CServer::CLockCursorToScreenInfo::alloc(State state)
 {
 	CLockCursorToScreenInfo* info =
 		(CLockCursorToScreenInfo*)malloc(sizeof(CLockCursorToScreenInfo));
@@ -1961,5 +2028,20 @@ CServer::CSwitchInDirectionInfo::alloc(EDirection direction)
 	CSwitchInDirectionInfo* info =
 		(CSwitchInDirectionInfo*)malloc(sizeof(CSwitchInDirectionInfo));
 	info->m_direction = direction;
+	return info;
+}
+
+
+//
+// CServer::CScreenConnectedInfo
+//
+
+CServer::CScreenConnectedInfo*
+CServer::CScreenConnectedInfo::alloc(const CString& screen)
+{
+	CScreenConnectedInfo* info =
+		(CScreenConnectedInfo*)malloc(sizeof(CScreenConnectedInfo) +
+								screen.size());
+	strcpy(info->m_screen, screen.c_str());
 	return info;
 }

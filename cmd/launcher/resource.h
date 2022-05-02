@@ -57,6 +57,8 @@
 #define IDS_EDGE_TOP                    52
 #define IDS_EDGE_BOTTOM                 53
 #define IDS_AUTOSTART_SAVE_FAILED       54
+#define IDS_LOAD_FAILED                 55
+#define IDS_CONFIG_CHANGED              56
 #define IDD_MAIN                        101
 #define IDD_ADD                         102
 #define IDD_WAIT                        103
@@ -65,6 +67,7 @@
 #define IDD_ADVANCED_OPTIONS            106
 #define IDD_GLOBAL_OPTIONS              107
 #define IDD_SCREENS_LINKS               110
+#define IDD_INFO                        111
 #define IDC_MAIN_CLIENT_RADIO           1000
 #define IDC_MAIN_SERVER_RADIO           1001
 #define IDC_MAIN_CLIENT_SERVER_NAME_LABEL 1002
@@ -79,10 +82,6 @@
 #define IDC_MAIN_DEBUG                  1011
 #define IDC_ADD_SCREEN_NAME_EDIT        1020
 #define IDC_ADD_ALIASES_EDIT            1021
-#define IDC_SCREENS_LEFT_COMBO          1022
-#define IDC_SCREENS_RIGHT_COMBO         1023
-#define IDC_SCREENS_TOP_COMBO           1024
-#define IDC_SCREENS_BOTTOM_COMBO        1025
 #define IDC_AUTOSTART_INSTALLED_MSG     1031
 #define IDC_AUTOSTART_PERMISSION_MSG    1032
 #define IDC_AUTOSTART_INSTALL_USER      1033
@@ -128,15 +127,21 @@
 #define IDC_SCREENS_ADD_LINK            1069
 #define IDC_SCREENS_REMOVE_LINK         1070
 #define IDC_SCREENS_OVERLAP_ERROR       1071
+#define IDC_INFO_VERSION                1073
+#define IDC_MAIN_INFO                   1074
+#define IDC_INFO_HOSTNAME               1076
+#define IDC_INFO_IP_ADDRESS             1077
+#define IDC_INFO_USER_CONFIG            1078
+#define IDC_INFO_SYS_CONFIG             1079
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        111
+#define _APS_NEXT_RESOURCE_VALUE        112
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1072
+#define _APS_NEXT_CONTROL_VALUE         1076
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

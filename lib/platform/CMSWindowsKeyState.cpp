@@ -577,9 +577,12 @@ CMSWindowsKeyState::CMSWindowsKeyState(CMSWindowsDesks* desks,
 	m_eventTarget(eventTarget),
 	m_desks(desks),
 	m_keyLayout(GetKeyboardLayout(0)),
-	m_fixTimer(NULL)
+	m_fixTimer(NULL),
+	m_anyAltGr(true)
 {
-	// do nothing
+	// look up symbol that's available on winNT family but not win95
+	HMODULE userModule = GetModuleHandle("user32.dll");
+	m_ToUnicodeEx = (ToUnicodeEx_t)GetProcAddress(userModule, "ToUnicodeEx");
 }
 
 CMSWindowsKeyState::~CMSWindowsKeyState()
@@ -649,7 +652,7 @@ CMSWindowsKeyState::mapKeyFromEvent(WPARAM charAndVirtKey,
 	// set modifier mask
 	if (maskOut != NULL) {
 		KeyModifierMask active = getActiveModifiers();
-		if (!noAltGr && (active & s_altGr) == s_altGr) {
+		if (m_anyAltGr && !noAltGr && (active & s_altGr) == s_altGr) {
 			active |=  KeyModifierAltGr;
 			active &= ~s_altGr;
 		}
@@ -783,10 +786,25 @@ CMSWindowsKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask,
 				KeyButton button)
 {
 	// reserve right alt for AltGr
-	if (id == kKeyAlt_R) {
+	if (m_anyAltGr && id == kKeyAlt_R) {
 		id = kKeyAlt_L;
 	}
+
+	// if we need AltGr then press the left control
+	bool altGr = ((mask & KeyModifierAltGr) != 0) &&
+					!(id >= kKeyShift_L && id <= kKeyHyper_R);
+	if (altGr) {
+		m_desks->fakeKeyEvent(m_virtualKeyToButton[VK_LCONTROL],
+								VK_LCONTROL, true, false);
+	}
+
 	CKeyState::fakeKeyDown(id, mask, button);
+
+	// if we pressed left control for AltGr then release it
+	if (altGr) {
+		m_desks->fakeKeyEvent(m_virtualKeyToButton[VK_LCONTROL],
+								VK_LCONTROL, false, false);
+	}
 }
 
 void
@@ -794,7 +812,7 @@ CMSWindowsKeyState::fakeKeyRepeat(KeyID id, KeyModifierMask mask,
 				SInt32 count, KeyButton button)
 {
 	// reserve right alt for AltGr
-	if (id == kKeyAlt_R) {
+	if (m_anyAltGr && id == kKeyAlt_R) {
 		id = kKeyAlt_L;
 	}
 	CKeyState::fakeKeyRepeat(id, mask, count, button);
@@ -915,6 +933,13 @@ CMSWindowsKeyState::getKeyMap(CKeyMap& keyMap)
 	// clear table
 	memset(m_virtualKeyToButton, 0, sizeof(m_virtualKeyToButton));
 	m_keyToVKMap.clear();
+
+	// decide if we need the AltGr key or not
+	// XXX -- should check the keyboard layouts to decide this
+	// XXX -- the synergy hook DLL may get ctrl+alt key events for the
+	// right alt key;  it or this object should suppress the ctrl events
+	// that are as a result of the right alt key.
+	m_anyAltGr = true;
 
 	CKeyMap::KeyItem item;
 	SInt32 numGroups = (SInt32)m_groups.size();
@@ -1383,6 +1408,9 @@ CMSWindowsKeyState::handleFixKeys(const CEvent&, void*)
 KeyID
 CMSWindowsKeyState::getKeyID(UINT virtualKey, KeyButton button) const
 {
+	if (!m_anyAltGr && virtualKey == VK_RMENU) {
+		return kKeyAlt_R;
+	}
 	if ((button & 0x100u) != 0) {
 		virtualKey += 0x100u;
 	}
@@ -1404,7 +1432,7 @@ CMSWindowsKeyState::getIDForKey(CKeyMap::KeyItem& item,
 	}
 	else {
 		WCHAR unicode[2];
-		n  = ToUnicodeEx(virtualKey, button, keyState,
+		n  = m_ToUnicodeEx(virtualKey, button, keyState,
 								unicode, sizeof(unicode) / sizeof(unicode[0]),
 								0, hkl);
 		id = static_cast<KeyID>(unicode[0]);

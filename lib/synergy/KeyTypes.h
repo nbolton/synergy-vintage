@@ -240,11 +240,15 @@ static const KeyID		kKeyDeadCedilla		= 0x0327;
 static const KeyID		kKeyDeadOgonek		= 0x0328;
 
 // more function and modifier keys
-static const KeyID		kKeyLeftTab		= 0xEE20;
+static const KeyID		kKeyLeftTab			= 0xEE20;
+
+// update modifiers
+static const KeyID		kKeySetModifiers	= 0xEE06;
+static const KeyID		kKeyClearModifiers	= 0xEE07;
 
 // group change
-static const KeyID		kKeyNextGroup	= 0xEE08;
-static const KeyID		kKeyPrevGroup	= 0xEE0A;
+static const KeyID		kKeyNextGroup		= 0xEE08;
+static const KeyID		kKeyPrevGroup		= 0xEE0A;
 
 // extended keys
 static const KeyID		kKeyEject			= 0xE001;
@@ -269,5 +273,31 @@ static const KeyID		kKeyAppUser1		= 0xE0B6;
 static const KeyID		kKeyAppUser2		= 0xE0B7;
 
 //@}
+
+struct KeyNameMapEntry {
+public:
+	const char*			m_name;
+	KeyID			 	m_id;
+};
+struct KeyModifierNameMapEntry {
+public:
+	const char*			m_name;
+	KeyModifierMask 	m_mask;
+};
+
+//! Key name to KeyID table
+/*!
+A table of key names to the corresponding KeyID.  Only the keys listed
+above plus non-alphanumeric ASCII characters are in the table.  The end
+of the table is the first pair with a NULL m_name.
+*/
+extern const KeyNameMapEntry kKeyNameMap[];
+
+//! Modifier key name to KeyModifierMask table
+/*!
+A table of modifier key names to the corresponding KeyModifierMask.
+The end of the table is the first pair with a NULL m_name.
+*/
+extern const KeyModifierNameMapEntry kModifierNameMap[];
 
 #endif

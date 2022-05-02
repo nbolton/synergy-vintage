@@ -317,10 +317,7 @@ CAddScreen::save(HWND hwnd)
 	}
 	else {
 		// edited screen
-		for (CStringList::const_iterator index = oldAliases.begin();
-								index != oldAliases.end(); ++index) {
-			m_config->removeAlias(*index);
-		}
+		m_config->removeAliases(m_name);
 		m_config->removeOptions(m_name);
 		m_config->renameScreen(m_name, newName);
 	}

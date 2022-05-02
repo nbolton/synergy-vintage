@@ -1,4 +1,4 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2//EN">
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0//EN">
 <html>
 <head>
 	<link rel="stylesheet" type="text/css" href="synergy.css" media="screen" />
@@ -27,6 +27,7 @@
 <li><a href="#faq16">I get the error 'Xlib: No protocol specified'.  Why?</a>
 <li><a href="#faq17">The cursor goes to secondary screen but won't come back.  Why?</a>
 <li><a href="#faq18">The cursor wraps from one edge of the screen to the opposite.  Why?</a>
+<li><a href="#faq19">How do I stop my game from minimizing when I leave the screen?</a>
 </ol>
 
 <h4>Answers</h4>
@@ -195,6 +196,13 @@
     can't bind the address, or the client is connecting to the wrong
     host name/address or port.
 </p>
+<p>
+    If the client instead says <span class="code">timed out</span> then you
+    probably have a firewall on the server or a router on the network.  You
+    must allow connections to the server on port 24800 (or whichever port
+    you're using).  Note that OS X, Windows XP and many Unix/Linux variants
+	come with a firewall preinstalled and turned on by default.
+</p>
 
 <li><a name="faq13"></a><span class="fakelink">Linking fails on Solaris.  What's wrong?</span>
 <p>
@@ -245,6 +253,21 @@
     'Orange' then moving the mouse off the left edge of 'Orange' will
     make it jump to the right edge.  Remove the offending line from the
     configuration if you don't want that behavior.
+</p>
+
+<li><a name="faq19"></a><span class="fakelink">How do I stop my game from minimizing when I leave the screen?</span>
+<p>
+    Many full screen applications, particularly games, automatically
+	minimize when they're no longer the active (foreground) application
+	on Microsoft Windows.  The synergy server normally becomes the foreground
+	when you switch to another screen in order to more reliably capture all
+	user input causing those full screen applications to minimize.  To
+	prevent synergy from stealing the foreground just click "Options..."
+	and check "Don't take foreground window on Windows servers."  If you
+	turn this on then be aware that synergy may not function correctly when
+	certain programs, particularly the command prompt, are the foreground
+	when you switch to other screens.  Simply make a different program the
+	foreground before switching to work around that.
 </p>
 
 </body>

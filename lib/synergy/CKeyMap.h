@@ -432,6 +432,9 @@ private:
 	// Returns the number of modifiers indicated in \p state.
 	static SInt32		getNumModifiers(KeyModifierMask state);
 
+	// Initialize key name/id maps
+	static void			initKeyNameMaps();
+
 	// not implemented
 	CKeyMap(const CKeyMap&);
 	CKeyMap&			operator=(const CKeyMap&);
@@ -474,6 +477,9 @@ private:
 	// half-duplex info
 	KeyButtonSet		m_halfDuplex;			// half-duplex set by synergy
 	KeySet				m_halfDuplexMods;		// half-duplex set by user
+
+	// dummy KeyItem for changing modifiers
+	KeyItem				m_modifierKeyItem;
 
 	// parsing/formatting tables
 	static CNameToKeyMap*		s_nameToKeyMap;

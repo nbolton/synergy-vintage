@@ -523,15 +523,9 @@ CKeyState::setHalfDuplexMask(KeyModifierMask mask)
 void
 CKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton serverID)
 {
-	// ignore key if serverID is bogus
-	serverID &= kButtonMask;
-	if (serverID == 0) {
-		LOG((CLOG_DEBUG1 "ignored fake key for %04x with serverID of 0", id));
-		return;
-	}
-
 	// if this server key is already down then this is probably a
 	// mis-reported autorepeat.
+	serverID &= kButtonMask;
 	if (m_serverKeys[serverID] != 0) {
 		fakeKeyRepeat(id, mask, 1, serverID);
 		return;
@@ -553,9 +547,9 @@ CKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton serverID)
 		return;
 	}
 	KeyButton localID = (KeyButton)(keyItem->m_button & kButtonMask);
+	updateModifierKeyState(localID, oldActiveModifiers, m_activeModifiers);
 	if (localID != 0) {
 		// note keys down
-		updateModifierKeyState(localID, oldActiveModifiers, m_activeModifiers);
 		++m_keys[localID];
 		++m_syntheticKeys[localID];
 		m_keyClientData[localID] = keyItem->m_client;
@@ -679,6 +673,8 @@ CKeyState::fakeAllKeysUp()
 		}
 	}
 	fakeKeys(keys, 1);
+	m_activeModifiers.clear();
+	m_mask = pollActiveModifiers();
 }
 
 bool

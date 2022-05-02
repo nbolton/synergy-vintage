@@ -166,9 +166,9 @@ public:
 
 	//! Fake mouse wheel
 	/*!
-	Synthesize a mouse wheel event of amount \c delta.
+	Synthesize a mouse wheel event of amount \c delta in direction \c axis.
 	*/
-	void				fakeMouseWheel(SInt32 delta) const;
+	void				fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
 	//@}
 

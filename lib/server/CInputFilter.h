@@ -31,62 +31,39 @@ public:
 	// Input Filter Condition Classes
 	// -------------------------------------------------------------------------
 	enum EFilterStatus {
-		kDiscard         = -1,
-		kNoMatch         = 0,
-		kNotHandled      = 0,
-		kMatch           = 1,
-		kHandled         = 1,
-		kUpdateModifiers = 2
-	};
-
-	enum EActionMode {
-		kModePass,
-		kModeTrigger,
-		kModeToggle,
-		kModeTurnOff,
-		kModeTurnOn
+		kNoMatch,
+		kActivate,
+		kDeactivate
 	};
 
 	class CCondition {
 	public:
-		CCondition(EActionMode = kModePass);
+		CCondition();
 		virtual ~CCondition();
 
 		virtual CCondition*		clone() const = 0;
 		virtual CString			format() const = 0;
 
-		virtual EFilterStatus	match(CEvent&, void*, EActionMode&) = 0;
+		virtual EFilterStatus	match(const CEvent&) = 0;
+
 		virtual void			enablePrimary(CPrimaryClient*);
 		virtual void			disablePrimary(CPrimaryClient*);
-
-		void					setInputFilter(CInputFilter*);
-
-		void					setClearMask(KeyModifierMask);
-		KeyModifierMask			getClearMask() const;
-
-		KeyModifierMask			getLastMask() const;
-		EActionMode				getActionMode() const;
-
-	private:
-		EActionMode				m_actionMode;
-		KeyModifierMask			m_clearMask;
-		CInputFilter*			m_inputFilter;
 	};
 	
 	// CKeystrokeCondition
 	class CKeystrokeCondition : public CCondition {
 	public:
-		CKeystrokeCondition(IPlatformScreen::CKeyInfo*, EActionMode = kModePass);
+		CKeystrokeCondition(IPlatformScreen::CKeyInfo*);
 		virtual ~CKeystrokeCondition();
 
 		virtual CCondition*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	match(CEvent &,void *,EActionMode&);
+		virtual EFilterStatus	match(const CEvent&);
 		virtual void			enablePrimary(CPrimaryClient*);
 		virtual void			disablePrimary(CPrimaryClient*);
 
 	private:
-		CKeystrokeCondition(KeyID key, KeyModifierMask mask, EActionMode);
+		CKeystrokeCondition(KeyID key, KeyModifierMask mask);
 
 	private:
 		UInt32					m_id;
@@ -95,65 +72,66 @@ public:
 	};
 
 	// CMouseButtonCondition
-	class  CMouseButtonCondition : public CCondition {
+	class CMouseButtonCondition : public CCondition {
 	public:
-		CMouseButtonCondition(IPlatformScreen::CButtonInfo*,EActionMode);
+		CMouseButtonCondition(IPlatformScreen::CButtonInfo*);
 		virtual ~CMouseButtonCondition();
 
 		virtual CCondition*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	match(CEvent &,void *,EActionMode&);
+		virtual EFilterStatus	match(const CEvent&);
 
 	private:
-		CMouseButtonCondition(ButtonID, KeyModifierMask mask, EActionMode);
+		CMouseButtonCondition(ButtonID, KeyModifierMask mask);
 
 	private:
 		ButtonID				m_button;
 		KeyModifierMask			m_mask;
 	};
 
+	// CScreenConnectedCondition
+	class CScreenConnectedCondition : public CCondition {
+	public:
+		CScreenConnectedCondition(const CString& screen);
+		virtual ~CScreenConnectedCondition();
+
+		virtual CCondition*		clone() const;
+		virtual CString			format() const;
+		virtual EFilterStatus	match(const CEvent&);
+
+	private:
+		CString					m_screen;
+	};
+
 	// -------------------------------------------------------------------------
 	// Input Filter Action Classes
 	// -------------------------------------------------------------------------
-	enum EActionState {
-		kStateInvalid = -1,
-		kStateOff     = 0,
-		kStateOn      = 1
-	};
 	
 	class CAction {
     public:
-		CAction(EActionState = kStateOff);
+		CAction();
 		virtual	~CAction();
 
 		virtual CAction*		clone() const = 0;
 		virtual CString			format() const = 0;
 
-        virtual EFilterStatus	perform(CEvent&, void*, EActionMode) = 0;
-		virtual void			enablePrimary(CPrimaryClient*);
-		virtual void			disablePrimary(CPrimaryClient*);
-
-		void					setInputFilter(CInputFilter*);
-
-		void					setModifierMask(KeyModifierMask);
-		KeyModifierMask			getModifierMask() const;
-
-		EActionState			switchMode(EActionMode);
-		void					setState(EActionState);
-
-	private:
-		EActionState			m_state;
-		KeyModifierMask			m_modifierMask;
-		CInputFilter*			m_inputFilter;
+        virtual void			perform(const CEvent&) = 0;
     };
 	
 	// CLockCursorToScreenAction
 	class CLockCursorToScreenAction : public CAction {
 	public:
+		enum Mode { kOff, kOn, kToggle };
+
+		CLockCursorToScreenAction(Mode = kToggle);
+
 		// CAction overrides
 		virtual CAction*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	perform(CEvent&, void*, EActionMode);
+		virtual void			perform(const CEvent&);
+
+	private:
+		Mode					m_mode;
 	};
 	
 	// CSwitchToScreenAction
@@ -164,7 +142,7 @@ public:
 		// CAction overrides
 		virtual CAction*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	perform(CEvent&, void*, EActionMode);
+		virtual void			perform(const CEvent&);
 
 	private:
 		CString					m_screen;
@@ -178,7 +156,7 @@ public:
 		// CAction overrides
 		virtual CAction*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	perform(CEvent&, void*, EActionMode);
+		virtual void			perform(const CEvent&);
 
 	private:
 		EDirection				m_direction;
@@ -187,52 +165,73 @@ public:
 	// CKeystrokeAction
 	class CKeystrokeAction : public CAction {
 	public:
-		CKeystrokeAction(IPlatformScreen::CKeyInfo* adoptedInfo);
+		CKeystrokeAction(IPlatformScreen::CKeyInfo* adoptedInfo, bool press);
 		~CKeystrokeAction();
 
 		// CAction overrides
 		virtual CAction*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	perform(CEvent&, void*, EActionMode);
+		virtual void			perform(const CEvent&);
 
 	private:
 		IPlatformScreen::CKeyInfo*	m_keyInfo;
-	};
-	
-	// CModifierAction -- not implemented yet
-	class CModifierAction : public CAction {
-	public:
-		CModifierAction(KeyModifierMask, KeyModifierMask);		
-
-		// CAction overrides
-		virtual CAction*		clone() const;
-		virtual CString			format() const;
-		virtual EFilterStatus	perform(CEvent&, void*, EActionMode);
-
-	private:
-		KeyModifierMask	m_modifiers;
-		KeyModifierMask	m_bitmask;
+		bool						m_press;
 	};
 
 	// CMouseButtonAction -- modifier combinations not implemented yet
 	class CMouseButtonAction : public CAction {
 	public:
-		CMouseButtonAction(IPlatformScreen::CButtonInfo* adoptedInfo);
+		CMouseButtonAction(IPlatformScreen::CButtonInfo* adoptedInfo,
+									bool press);
 		~CMouseButtonAction();
 
 		// CAction overrides
 		virtual CAction*		clone() const;
 		virtual CString			format() const;
-		virtual EFilterStatus	perform(CEvent&, void*, EActionMode);
+		virtual void			perform(const CEvent&);
 
 	private:
-		IPlatformScreen::CButtonInfo	*m_buttonInfo;
+		IPlatformScreen::CButtonInfo*	m_buttonInfo;
+		bool							m_press;
+	};
+
+	class CRule {
+	public:
+		CRule();
+		CRule(CCondition* adopted);
+		CRule(const CRule&);
+		~CRule();
+
+		CRule& operator=(const CRule&);
+
+		// add an action to the rule
+		void			adoptAction(CAction*, bool onActivation);
+
+		// enable/disable
+		void			enable(CPrimaryClient*);
+		void			disable(CPrimaryClient*);
+
+		// event handling
+		bool			handleEvent(const CEvent&);
+
+		// convert rule to a string
+		CString			format() const;
+
+	private:
+		void			clear();
+		void			copy(const CRule&);
+
+	private:
+		typedef std::vector<CAction*> CActionList;
+
+		CCondition*		m_condition;
+		CActionList		m_activateActions;
+		CActionList		m_deactivateActions;
 	};
 
 	// -------------------------------------------------------------------------
 	// Input Filter Class
 	// -------------------------------------------------------------------------
-	typedef std::pair<CCondition*, CAction*> CRule;
 	typedef std::vector<CRule> CRuleList;
 
 	CInputFilter();
@@ -241,53 +240,23 @@ public:
 
 	CInputFilter&		operator=(const CInputFilter&);
 
-	// parse config string and add rule
-	void				addFilterRule(CCondition* cond, CAction* action);
+	// add rule, adopting the condition and the actions
+	void				addFilterRule(const CRule& rule);
 
 	// enable event filtering using the given primary client.  disable
 	// if client is NULL.
 	void				setPrimaryClient(CPrimaryClient* client);
 
-	// get masks
-	KeyModifierMask		getLastMask() const;
-
-	// mark masks as dirty
-	void				setClearMaskDirty();
-	void				setModifierMaskDirty();
-
-	// get the rules
-	const CRuleList&	getRules() const;
+	// convert rules to a string
+	CString				format(const CString& linePrefix) const;
 
 private:
-	void				copyRules(const CRuleList&);
-	void				deleteRules(CRuleList&) const;
-
 	// event handling
 	void				handleEvent(const CEvent&, void*);
-	void				sendEvent(CEvent&);
-	void				updateModifiers();
-	
-private:
-	enum EDirtyFlags {
-		kNotDirty       = 0x0000,
-		kClearDirty     = 0x0001,
-		kModifiersDirty = 0x0002
-	};
 
+private:
 	CRuleList			m_ruleList;
 	CPrimaryClient*		m_primaryClient;
-
-	// last state of modifier keys
-	KeyModifierMask		m_lastMask;
-
-	// designates if modifier or clear mask have changed
-	UInt32				m_dirtyFlag;
-
-	// modifiers set in this mask will be cleared from outgoing event
-	KeyModifierMask		m_clearMask;
-
-	// modifiers set in this mask will be added to the outgoing event
-	KeyModifierMask		m_modifierMask;
 };
 
 #endif

@@ -13,6 +13,7 @@
  */
 
 #include "IKeyState.h"
+#include <string.h>
 
 //
 // IKeyState
@@ -52,21 +53,83 @@ IKeyState::CKeyInfo*
 IKeyState::CKeyInfo::alloc(KeyID id,
 				KeyModifierMask mask, KeyButton button, SInt32 count)
 {
-	CKeyInfo* info = (CKeyInfo*)malloc(sizeof(CKeyInfo));
+	CKeyInfo* info     = (CKeyInfo*)malloc(sizeof(CKeyInfo));
+	info->m_key        = id;
+	info->m_mask       = mask;
+	info->m_button     = button;
+	info->m_count      = count;
+	info->m_screens[0] = '\0';
+	return info;
+}
+
+IKeyState::CKeyInfo*
+IKeyState::CKeyInfo::alloc(KeyID id,
+				KeyModifierMask mask, KeyButton button, SInt32 count,
+				const std::set<CString>& destinations)
+{
+	// collect destinations into a string.  names are surrounded by ':'
+	// which makes searching easy later.  the string is empty if there
+	// are no destinations and "*" means all destinations.
+	CString screens;
+	for (std::set<CString>::const_iterator i = destinations.begin();
+								i != destinations.end(); ++i) {
+		if (*i == "*") {
+			screens = "*";
+			break;
+		}
+		else {
+			if (screens.empty()) {
+				screens = ":";
+			}
+			screens += *i;
+			screens += ":";
+		}
+	}
+
+	// build structure
+	CKeyInfo* info = (CKeyInfo*)malloc(sizeof(CKeyInfo) + screens.size());
 	info->m_key    = id;
 	info->m_mask   = mask;
 	info->m_button = button;
 	info->m_count  = count;
+	strcpy(info->m_screens, screens.c_str());
 	return info;
 }
 
 IKeyState::CKeyInfo*
 IKeyState::CKeyInfo::alloc(const CKeyInfo& x)
 {
-	CKeyInfo* info = (CKeyInfo*)malloc(sizeof(CKeyInfo));
+	CKeyInfo* info = (CKeyInfo*)malloc(sizeof(CKeyInfo) + strlen(x.m_screens));
 	info->m_key    = x.m_key;
 	info->m_mask   = x.m_mask;
 	info->m_button = x.m_button;
 	info->m_count  = x.m_count;
+	strcpy(info->m_screens, x.m_screens);
 	return info;
+}
+
+bool
+IKeyState::CKeyInfo::isDefault(const char* screens)
+{
+	return (screens == NULL || screens[0] == '\0');
+}
+
+bool
+IKeyState::CKeyInfo::contains(const char* screens, const CString& name)
+{
+	// special cases
+	if (isDefault(screens)) {
+		return false;
+	}
+	if (screens[0] == '*') {
+		return true;
+	}
+
+	// search
+	CString match;
+	match.reserve(name.size() + 2);
+	match += ":";
+	match += name;
+	match += ":";
+	return (strstr(screens, match.c_str()) != NULL);
 }

@@ -67,7 +67,7 @@
 #define SYNERGY_MSG_FAKE_BUTTON		SYNERGY_HOOK_LAST_MSG + 5
 // x; y
 #define SYNERGY_MSG_FAKE_MOVE		SYNERGY_HOOK_LAST_MSG + 6
-// delta; <unused>
+// xDelta; yDelta
 #define SYNERGY_MSG_FAKE_WHEEL		SYNERGY_HOOK_LAST_MSG + 7
 // POINT*; <unused>
 #define SYNERGY_MSG_CURSOR_POS		SYNERGY_HOOK_LAST_MSG + 8
@@ -328,9 +328,9 @@ CMSWindowsDesks::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 }
 
 void
-CMSWindowsDesks::fakeMouseWheel(SInt32 delta) const
+CMSWindowsDesks::fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const
 {
-	sendMessage(SYNERGY_MSG_FAKE_WHEEL, delta, 0);
+	sendMessage(SYNERGY_MSG_FAKE_WHEEL, xDelta, yDelta);
 }
 
 void
@@ -779,7 +779,10 @@ CMSWindowsDesks::deskThread(void* vdesk)
 			break;
 
 		case SYNERGY_MSG_FAKE_WHEEL:
-			mouse_event(MOUSEEVENTF_WHEEL, 0, 0, msg.wParam, 0);
+			// XXX -- add support for x-axis scrolling
+			if (msg.lParam != 0) {
+				mouse_event(MOUSEEVENTF_WHEEL, 0, 0, msg.lParam, 0);
+			}
 			break;
 
 		case SYNERGY_MSG_CURSOR_POS: {

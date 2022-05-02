@@ -204,7 +204,7 @@ CPrimaryClient::mouseRelativeMove(SInt32, SInt32)
 }
 
 void
-CPrimaryClient::mouseWheel(SInt32)
+CPrimaryClient::mouseWheel(SInt32, SInt32)
 {
 	// ignore
 }

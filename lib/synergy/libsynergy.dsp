@@ -131,6 +131,10 @@ SOURCE=.\IScreen.cpp
 # End Source File
 # Begin Source File
 
+SOURCE=.\KeyTypes.cpp
+# End Source File
+# Begin Source File
+
 SOURCE=.\ProtocolTypes.cpp
 # End Source File
 # Begin Source File
@@ -224,10 +228,6 @@ SOURCE=.\OptionTypes.h
 # Begin Source File
 
 SOURCE=.\ProtocolTypes.h
-# End Source File
-# Begin Source File
-
-SOURCE=.\SpecialKeyNameMap.h
 # End Source File
 # Begin Source File
 

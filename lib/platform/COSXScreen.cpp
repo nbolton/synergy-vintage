@@ -407,8 +407,38 @@ COSXScreen::unregisterHotKey(UInt32 id)
 }
 
 void
-COSXScreen::postMouseEvent(const CGPoint & pos) const
+COSXScreen::postMouseEvent(CGPoint& pos) const
 {
+	// check if cursor position is valid on the client display configuration
+	// stkamp@users.sourceforge.net
+	CGDisplayCount displayCount = 0;
+	CGGetDisplaysWithPoint(pos, 0, NULL, &displayCount);
+	if (displayCount == 0) {
+		// cursor position invalid - clamp to bounds of last valid display.
+		// find the last valid display using the last cursor position.
+		displayCount = 0;
+		CGDirectDisplayID displayID;
+		CGGetDisplaysWithPoint(CGPointMake(m_xCursor, m_yCursor), 1,
+								&displayID, &displayCount);
+		if (displayCount != 0) {
+			CGRect displayRect = CGDisplayBounds(displayID);
+			if (pos.x < displayRect.origin.x) {
+				pos.x = displayRect.origin.x;
+			}
+			else if (pos.x > displayRect.origin.x +
+								displayRect.size.width - 1) {
+				pos.x = displayRect.origin.x + displayRect.size.width - 1;
+			}
+			if (pos.y < displayRect.origin.y) {
+				pos.y = displayRect.origin.y;
+			}
+			else if (pos.y > displayRect.origin.y +
+								displayRect.size.height - 1) {
+				pos.y = displayRect.origin.y + displayRect.size.height - 1;
+			}
+		}
+	}
+ 	
 	// synthesize event.  CGPostMouseEvent is a particularly good
 	// example of a bad API.  we have to shadow the mouse state to
 	// use this API and if we want to support more buttons we have
@@ -463,8 +493,8 @@ COSXScreen::fakeMouseMove(SInt32 x, SInt32 y) const
 	postMouseEvent(pos);
 
 	// save new cursor position
-	m_xCursor        = x;
-	m_yCursor        = y;
+	m_xCursor        = static_cast<SInt32>(pos.x);
+	m_yCursor        = static_cast<SInt32>(pos.y);
 	m_cursorPosValid = true;
 }
 
@@ -482,8 +512,10 @@ COSXScreen::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 
 	// synthesize event
 	CGPoint pos;
-	pos.x = oldPos.h + dx;
-	pos.y = oldPos.v + dy;
+	m_xCursor = static_cast<SInt32>(oldPos.h);
+	m_yCursor = static_cast<SInt32>(oldPos.v);
+	pos.x     = oldPos.h + dx;
+	pos.y     = oldPos.v + dy;
 	postMouseEvent(pos);
 
 	// we now assume we don't know the current cursor position
@@ -491,9 +523,12 @@ COSXScreen::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 }
 
 void
-COSXScreen::fakeMouseWheel(SInt32 delta) const
+COSXScreen::fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const
 {
-	CGPostScrollWheelEvent(1, mapScrollWheelFromSynergy(delta));
+	if (xDelta != 0 || yDelta != 0) {
+		CGPostScrollWheelEvent(2, mapScrollWheelFromSynergy(yDelta),
+								-mapScrollWheelFromSynergy(xDelta));
+	}
 }
 
 void
@@ -564,7 +599,7 @@ COSXScreen::enter()
 
 		SetMouseCoalescingEnabled(true, NULL);
 
-		CGSetLocalEventsSuppressionInterval(HUGE_VAL);
+		CGSetLocalEventsSuppressionInterval(0.0);
 
 		// enable global hotkeys
 		setGlobalHotKeysEnabled(true);
@@ -580,6 +615,16 @@ COSXScreen::enter()
 		for (UInt32 i = 0; i < sizeof(m_buttons) / sizeof(m_buttons[0]); ++i) {
 			m_buttons[i] = false;
 		}
+
+		// avoid suppression of local hardware events
+		// stkamp@users.sourceforge.net
+		CGSetLocalEventsFilterDuringSupressionState(
+								kCGEventFilterMaskPermitAllEvents,
+								kCGEventSupressionStateSupressionInterval);
+		CGSetLocalEventsFilterDuringSupressionState(
+								(kCGEventFilterMaskPermitLocalKeyboardEvents |
+								kCGEventFilterMaskPermitSystemDefinedEvents),
+								kCGEventSupressionStateRemoteMouseDrag);
 	}
 
 	// now on screen
@@ -803,7 +848,8 @@ COSXScreen::handleSystemEvent(const CEvent& event, void*)
 					sizeof(axis),
 					NULL,
 					&axis);
-			if (axis == kEventMouseWheelAxisY) {
+			if (axis == kEventMouseWheelAxisX ||
+				axis == kEventMouseWheelAxisY) {
 				GetEventParameter(*carbonEvent,
 					kEventParamMouseWheelDelta,
 					typeLongInteger,
@@ -811,7 +857,12 @@ COSXScreen::handleSystemEvent(const CEvent& event, void*)
 					sizeof(delta),
 					NULL,
 					&delta);
-				onMouseWheel(mapScrollWheelToSynergy((SInt32)delta));
+				if (axis == kEventMouseWheelAxisX) {
+					onMouseWheel(-mapScrollWheelToSynergy((SInt32)delta), 0);
+				}
+				else {
+					onMouseWheel(0, mapScrollWheelToSynergy((SInt32)delta));
+				}
 			}
 			break;
 		}
@@ -844,9 +895,9 @@ COSXScreen::handleSystemEvent(const CEvent& event, void*)
 				yScroll = 0;
 			}
 
-			// currently we only handle y-axis scroll
-			if (yScroll != 0) {
-				onMouseWheel(mapScrollWheelToSynergy(yScroll));
+			if (xScroll != 0 || yScroll != 0) {
+				onMouseWheel(-mapScrollWheelToSynergy(xScroll),
+								mapScrollWheelToSynergy(yScroll));
 			}
 		}
 		}
@@ -952,13 +1003,15 @@ COSXScreen::onMouseButton(bool pressed, UInt16 macButton)
 	if (pressed) {
 		LOG((CLOG_DEBUG1 "event: button press button=%d", button));
 		if (button != kButtonNone) {
-			sendEvent(getButtonDownEvent(), CButtonInfo::alloc(button, 0));
+			KeyModifierMask mask = m_keyState->getActiveModifiers();
+			sendEvent(getButtonDownEvent(), CButtonInfo::alloc(button, mask));
 		}
 	}
 	else {
 		LOG((CLOG_DEBUG1 "event: button release button=%d", button));
 		if (button != kButtonNone) {
-			sendEvent(getButtonUpEvent(), CButtonInfo::alloc(button, 0));
+			KeyModifierMask mask = m_keyState->getActiveModifiers();
+			sendEvent(getButtonUpEvent(), CButtonInfo::alloc(button, mask));
 		}
 	}
 
@@ -982,10 +1035,10 @@ COSXScreen::onMouseButton(bool pressed, UInt16 macButton)
 }
 
 bool
-COSXScreen::onMouseWheel(SInt32 delta) const
+COSXScreen::onMouseWheel(SInt32 xDelta, SInt32 yDelta) const
 {
-	LOG((CLOG_DEBUG1 "event: button wheel delta=%d", delta));
-	sendEvent(getWheelEvent(), CWheelInfo::alloc(delta));
+	LOG((CLOG_DEBUG1 "event: button wheel delta=%+d,%+d", xDelta, yDelta));
+	sendEvent(getWheelEvent(), CWheelInfo::alloc(xDelta, yDelta));
 	return true;
 }
 

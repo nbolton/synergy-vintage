@@ -625,9 +625,9 @@ CMSWindowsScreen::fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const
 }
 
 void
-CMSWindowsScreen::fakeMouseWheel(SInt32 delta) const
+CMSWindowsScreen::fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const
 {
-	m_desks->fakeMouseWheel(delta);
+	m_desks->fakeMouseWheel(xDelta, yDelta);
 }
 
 void
@@ -880,7 +880,8 @@ CMSWindowsScreen::onPreDispatchPrimary(HWND,
 							static_cast<SInt32>(lParam));
 
 	case SYNERGY_MSG_MOUSE_WHEEL:
-		return onMouseWheel(static_cast<SInt32>(wParam));
+		// XXX -- support x-axis scrolling
+		return onMouseWheel(0, static_cast<SInt32>(wParam));
 
 	case SYNERGY_MSG_PRE_WARP:
 		{
@@ -1078,11 +1079,13 @@ CMSWindowsScreen::onKey(WPARAM wParam, LPARAM lParam)
 			(state & s_ctrlAlt) == s_ctrlAlt) {
 			LOG((CLOG_DEBUG "emulate ctrl+alt+del"));
 			// switch wParam and lParam to be as if VK_DELETE was
-			// pressed or released
-			wParam  = VK_DELETE;
+			// pressed or released.  when mapping the key we require that
+			// we not use AltGr (the 0x10000 flag in wParam) and we not
+			// use the keypad delete key (the 0x01000000 flag in lParam).
+			wParam  = VK_DELETE | 0x00010000u;
 			lParam &= 0xfe000000;
 			lParam |= m_keyState->virtualKeyToButton(wParam & 0xffu) << 16;
-			lParam |= 0x00000001;
+			lParam |= 0x01000001;
 		}
 
 		// process key
@@ -1271,12 +1274,12 @@ CMSWindowsScreen::onMouseMove(SInt32 mx, SInt32 my)
 }
 
 bool
-CMSWindowsScreen::onMouseWheel(SInt32 delta)
+CMSWindowsScreen::onMouseWheel(SInt32 xDelta, SInt32 yDelta)
 {
 	// ignore message if posted prior to last mark change
 	if (!ignore()) {
-		LOG((CLOG_DEBUG1 "event: button wheel delta=%d", delta));
-		sendEvent(getWheelEvent(), CWheelInfo::alloc(delta));
+		LOG((CLOG_DEBUG1 "event: button wheel delta=%+d,%+d", xDelta, yDelta));
+		sendEvent(getWheelEvent(), CWheelInfo::alloc(xDelta, yDelta));
 	}
 	return true;
 }

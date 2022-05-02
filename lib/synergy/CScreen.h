@@ -155,12 +155,12 @@ public:
 
 	//! Notify of mouse wheel motion
 	/*!
-	Synthesize mouse events to generate mouse wheel motion of \c delta.
-	\c delta is positive for motion away from the user and negative for
-	motion towards the user.  Each wheel click should generate a delta
-	of +/-120.
+	Synthesize mouse events to generate mouse wheel motion of \c xDelta
+	and \c yDelta.  Deltas are positive for motion away from the user or
+	to the right and negative for motion towards the user or to the left.
+	Each wheel click should generate a delta of +/-120.
 	*/
-	void				mouseWheel(SInt32 delta);
+	void				mouseWheel(SInt32 xDelta, SInt32 yDelta);
 
 	//! Notify of options changes
 	/*!

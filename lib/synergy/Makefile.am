@@ -34,6 +34,7 @@ libsynergy_a_SOURCES = 			\
 	IKeyState.cpp				\
 	IPrimaryScreen.cpp			\
 	IScreen.cpp					\
+	KeyTypes.cpp				\
 	ProtocolTypes.cpp			\
 	XScreen.cpp					\
 	XSynergy.cpp				\
@@ -57,7 +58,6 @@ libsynergy_a_SOURCES = 			\
 	MouseTypes.h				\
 	OptionTypes.h				\
 	ProtocolTypes.h				\
-	SpecialKeyNameMap.h			\
 	XScreen.h					\
 	XSynergy.h					\
 	$(NULL)

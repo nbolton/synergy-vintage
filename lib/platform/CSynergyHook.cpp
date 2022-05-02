@@ -186,6 +186,12 @@ static
 bool
 doKeyboardHookHandler(WPARAM wParam, LPARAM lParam)
 {
+	// VK_RSHIFT may be sent with an extended scan code but right shift
+	// is not an extended key so we reset that bit.
+	if (wParam == VK_RSHIFT) {
+		lParam &= ~0x01000000u;
+	}
+
 	PostThreadMessage(g_threadID, SYNERGY_MSG_DEBUG, wParam, lParam);
 
 	// ignore dead key release

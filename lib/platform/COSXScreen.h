@@ -60,7 +60,7 @@ public:
 	virtual void		fakeMouseButton(ButtonID id, bool press) const;
 	virtual void		fakeMouseMove(SInt32 x, SInt32 y) const;
 	virtual void		fakeMouseRelativeMove(SInt32 dx, SInt32 dy) const;
-	virtual void		fakeMouseWheel(SInt32 delta) const;
+	virtual void		fakeMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
 	// IPlatformScreen overrides
 	virtual void		enable();
@@ -85,7 +85,7 @@ protected:
 
 private:
 	void				updateScreenShape();
-	void				postMouseEvent(const CGPoint &) const;
+	void				postMouseEvent(CGPoint&) const;
 	
 	// convenience function to send events
 	void				sendEvent(CEvent::Type type, void* = NULL) const;
@@ -97,7 +97,7 @@ private:
 	// event, false if it is a mouseup event.  macButton is the index
 	// of the button pressed using the mac button mapping.
 	bool				onMouseButton(bool pressed, UInt16 macButton);
-	bool				onMouseWheel(SInt32 delta) const;
+	bool				onMouseWheel(SInt32 xDelta, SInt32 yDelta) const;
 
 	bool				onDisplayChange();
 

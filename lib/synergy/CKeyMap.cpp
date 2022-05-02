@@ -13,10 +13,11 @@
  */
 
 #include "CKeyMap.h"
+#include "KeyTypes.h"
 #include "CLog.h"
-#include "SpecialKeyNameMap.h"
 #include <assert.h>
 #include <ctype.h>
+#include <stdlib.h>
 
 CKeyMap::CNameToKeyMap*			CKeyMap::s_nameToKeyMap      = NULL;
 CKeyMap::CNameToModifierMap*	CKeyMap::s_nameToModifierMap = NULL;
@@ -27,7 +28,15 @@ CKeyMap::CKeyMap() :
 	m_numGroups(0),
 	m_composeAcrossGroups(false)
 {
-	// do nothing
+	m_modifierKeyItem.m_id        = kKeyNone;
+	m_modifierKeyItem.m_group     = 0;
+	m_modifierKeyItem.m_button    = 0;
+	m_modifierKeyItem.m_required  = 0;
+	m_modifierKeyItem.m_sensitive = 0;
+	m_modifierKeyItem.m_generates = 0;
+	m_modifierKeyItem.m_dead      = false;
+	m_modifierKeyItem.m_lock      = false;
+	m_modifierKeyItem.m_client    = 0;
 }
 
 CKeyMap::~CKeyMap()
@@ -279,6 +288,23 @@ CKeyMap::mapKey(Keystrokes& keys, KeyID id, SInt32 group,
 		item = mapModifierKey(keys, id, group, activeModifiers,
 								currentState, desiredMask, isAutoRepeat);
 		break;
+
+	case kKeySetModifiers:
+		if (!keysForModifierState(0, group, activeModifiers, currentState,
+								desiredMask, desiredMask, 0, keys)) {
+			LOG((CLOG_DEBUG1 "unable to set modifiers %04x", desiredMask));
+			return NULL;
+		}
+		return &m_modifierKeyItem;
+
+	case kKeyClearModifiers:
+		if (!keysForModifierState(0, group, activeModifiers, currentState,
+								currentState & ~desiredMask,
+								desiredMask, 0, keys)) {
+			LOG((CLOG_DEBUG1 "unable to clear modifiers %04x", desiredMask));
+			return NULL;
+		}
+		return &m_modifierKeyItem;
 
 	default:
 		if (isCommand(desiredMask)) {
@@ -837,6 +863,12 @@ CKeyMap::keysForModifierState(KeyButton button, SInt32 group,
 {
 	// compute which modifiers need changing
 	KeyModifierMask flipMask = ((currentState ^ requiredState) & sensitiveMask);
+	// if a modifier is not required then don't even try to match it.  if
+	// we don't mask out notRequiredMask then we'll try to match those
+	// modifiers but succeed if we can't.  however, this is known not
+	// to work if the key itself is a modifier (the numlock toggle can
+	// interfere) so we don't try to match at all.
+	flipMask &= ~notRequiredMask;
 	LOG((CLOG_DEBUG1 "flip: %04x (%04x vs %04x in %04x - %04x)", flipMask, currentState, requiredState, sensitiveMask & 0xffffu, notRequiredMask & 0xffffu));
 	if (flipMask == 0) {
 		return true;
@@ -1106,15 +1138,7 @@ CString
 CKeyMap::formatKey(KeyID key, KeyModifierMask mask)
 {
 	// initialize tables
-	if (s_keyToNameMap == NULL) {
-		s_keyToNameMap = new CKeyToNameMap;
-		mkSpecialKeyNameStdMap((*s_keyToNameMap));
-		(*s_keyToNameMap)[' '] = "Space";
-	}
-	if (s_modifierToNameMap == NULL) {
-		s_modifierToNameMap = new CModifierToNameMap;
-		mkModifierNameStdMap((*s_modifierToNameMap));
-	}
+	initKeyNameMaps();
 
 	CString x;
 	for (SInt32 i = 0; i < kKeyModifierNumBits; ++i) {
@@ -1132,6 +1156,9 @@ CKeyMap::formatKey(KeyID key, KeyModifierMask mask)
 		else if (key >= 33 && key < 127) {
 			x += (char)key;
 		}
+		else {
+			x += CStringUtil::print("\\u%04x", key);
+		}
 	}
 	else if (!x.empty()) {
 		// remove trailing '+'
@@ -1144,11 +1171,7 @@ bool
 CKeyMap::parseKey(const CString& x, KeyID& key)
 {
 	// initialize tables
-	if (s_nameToKeyMap == NULL) {
-		s_nameToKeyMap = new CNameToKeyMap;
-		mkSpecialKeyStdMap((*s_nameToKeyMap));
-		(*s_nameToKeyMap)["Space"] = ' ';
-	}
+	initKeyNameMaps();
 
 	// parse the key
 	key = kKeyNone;
@@ -1163,6 +1186,14 @@ CKeyMap::parseKey(const CString& x, KeyID& key)
 		}
 		key = (KeyID)x[0];
 	}
+	else if (x.size() == 6 && x[0] == '\\' && x[1] == 'u') {
+		// escaped unicode (\uXXXX where XXXX is a hex number)
+		char* end;
+		key = (KeyID)strtol(x.c_str() + 2, &end, 16);
+		if (*end != '\0') {
+			return false;
+		}
+	}
 	else if (!x.empty()) {
 		// unknown key
 		return false;
@@ -1175,10 +1206,7 @@ bool
 CKeyMap::parseModifiers(CString& x, KeyModifierMask& mask)
 {
 	// initialize tables
-	if (s_nameToModifierMap == NULL) {
-		s_nameToModifierMap = new CNameToModifierMap;
-		mkModifierStdMap((*s_nameToModifierMap));
-	}
+	initKeyNameMaps();
 
 	mask = 0;
 	CString::size_type tb = x.find_first_not_of(" \t", 0);
@@ -1207,7 +1235,7 @@ CKeyMap::parseModifiers(CString& x, KeyModifierMask& mask)
 			x.erase(0, tb);
 			CString::size_type tb = x.find_first_not_of(" \t");
 			CString::size_type te = x.find_last_not_of(" \t");
-			if (tb == te) {
+			if (tb == CString::npos) {
 				x = "";
 			}
 			else {
@@ -1230,6 +1258,29 @@ CKeyMap::parseModifiers(CString& x, KeyModifierMask& mask)
 	// parsed the whole thing
 	x = "";
 	return true;
+}
+
+void
+CKeyMap::initKeyNameMaps()
+{
+	// initialize tables
+	if (s_nameToKeyMap == NULL) {
+		s_nameToKeyMap = new CNameToKeyMap;
+		s_keyToNameMap = new CKeyToNameMap;
+		for (const KeyNameMapEntry* i = kKeyNameMap; i->m_name != NULL; ++i) {
+			(*s_nameToKeyMap)[i->m_name] = i->m_id;
+			(*s_keyToNameMap)[i->m_id]   = i->m_name;
+		}
+	}
+	if (s_nameToModifierMap == NULL) {
+		s_nameToModifierMap = new CNameToModifierMap;
+		s_modifierToNameMap = new CModifierToNameMap;
+		for (const KeyModifierNameMapEntry* i = kModifierNameMap;
+								i->m_name != NULL; ++i) {
+			(*s_nameToModifierMap)[i->m_name] = i->m_mask;
+			(*s_modifierToNameMap)[i->m_mask] = i->m_name;
+		}
+	}
 }
 
 

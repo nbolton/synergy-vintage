@@ -134,10 +134,11 @@ IPrimaryScreen::CMotionInfo::alloc(SInt32 x, SInt32 y)
 //
 
 IPrimaryScreen::CWheelInfo*
-IPrimaryScreen::CWheelInfo::alloc(SInt32 wheel)
+IPrimaryScreen::CWheelInfo::alloc(SInt32 xDelta, SInt32 yDelta)
 {
 	CWheelInfo* info = (CWheelInfo*)malloc(sizeof(CWheelInfo));
-	info->m_wheel = wheel;
+	info->m_xDelta = xDelta;
+	info->m_yDelta = yDelta;
 	return info;
 }
 

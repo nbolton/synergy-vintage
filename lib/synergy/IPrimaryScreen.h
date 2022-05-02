@@ -49,10 +49,11 @@ public:
 	//! Wheel motion event data
 	class CWheelInfo {
 	public:
-		static CWheelInfo* alloc(SInt32);
+		static CWheelInfo* alloc(SInt32 xDelta, SInt32 yDelta);
 
 	public:
-		SInt32			m_wheel;
+		SInt32			m_xDelta;
+		SInt32			m_yDelta;
 	};
 	//! Hot key event data
 	class CHotKeyInfo {
