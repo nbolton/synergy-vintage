@@ -1,7 +1,7 @@
 # Synergy Vintage 🍷
 
 For vintage computer enthusiasts, Synergy Vintage aims to keep the origins of 
-Synergy alive. You can use Synergy Vintage on operatings systems
+Synergy alive. You can use Synergy Vintage on operating systems
 available from 2001 to 2005; Windows (95, 98, ME, or 2000), Mac OS X 
 (Jaguar to Tiger), and Linux (e.g. Red Hat 7).
 
