@@ -38,12 +38,13 @@ Mac OS X (such as 10.2 and below).
 ### v1.1.10 (12th November 2004)
 
 - Windows (coming soon)
-- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.3.1/Synergy-v1.3.1-release-MacOSX-10.4.zip)
+- [Mac OS X](https://github.com/nbolton/synergy-vintage/releases/download/1.1.10/Synergy-v1.1.10-debug-MacOS-10.3.zip) (debug version)
 - Linux (coming soon)
 
 The Mac OS X download of 1.1.10 is built on Mac OS X Panther 10.3 using the 10.2
 deployment target, so it's likely that this will work on both Mac OS X 10.3 and 10.2,
-but is unlikely to work on earlier versions of Mac OS X such as 10.1.
+but is unlikely to work on earlier versions of Mac OS X such as 10.1. It's also
+a debug version, which is useful for developers.
 
 ## History
 
