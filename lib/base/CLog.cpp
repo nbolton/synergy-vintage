@@ -190,6 +190,8 @@ CLog::insert(ILogOutputter* outputter, bool alwaysAtHead)
 	if (newlineLength > m_maxNewlineLength) {
 		m_maxNewlineLength = newlineLength;
 	}
+	outputter->open(kAppVersion);
+	outputter->show(false);
 }
 
 void
@@ -270,9 +272,6 @@ CLog::output(int priority, char* msg) const
 		// put an appropriate newline at the end
 		strcpy(end, outputter->getNewline());
 
-		// open the outputter
-		outputter->open(kApplication);
-
 		// write message
 		outputter->write(static_cast<ILogOutputter::ELevel>(priority),
 							msg + g_maxPriorityLength - n);
@@ -284,9 +283,6 @@ CLog::output(int priority, char* msg) const
 		
 		// put an appropriate newline at the end
 		strcpy(end, outputter->getNewline());
-
-		// open the outputter
-		outputter->open(kApplication);
 
 		// write message and break out of loop if it returns false
 		if (!outputter->write(static_cast<ILogOutputter::ELevel>(priority),

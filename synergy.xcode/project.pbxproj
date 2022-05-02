@@ -2129,15 +2129,6 @@
 			};
 			name = Deployment;
 		};
-		68FBBAEB089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = lib/common;
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = arch;
-			};
-			name = Default;
-		};
 		68FBBAED089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2172,14 +2163,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBAEF089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = common;
-			};
-			name = Default;
 		};
 		68FBBAF1089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2223,18 +2206,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBAF3089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = base;
-			};
-			name = Default;
 		};
 		68FBBAF5089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2280,19 +2251,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBAF7089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = mt;
-			};
-			name = Default;
 		};
 		68FBBAF9089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2340,20 +2298,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBAFB089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = io;
-			};
-			name = Default;
 		};
 		68FBBAFD089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2403,21 +2347,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBAFF089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = net;
-			};
-			name = Default;
 		};
 		68FBBB01089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2470,22 +2399,6 @@
 			};
 			name = Deployment;
 		};
-		68FBBB03089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = synergy;
-			};
-			name = Default;
-		};
 		68FBBB05089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2536,22 +2449,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBB07089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/synergy,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = platform;
-			};
-			name = Default;
 		};
 		68FBBB09089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2608,24 +2505,6 @@
 			};
 			name = Deployment;
 		};
-		68FBBB0B089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = client;
-			};
-			name = Default;
-		};
 		68FBBB0D089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2680,24 +2559,6 @@
 				ZERO_LINK = NO;
 			};
 			name = Deployment;
-		};
-		68FBBB0F089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-					lib/client,
-				);
-				PRODUCT_NAME = synergyc;
-			};
-			name = Default;
 		};
 		68FBBB11089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
@@ -2754,24 +2615,6 @@
 			};
 			name = Deployment;
 		};
-		68FBBB13089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = server;
-			};
-			name = Default;
-		};
 		68FBBB15089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2827,24 +2670,6 @@
 			};
 			name = Deployment;
 		};
-		68FBBB17089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-					lib/client,
-				);
-				PRODUCT_NAME = synergys;
-			};
-			name = Default;
-		};
 		68FBBB19089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -2878,36 +2703,41 @@
 			};
 			name = Deployment;
 		};
-		68FBBB1B089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				PRODUCT_NAME = ALL;
-			};
-			name = Default;
-		};
 		68FBBB1D089F06C20016DF44 /* Development */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = (
+					ppc,
+					i386,
+				);
+				GCC_VERSION_i386 = 4.0;
+				GCC_VERSION_ppc = 3.3;
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
 				SDKROOT = /Developer/SDKs/MacOSX10.2.8.sdk;
+				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.2.8.sdk;
 			};
 			name = Development;
 		};
 		68FBBB1E089F06C20016DF44 /* Deployment */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = (
+					ppc,
+					i386,
+				);
+				GCC_VERSION_i386 = 4.0;
+				GCC_VERSION_ppc = 3.3;
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
+				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
+				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
 				SDKROOT = /Developer/SDKs/MacOSX10.2.8.sdk;
+				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
+				SDKROOT_ppc = /Developer/SDKs/MacOSX10.2.8.sdk;
 			};
 			name = Deployment;
-		};
-		68FBBB1F089F06C20016DF44 /* Default */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				SDKROOT = /Developer/SDKs/MacOSX10.2.8.sdk;
-			};
-			name = Default;
 		};
 /* End XCBuildConfiguration section */
 
@@ -2917,140 +2747,126 @@
 			buildConfigurations = (
 				68FBBAE9089F06C20016DF44 /* Development */,
 				68FBBAEA089F06C20016DF44 /* Deployment */,
-				68FBBAEB089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBAEC089F06C20016DF44 /* Build configuration list for PBXNativeTarget "common" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBAED089F06C20016DF44 /* Development */,
 				68FBBAEE089F06C20016DF44 /* Deployment */,
-				68FBBAEF089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBAF0089F06C20016DF44 /* Build configuration list for PBXNativeTarget "base" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBAF1089F06C20016DF44 /* Development */,
 				68FBBAF2089F06C20016DF44 /* Deployment */,
-				68FBBAF3089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBAF4089F06C20016DF44 /* Build configuration list for PBXNativeTarget "mt" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBAF5089F06C20016DF44 /* Development */,
 				68FBBAF6089F06C20016DF44 /* Deployment */,
-				68FBBAF7089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBAF8089F06C20016DF44 /* Build configuration list for PBXNativeTarget "io" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBAF9089F06C20016DF44 /* Development */,
 				68FBBAFA089F06C20016DF44 /* Deployment */,
-				68FBBAFB089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBAFC089F06C20016DF44 /* Build configuration list for PBXNativeTarget "net" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBAFD089F06C20016DF44 /* Development */,
 				68FBBAFE089F06C20016DF44 /* Deployment */,
-				68FBBAFF089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB00089F06C20016DF44 /* Build configuration list for PBXNativeTarget "synergy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB01089F06C20016DF44 /* Development */,
 				68FBBB02089F06C20016DF44 /* Deployment */,
-				68FBBB03089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB04089F06C20016DF44 /* Build configuration list for PBXNativeTarget "platform" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB05089F06C20016DF44 /* Development */,
 				68FBBB06089F06C20016DF44 /* Deployment */,
-				68FBBB07089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB08089F06C20016DF44 /* Build configuration list for PBXNativeTarget "client" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB09089F06C20016DF44 /* Development */,
 				68FBBB0A089F06C20016DF44 /* Deployment */,
-				68FBBB0B089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB0C089F06C20016DF44 /* Build configuration list for PBXNativeTarget "synergyc" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB0D089F06C20016DF44 /* Development */,
 				68FBBB0E089F06C20016DF44 /* Deployment */,
-				68FBBB0F089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB10089F06C20016DF44 /* Build configuration list for PBXNativeTarget "server" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB11089F06C20016DF44 /* Development */,
 				68FBBB12089F06C20016DF44 /* Deployment */,
-				68FBBB13089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB14089F06C20016DF44 /* Build configuration list for PBXNativeTarget "synergys" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB15089F06C20016DF44 /* Development */,
 				68FBBB16089F06C20016DF44 /* Deployment */,
-				68FBBB17089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB18089F06C20016DF44 /* Build configuration list for PBXAggregateTarget "ALL" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB19089F06C20016DF44 /* Development */,
 				68FBBB1A089F06C20016DF44 /* Deployment */,
-				68FBBB1B089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 		68FBBB1C089F06C20016DF44 /* Build configuration list for PBXProject "synergy" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				68FBBB1D089F06C20016DF44 /* Development */,
 				68FBBB1E089F06C20016DF44 /* Deployment */,
-				68FBBB1F089F06C20016DF44 /* Default */,
 			);
 			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Default;
+			defaultConfigurationName = Development;
 		};
 /* End XCConfigurationList section */
 	};

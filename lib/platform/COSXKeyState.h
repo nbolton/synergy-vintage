@@ -115,6 +115,15 @@ private:
 							UInt32 virtualKey, KeyID id,
 							bool down, KeyModifierMask newMask);
 
+	// Checks if any in \p ids is a glyph key and if \p isCommand is false.
+	// If so it adds the AltGr modifier to \p mask.  This allows OS X
+	// servers to use the option key both as AltGr and as a modifier.  If
+	// option is acting as AltGr (i.e. it generates a glyph and there are
+	// no command modifiers active) then we don't send the super modifier
+	// to clients because they'd try to match it as a command modifier.
+	void				adjustAltGrModifier(const CKeyIDs& ids,
+							KeyModifierMask* mask, bool isCommand) const;
+
 	// Maps an OS X virtual key id to a KeyButton.  This simply remaps
 	// the ids so we don't use KeyButton 0.
 	static KeyButton	mapVirtualKeyToKeyButton(UInt32 keyCode);

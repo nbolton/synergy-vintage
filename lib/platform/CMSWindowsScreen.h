@@ -70,6 +70,8 @@ public:
 	virtual UInt32		registerHotKey(KeyID key,
 							KeyModifierMask mask);
 	virtual void		unregisterHotKey(UInt32 id);
+	virtual void		fakeInputBegin();
+	virtual void		fakeInputEnd();
 	virtual SInt32		getJumpZoneSize() const;
 	virtual bool		isAnyMouseButtonDown() const;
 	virtual void		getCursorCenter(SInt32& x, SInt32& y) const;

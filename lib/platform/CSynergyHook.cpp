@@ -99,6 +99,7 @@ static LPARAM			g_deadLParam      = 0;
 static BYTE				g_deadKeyState[256] = { 0 };
 static DWORD			g_hookThread      = 0;
 static DWORD			g_attachedThread  = 0;
+static bool				g_fakeInput       = false;
 
 #if defined(_MSC_VER)
 #pragma data_seg()
@@ -186,12 +187,36 @@ static
 bool
 doKeyboardHookHandler(WPARAM wParam, LPARAM lParam)
 {
+	// check for special events indicating if we should start or stop
+	// passing events through and not report them to the server.  this
+	// is used to allow the server to synthesize events locally but
+	// not pick them up as user events.
+	if (wParam == SYNERGY_HOOK_FAKE_INPUT_VIRTUAL_KEY &&
+		((lParam >> 16) & 0xffu) == SYNERGY_HOOK_FAKE_INPUT_SCANCODE) {
+		// update flag
+		g_fakeInput = ((lParam & 0x80000000u) == 0);
+		PostThreadMessage(g_threadID, SYNERGY_MSG_DEBUG,
+								0xff000000u | wParam, lParam);
+
+		// discard event
+		return true;
+	}
+
+	// if we're expecting fake input then just pass the event through
+	// and do not forward to the server
+	if (g_fakeInput) {
+		PostThreadMessage(g_threadID, SYNERGY_MSG_DEBUG,
+								0xfe000000u | wParam, lParam);
+		return false;
+	}
+
 	// VK_RSHIFT may be sent with an extended scan code but right shift
 	// is not an extended key so we reset that bit.
 	if (wParam == VK_RSHIFT) {
 		lParam &= ~0x01000000u;
 	}
 
+	// tell server about event
 	PostThreadMessage(g_threadID, SYNERGY_MSG_DEBUG, wParam, lParam);
 
 	// ignore dead key release
@@ -775,7 +800,7 @@ init(DWORD threadID)
 
 	// save thread id.  we'll post messages to this thread's
 	// message queue.
-	g_threadID     = threadID;
+	g_threadID  = threadID;
 
 	// set defaults
 	g_mode      = kHOOK_DISABLE;
@@ -817,6 +842,9 @@ install()
 	// discard old dead keys
 	g_deadVirtKey = 0;
 	g_deadLParam  = 0;
+
+	// reset fake input flag
+	g_fakeInput = false;
 
 	// check for mouse wheel support
 	g_wheelSupport = getWheelSupport();

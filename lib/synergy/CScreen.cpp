@@ -27,7 +27,8 @@ CScreen::CScreen(IPlatformScreen* platformScreen) :
 	m_isPrimary(platformScreen->isPrimary()),
 	m_enabled(false),
 	m_entered(m_isPrimary),
-	m_screenSaverSync(true)
+	m_screenSaverSync(true),
+	m_fakeInput(false)
 {
 	assert(m_screen != NULL);
 
@@ -173,7 +174,7 @@ CScreen::screensaver(bool activate)
 void
 CScreen::keyDown(KeyID id, KeyModifierMask mask, KeyButton button)
 {
-	assert(!m_isPrimary);
+	assert(!m_isPrimary || m_fakeInput);
 
 	// check for ctrl+alt+del emulation
 	if (id == kKeyDelete &&
@@ -198,7 +199,7 @@ CScreen::keyRepeat(KeyID id,
 void
 CScreen::keyUp(KeyID, KeyModifierMask, KeyButton button)
 {
-	assert(!m_isPrimary);
+	assert(!m_isPrimary || m_fakeInput);
 	m_screen->fakeKeyUp(button);
 }
 
@@ -328,6 +329,24 @@ void
 CScreen::unregisterHotKey(UInt32 id)
 {
 	m_screen->unregisterHotKey(id);
+}
+
+void
+CScreen::fakeInputBegin()
+{
+	assert(!m_fakeInput);
+
+	m_fakeInput = true;
+	m_screen->fakeInputBegin();
+}
+
+void
+CScreen::fakeInputEnd()
+{
+	assert(m_fakeInput);
+
+	m_fakeInput = false;
+	m_screen->fakeInputEnd();
 }
 
 bool

@@ -23,7 +23,8 @@
 
 CPrimaryClient::CPrimaryClient(const CString& name, CScreen* screen) :
 	m_name(name),
-	m_screen(screen)
+	m_screen(screen),
+	m_fakeInputCount(0)
 {
 	// all clipboards are clean
 	for (UInt32 i = 0; i < kClipboardEnd; ++i) {
@@ -52,6 +53,22 @@ void
 CPrimaryClient::unregisterHotKey(UInt32 id)
 {
 	m_screen->unregisterHotKey(id);
+}
+
+void
+CPrimaryClient::fakeInputBegin()
+{
+	if (++m_fakeInputCount == 1) {
+		m_screen->fakeInputBegin();
+	}
+}
+
+void
+CPrimaryClient::fakeInputEnd()
+{
+	if (--m_fakeInputCount == 0) {
+		m_screen->fakeInputEnd();
+	}
 }
 
 SInt32
@@ -162,9 +179,15 @@ CPrimaryClient::setClipboardDirty(ClipboardID id, bool dirty)
 }
 
 void
-CPrimaryClient::keyDown(KeyID, KeyModifierMask, KeyButton)
+CPrimaryClient::keyDown(KeyID key, KeyModifierMask mask, KeyButton button)
 {
-	// ignore
+	if (m_fakeInputCount > 0) {
+// XXX -- don't forward keystrokes to primary screen for now
+		(void)key;
+		(void)mask;
+		(void)button;
+//		m_screen->keyDown(key, mask, button);
+	}
 }
 
 void
@@ -174,9 +197,15 @@ CPrimaryClient::keyRepeat(KeyID, KeyModifierMask, SInt32, KeyButton)
 }
 
 void
-CPrimaryClient::keyUp(KeyID, KeyModifierMask, KeyButton)
+CPrimaryClient::keyUp(KeyID key, KeyModifierMask mask, KeyButton button)
 {
-	// ignore
+	if (m_fakeInputCount > 0) {
+// XXX -- don't forward keystrokes to primary screen for now
+		(void)key;
+		(void)mask;
+		(void)button;
+//		m_screen->keyUp(key, mask, button);
+	}
 }
 
 void

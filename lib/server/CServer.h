@@ -305,6 +305,8 @@ private:
 	void				handleSwitchToScreenEvent(const CEvent&, void*);
 	void				handleSwitchInDirectionEvent(const CEvent&, void*);
 	void				handleLockCursorToScreenEvent(const CEvent&, void*);
+	void				handleFakeInputBeginEvent(const CEvent&, void*);
+	void				handleFakeInputEndEvent(const CEvent&, void*);
 
 	// event processing
 	void				onClipboardChanged(IClient* sender,

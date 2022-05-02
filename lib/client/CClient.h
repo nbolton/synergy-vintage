@@ -89,6 +89,13 @@ public:
 	*/
 	bool				isConnecting() const;
 
+	//! Get address of server
+	/*!
+	Returns the address of the server the client is connected (or wants
+	to connect) to.
+	*/
+	CNetworkAddress		getServerAddress() const;
+
 	//! Get connected event type
 	/*!
 	Returns the connected event type.  This is sent when the client has

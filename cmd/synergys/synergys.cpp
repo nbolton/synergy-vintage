@@ -705,7 +705,11 @@ static
 int
 daemonMainLoop(int, const char**)
 {
-	CSystemLogger sysLogger(DAEMON_NAME);
+#if SYSAPI_WIN32
+	CSystemLogger sysLogger(DAEMON_NAME, false);
+#else
+	CSystemLogger sysLogger(DAEMON_NAME, true);
+#endif
 	return mainLoop();
 }
 
@@ -713,6 +717,10 @@ static
 int
 standardStartup(int argc, char** argv)
 {
+	if (!ARG->m_daemon) {
+		ARCH->showConsole(false);
+	}
+
 	// parse command line
 	parse(argc, argv);
 
@@ -1129,6 +1137,7 @@ public:
 	// ILogOutputter overrides
 	virtual void		open(const char*) { }
 	virtual void		close() { }
+	virtual void		show(bool) { }
 	virtual bool		write(ELevel level, const char* message);
 	virtual const char*	getNewline() const { return ""; }
 };
@@ -1174,7 +1183,7 @@ static
 int
 daemonNTStartup(int, char**)
 {
-	CSystemLogger sysLogger(DAEMON_NAME);
+	CSystemLogger sysLogger(DAEMON_NAME, false);
 	bye = &byeThrow;
 	return ARCH->daemonize(DAEMON_NAME, &daemonNTMainLoop);
 }
@@ -1183,6 +1192,8 @@ static
 int
 foregroundStartup(int argc, char** argv)
 {
+	ARCH->showConsole(false);
+
 	// parse command line
 	parse(argc, argv);
 
@@ -1206,11 +1217,22 @@ int WINAPI
 WinMain(HINSTANCE instance, HINSTANCE, LPSTR, int)
 {
 	try {
+		CArchMiscWindows::setIcons((HICON)LoadImage(instance,
+									MAKEINTRESOURCE(IDI_SYNERGY),
+									IMAGE_ICON,
+									32, 32, LR_SHARED),
+									(HICON)LoadImage(instance,
+									MAKEINTRESOURCE(IDI_SYNERGY),
+									IMAGE_ICON,
+									16, 16, LR_SHARED));
 		CArch arch(instance);
 		CMSWindowsScreen::init(instance);
 		CLOG;
 		CThread::getCurrentThread().setPriority(-14);
 		CArgs args;
+
+		// set title on log window
+		ARCH->openConsole((CString(kAppVersion) + " " + "Server").c_str());
 
 		// windows NT family starts services using no command line options.
 		// since i'm not sure how to tell the difference between that and

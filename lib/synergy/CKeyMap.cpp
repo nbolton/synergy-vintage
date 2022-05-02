@@ -98,7 +98,7 @@ CKeyMap::addKeyEntry(const KeyItem& item)
 
 	// add item list
 	entries.push_back(items);
-	LOG((CLOG_DEBUG1 "add key: %04x %d %03x (%04x %04x %04x)%s", newItem.m_id, newItem.m_group, newItem.m_button, newItem.m_required, newItem.m_sensitive, newItem.m_generates, newItem.m_dead ? " dead" : ""));
+	LOG((CLOG_DEBUG1 "add key: %04x %d %03x %04x (%04x %04x %04x)%s", newItem.m_id, newItem.m_group, newItem.m_button, newItem.m_client, newItem.m_required, newItem.m_sensitive, newItem.m_generates, newItem.m_dead ? " dead" : ""));
 }
 
 void
@@ -553,6 +553,10 @@ CKeyMap::mapCommandKey(Keystrokes& keys, KeyID id, SInt32 group,
 	ModifierToKeys newModifiers = activeModifiers;
 	KeyModifierMask newState    = currentState;
 	SInt32 newGroup             = group;
+
+	// don't try to change CapsLock
+	desiredMask = (desiredMask & ~KeyModifierCapsLock) |
+					(currentState & KeyModifierCapsLock);
 
 	// add the key
 	if (!keysForKeyItem(*keyItem, newGroup, newModifiers,
@@ -1040,8 +1044,8 @@ CKeyMap::addKeystrokes(EKeystroke type, const KeyItem& keyItem,
 				activeModifiers.equal_range(keyItem.m_generates);
 			for (ModifierToKeys::const_iterator i = range.first;
 								i != range.second; ++i) {
-				keystrokes.push_back(Keystroke(
-								i->second.m_button, false, false, data));
+				keystrokes.push_back(Keystroke(i->second.m_button,
+								false, false, i->second.m_client));
 			}
 		}
 

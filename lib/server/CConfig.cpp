@@ -589,6 +589,11 @@ CConfig::operator==(const CConfig& x) const
 		}
 	}
 
+	// compare input filters
+	if (m_inputFilter != x.m_inputFilter) {
+		return false;
+	}
+
 	return true;
 }
 

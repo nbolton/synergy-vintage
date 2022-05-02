@@ -129,6 +129,18 @@ public:
 	*/
 	void				installScreensaverHooks(bool install);
 
+	//! Start ignoring user input
+	/*!
+	Starts ignoring user input so we don't pick up our own synthesized events.
+	*/
+	void				fakeInputBegin();
+
+	//! Stop ignoring user input
+	/*!
+	Undoes whatever \c fakeInputBegin() did.
+	*/
+	void				fakeInputEnd();
+
 	//@}
 	//! @name accessors
 	//@{

@@ -33,6 +33,8 @@ typedef DWORD EXECUTION_STATE;
 CArchMiscWindows::CDialogs* CArchMiscWindows::s_dialogs   = NULL;
 DWORD						CArchMiscWindows::s_busyState = 0;
 CArchMiscWindows::STES_t	CArchMiscWindows::s_stes      = NULL;
+HICON						CArchMiscWindows::s_largeIcon = NULL;
+HICON						CArchMiscWindows::s_smallIcon = NULL;
 
 void
 CArchMiscWindows::init()
@@ -85,6 +87,20 @@ CArchMiscWindows::isWindowsModern()
 		init = true;
 	}
 	return result;
+}
+
+void
+CArchMiscWindows::setIcons(HICON largeIcon, HICON smallIcon)
+{
+	s_largeIcon = largeIcon;
+	s_smallIcon = smallIcon;
+}
+
+void
+CArchMiscWindows::getIcons(HICON& largeIcon, HICON& smallIcon)
+{
+	largeIcon = s_largeIcon;
+	smallIcon = s_smallIcon;
 }
 
 int

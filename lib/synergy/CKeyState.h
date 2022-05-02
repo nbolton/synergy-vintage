@@ -95,6 +95,14 @@ protected:
 	*/
 	virtual void		fakeKey(const Keystroke& keystroke) = 0;
 
+	//! Get the active modifiers
+	/*!
+	Returns the modifiers that are currently active according to our
+	shadowed state.  The state may be modified.
+	*/
+	virtual KeyModifierMask&
+						getActiveModifiersRValue();
+
 	//@}
 	//! @name protected accessors
 	//@{

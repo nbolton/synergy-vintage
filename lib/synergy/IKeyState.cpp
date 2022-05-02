@@ -133,3 +133,33 @@ IKeyState::CKeyInfo::contains(const char* screens, const CString& name)
 	match += ":";
 	return (strstr(screens, match.c_str()) != NULL);
 }
+
+bool
+IKeyState::CKeyInfo::equal(const CKeyInfo* a, const CKeyInfo* b)
+{
+	return (a->m_key    == b->m_key &&
+			a->m_mask   == b->m_mask &&
+			a->m_button == b->m_button &&
+			a->m_count  == b->m_count &&
+			strcmp(a->m_screens, b->m_screens) == 0);
+}
+
+void
+IKeyState::CKeyInfo::split(const char* screens, std::set<CString>& dst)
+{
+	dst.clear();
+	if (isDefault(screens)) {
+		return;
+	}
+	if (screens[0] == '*') {
+		dst.insert("*");
+		return;
+	}
+
+	const char* i = screens + 1;
+	while (*i != '\0') {
+		const char* j = strchr(i, ':');
+		dst.insert(CString(i, j - i));
+		i = j + 1;
+	}
+}

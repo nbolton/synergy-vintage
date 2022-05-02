@@ -137,6 +137,15 @@ CServer::CServer(const CConfig& config, CPrimaryClient* primaryClient) :
 							m_inputFilter,
 							new TMethodEventJob<CServer>(this,
 								&CServer::handleLockCursorToScreenEvent));
+	EVENTQUEUE->adoptHandler(IPlatformScreen::getFakeInputBeginEvent(),
+							m_inputFilter,
+							new TMethodEventJob<CServer>(this,
+								&CServer::handleFakeInputBeginEvent));
+	EVENTQUEUE->adoptHandler(IPlatformScreen::getFakeInputEndEvent(),
+							m_inputFilter,
+							new TMethodEventJob<CServer>(this,
+								&CServer::handleFakeInputEndEvent));
+
 	// add connection
 	addClient(m_primaryClient);
 
@@ -171,6 +180,10 @@ CServer::~CServer()
 							m_primaryClient->getEventTarget());
 	EVENTQUEUE->removeHandler(IPlatformScreen::getScreensaverDeactivatedEvent(),
 							m_primaryClient->getEventTarget());
+	EVENTQUEUE->removeHandler(IPlatformScreen::getFakeInputBeginEvent(),
+							m_inputFilter);
+	EVENTQUEUE->removeHandler(IPlatformScreen::getFakeInputEndEvent(),
+							m_inputFilter);
 	EVENTQUEUE->removeHandler(CEvent::kTimer, this);
 	stopSwitch();
 
@@ -1370,6 +1383,18 @@ CServer::handleLockCursorToScreenEvent(const CEvent& event, void*)
 			stopRelativeMoves();
 		}
 	}
+}
+
+void
+CServer::handleFakeInputBeginEvent(const CEvent&, void*)
+{
+	m_primaryClient->fakeInputBegin();
+}
+
+void
+CServer::handleFakeInputEndEvent(const CEvent&, void*)
+{
+	m_primaryClient->fakeInputEnd();
 }
 
 void

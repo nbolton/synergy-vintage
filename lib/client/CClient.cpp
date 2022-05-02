@@ -163,6 +163,12 @@ CClient::isConnecting() const
 	return (m_timer != NULL);
 }
 
+CNetworkAddress
+CClient::getServerAddress() const
+{
+	return m_serverAddress;
+}
+
 CEvent::Type
 CClient::getConnectedEvent()
 {

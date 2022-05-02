@@ -18,6 +18,7 @@ MSWINDOWS_SOURCE_FILES =	\
 	CAdvancedOptions.cpp	\
 	CAutoStart.cpp			\
 	CGlobalOptions.cpp		\
+	CHotkeyOptions.cpp		\
 	CInfo.cpp				\
 	CScreensLinks.cpp		\
 	LaunchUtil.cpp			\
@@ -26,6 +27,7 @@ MSWINDOWS_SOURCE_FILES =	\
 	CAdvancedOptions.h		\
 	CAutoStart.h			\
 	CGlobalOptions.h		\
+	CHotkeyOptions.h		\
 	CInfo.h					\
 	CScreensLinks.h			\
 	LaunchUtil.h			\

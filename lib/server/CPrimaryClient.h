@@ -56,6 +56,21 @@ public:
 	*/
 	void				unregisterHotKey(UInt32 id);
 
+	//! Prepare to synthesize input on primary screen
+	/*!
+	Prepares the primary screen to receive synthesized input.  We do not
+	want to receive this synthesized input as user input so this method
+	ensures that we ignore it.  Calls to \c fakeInputBegin() and
+	\c fakeInputEnd() may be nested;  only the outermost have an effect.
+	*/
+	void				fakeInputBegin();
+
+	//! Done synthesizing input on primary screen
+	/*!
+	Undoes whatever \c fakeInputBegin() did.
+	*/
+	void				fakeInputEnd();
+
 	//@}
 	//! @name accessors
 	//@{
@@ -126,6 +141,7 @@ private:
 	CString				m_name;
 	CScreen*			m_screen;
 	bool				m_clipboardDirty[kClipboardEnd];
+	SInt32				m_fakeInputCount;
 };
 
 #endif

@@ -18,6 +18,7 @@
 #include "COSXKeyState.h"
 #include "COSXScreenSaver.h"
 #include "CClipboard.h"
+#include "CKeyMap.h"
 #include "CCondVar.h"
 #include "CLock.h"
 #include "CMutex.h"
@@ -288,6 +289,18 @@ COSXScreen::warpCursor(SInt32 x, SInt32 y)
 	m_cursorPosValid = true;
 }
 
+void
+COSXScreen::fakeInputBegin()
+{
+	// FIXME -- not implemented
+}
+
+void
+COSXScreen::fakeInputEnd()
+{
+	// FIXME -- not implemented
+}
+
 SInt32
 COSXScreen::getJumpZoneSize() const
 {
@@ -346,20 +359,19 @@ COSXScreen::registerHotKey(KeyID key, KeyModifierMask mask)
 								GetApplicationEventTarget(), 0,
 								&ref);
 		okay = (status == noErr);
-LOG((CLOG_INFO "map hotkey %d %08x", macKey, macMask));
 		m_hotKeyToIDMap[CHotKeyItem(macKey, macMask)] = id;
 	}
 
 	if (!okay) {
 		m_oldHotKeyIDs.push_back(id);
 		m_hotKeyToIDMap.erase(CHotKeyItem(macKey, macMask));
-		LOG((CLOG_WARN "failed to register hotkey id=%04x mask=%04x", key, mask));
+		LOG((CLOG_WARN "failed to register hotkey %s (id=%04x mask=%04x)", CKeyMap::formatKey(key, mask).c_str(), key, mask));
 		return 0;
 	}
 
 	m_hotKeys.insert(std::make_pair(id, CHotKeyItem(ref, macKey, macMask)));
 	
-	LOG((CLOG_DEBUG "registered hotkey id=%04x mask=%04x as id=%d", key, mask, id));
+	LOG((CLOG_DEBUG "registered hotkey %s (id=%04x mask=%04x) as id=%d", CKeyMap::formatKey(key, mask).c_str(), key, mask, id));
 	return id;
 }
 
@@ -1176,6 +1188,15 @@ COSXScreen::onKey(EventRef event)
 		return false;
 	}
 
+	// check for AltGr in mask.  if set we send neither the AltGr nor
+	// the super modifiers to clients then remove AltGr before passing
+	// the modifiers to onKey.
+	KeyModifierMask sendMask = (mask & ~KeyModifierAltGr);
+	if ((mask & KeyModifierAltGr) != 0) {
+		sendMask &= ~KeyModifierSuper;
+	}
+	mask &= ~KeyModifierAltGr;
+
 	// update button state
 	if (down) {
 		m_keyState->onKey(button, true, mask);
@@ -1192,7 +1213,7 @@ COSXScreen::onKey(EventRef event)
 	for (COSXKeyState::CKeyIDs::const_iterator i = keys.begin();
 							i != keys.end(); ++i) {
 		m_keyState->sendKeyEvent(getEventTarget(), down, isRepeat,
-							*i, mask, 1, button);
+							*i, sendMask, 1, button);
 	}
 
 	return true;

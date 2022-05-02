@@ -188,11 +188,20 @@ COSXKeyState::mapKeyFromEvent(CKeyIDs& ids,
 	}
 
 	// get the event modifiers and remove the command and control
-	// keys.
+	// keys.  note if we used them though.
 	UInt32 modifiers;
 	GetEventParameter(event, kEventParamKeyModifiers, typeUInt32,
 								NULL, sizeof(modifiers), NULL, &modifiers);
-	modifiers &= ~(cmdKey | controlKey | rightControlKey);
+	static const UInt32 s_commandModifiers =
+		cmdKey | controlKey | rightControlKey;
+	bool isCommand = ((modifiers & s_commandModifiers) != 0);
+	modifiers &= ~s_commandModifiers;
+
+	// if we've used a command key then we want the glyph produced without
+	// the option key (i.e. the base glyph).
+	if (isCommand) {
+		modifiers &= ~optionKey;
+	}
 
 	// translate via uchr resource
 	const void* resource;
@@ -229,6 +238,7 @@ COSXKeyState::mapKeyFromEvent(CKeyIDs& ids,
 				for (UniCharCount i = 0; i < count; ++i) {
 					ids.push_back(CKeyResource::unicharToKeyID(chars[i]));
 				}
+				adjustAltGrModifier(ids, maskOut, isCommand);
 				return mapVirtualKeyToKeyButton(vkCode);
 			}
 			return 0;
@@ -254,6 +264,7 @@ COSXKeyState::mapKeyFromEvent(CKeyIDs& ids,
 				ids.push_back(CKeyResource::getKeyID(c1));
 			}
 			ids.push_back(CKeyResource::getKeyID(c2));
+			adjustAltGrModifier(ids, maskOut, isCommand);
 			return mapVirtualKeyToKeyButton(vkCode);
 		}
 	}
@@ -640,6 +651,23 @@ COSXKeyState::checkKeyboardLayout()
 	if (getGroups(groups) && groups != m_groups) {
 		updateKeyMap();
 		updateKeyState();
+	}
+}
+
+void
+COSXKeyState::adjustAltGrModifier(const CKeyIDs& ids,
+				KeyModifierMask* mask, bool isCommand) const
+{
+	if (!isCommand) {
+		for (CKeyIDs::const_iterator i = ids.begin(); i != ids.end(); ++i) {
+			KeyID id = *i;
+			if (id != kKeyNone &&
+				((id < 0xe000u || id > 0xefffu) ||
+				(id >= kKeyKP_Equal && id <= kKeyKP_9))) {
+				*mask |= KeyModifierAltGr;
+				return;
+			}
+		}
 	}
 }
 

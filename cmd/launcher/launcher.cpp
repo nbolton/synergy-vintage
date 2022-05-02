@@ -31,6 +31,7 @@
 #include "CAdvancedOptions.h"
 #include "CAutoStart.h"
 #include "CGlobalOptions.h"
+#include "CHotkeyOptions.h"
 #include "CInfo.h"
 #include "CScreensLinks.h"
 
@@ -61,6 +62,7 @@ HINSTANCE s_instance = NULL;
 
 static CGlobalOptions*		s_globalOptions   = NULL;
 static CAdvancedOptions*	s_advancedOptions = NULL;
+static CHotkeyOptions*		s_hotkeyOptions   = NULL;
 static CScreensLinks*		s_screensLinks    = NULL;
 static CInfo*				s_info            = NULL;
 
@@ -118,6 +120,8 @@ enableMainWindowControls(HWND hwnd)
 	enableItem(hwnd, IDC_MAIN_CLIENT_SERVER_NAME_EDIT, client);
 	enableItem(hwnd, IDC_MAIN_SERVER_SCREENS_LABEL, !client);
 	enableItem(hwnd, IDC_MAIN_SCREENS, !client);
+	enableItem(hwnd, IDC_MAIN_OPTIONS, !client);
+	enableItem(hwnd, IDC_MAIN_HOTKEYS, !client);
 }
 
 static
@@ -244,9 +248,21 @@ getCommandLine(HWND hwnd, bool testing, bool silent)
 }
 
 static
-HANDLE
-launchApp(HWND hwnd, bool testing, DWORD* threadID)
+bool
+launchApp(HWND hwnd, bool testing, HANDLE* thread, DWORD* threadID)
 {
+	if (thread != NULL) {
+		*thread = NULL;
+	}
+	if (threadID != NULL) {
+		*threadID = 0;
+	}
+
+	// start daemon if it's installed and we're not testing
+	if (!testing && CAutoStart::startDaemon()) {
+		return true;
+	}
+
 	// decide if client or server
 	const bool isClient = isClientChecked(hwnd);
 	const char* app = isClient ? CLIENT_APP : SERVER_APP;
@@ -254,7 +270,7 @@ launchApp(HWND hwnd, bool testing, DWORD* threadID)
 	// prepare command line
 	CString cmdLine = getCommandLine(hwnd, testing, false);
 	if (cmdLine.empty()) {
-		return NULL;
+		return false;
 	}
 
 	// start child
@@ -263,19 +279,21 @@ launchApp(HWND hwnd, bool testing, DWORD* threadID)
 		showError(hwnd, CStringUtil::format(
 								getString(IDS_STARTUP_FAILED).c_str(),
 								getErrorString(GetLastError()).c_str()));
-		return NULL;
+		return false;
 	}
 
 	// don't need process handle
 	CloseHandle(procInfo.hProcess);
 
-	// save thread ID if desired
+	// save thread handle and thread ID if desired
+	if (thread != NULL) {
+		*thread = procInfo.hThread;
+	}
 	if (threadID != NULL) {
 		*threadID = procInfo.dwThreadId;
 	}
 
-	// return thread handle
-	return procInfo.hThread;
+	return true;
 }
 
 static
@@ -583,8 +601,8 @@ mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 			if (saveMainWindow(hwnd, SAVE_NORMAL)) {
 				// launch child app
 				DWORD threadID;
-				HANDLE thread = launchApp(hwnd, testing, &threadID);
-				if (thread == NULL) {
+				HANDLE thread;
+				if (!launchApp(hwnd, testing, &thread, &threadID)) {
 					return 0;
 				}
 
@@ -598,7 +616,9 @@ mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 				}
 				else {
 					// don't need thread handle
-					CloseHandle(thread);
+					if (thread != NULL) {
+						CloseHandle(thread);
+					}
 
 					// notify of success
 					askOkay(hwnd, getString(IDS_STARTED_TITLE),
@@ -636,6 +656,10 @@ mainWndProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 		case IDC_MAIN_ADVANCED:
 			s_advancedOptions->doModal(isClientChecked(hwnd));
+			break;
+
+		case IDC_MAIN_HOTKEYS:
+			s_hotkeyOptions->doModal();
 			break;
 
 		case IDC_MAIN_INFO:
@@ -697,6 +721,7 @@ WinMain(HINSTANCE instance, HINSTANCE, LPSTR cmdLine, int nCmdShow)
 	initMainWindow(mainWindow);
 	s_globalOptions   = new CGlobalOptions(mainWindow, &ARG->m_config);
 	s_advancedOptions = new CAdvancedOptions(mainWindow, &ARG->m_config);
+	s_hotkeyOptions   = new CHotkeyOptions(mainWindow, &ARG->m_config); 
 	s_screensLinks    = new CScreensLinks(mainWindow, &ARG->m_config);
 	s_info            = new CInfo(mainWindow);
 

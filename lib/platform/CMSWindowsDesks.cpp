@@ -14,6 +14,7 @@
 
 #include "CMSWindowsDesks.h"
 #include "CMSWindowsScreen.h"
+#include "CSynergyHook.h"
 #include "IScreenSaver.h"
 #include "XScreen.h"
 #include "CLock.h"
@@ -77,6 +78,8 @@
 #define SYNERGY_MSG_SCREENSAVER		SYNERGY_HOOK_LAST_MSG + 10
 // dx; dy
 #define SYNERGY_MSG_FAKE_REL_MOVE	SYNERGY_HOOK_LAST_MSG + 11
+// enable; <unused>
+#define SYNERGY_MSG_FAKE_INPUT		SYNERGY_HOOK_LAST_MSG + 12
 
 //
 // CMSWindowsDesks
@@ -209,6 +212,18 @@ CMSWindowsDesks::installScreensaverHooks(bool install)
 		m_screensaverNotify = install;
 		sendMessage(SYNERGY_MSG_SCREENSAVER, install, 0);
 	}
+}
+
+void
+CMSWindowsDesks::fakeInputBegin()
+{
+	sendMessage(SYNERGY_MSG_FAKE_INPUT, 1, 0);
+}
+
+void
+CMSWindowsDesks::fakeInputEnd()
+{
+	sendMessage(SYNERGY_MSG_FAKE_INPUT, 0, 0);
 }
 
 void
@@ -805,6 +820,12 @@ CMSWindowsDesks::deskThread(void* vdesk)
 			else {
 				m_uninstallScreensaver();
 			}
+			break;
+
+		case SYNERGY_MSG_FAKE_INPUT:
+			keybd_event(SYNERGY_HOOK_FAKE_INPUT_VIRTUAL_KEY,
+								SYNERGY_HOOK_FAKE_INPUT_SCANCODE,
+								msg.wParam ? 0 : KEYEVENTF_KEYUP, 0);
 			break;
 		}
 

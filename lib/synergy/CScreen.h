@@ -194,6 +194,21 @@ public:
 	*/
 	void				unregisterHotKey(UInt32 id);
 
+	//! Prepare to synthesize input on primary screen
+	/*!
+	Prepares the primary screen to receive synthesized input.  We do not
+	want to receive this synthesized input as user input so this method
+	ensures that we ignore it.  Calls to \c fakeInputBegin() may not be
+	nested.
+	*/
+	void				fakeInputBegin();
+
+	//! Done synthesizing input on primary screen
+	/*!
+	Undoes whatever \c fakeInputBegin() did.
+	*/
+	void				fakeInputEnd();
+
 	//@}
 	//! @name accessors
 	//@{
@@ -281,6 +296,9 @@ private:
 	// note toggle keys that toggles on up/down (false) or on
 	// transition (true)
 	KeyModifierMask		m_halfDuplex;
+
+	// true if we're faking input on a primary screen
+	bool				m_fakeInput;
 };
 
 #endif

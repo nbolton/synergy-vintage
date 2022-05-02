@@ -200,7 +200,7 @@ const KeyID				CMSWindowsKeyState::s_virtualKey[] =
 	/* 0x0a2 */ { kKeyControl_L },	// VK_LCONTROL
 	/* 0x0a3 */ { kKeyControl_R },	// VK_RCONTROL
 	/* 0x0a4 */ { kKeyAlt_L },		// VK_LMENU
-	/* 0x0a5 */ { kKeyAltGr },		// VK_RMENU
+	/* 0x0a5 */ { kKeyAlt_R },		// VK_RMENU
 	/* 0x0a6 */ { kKeyNone },		// VK_BROWSER_BACK
 	/* 0x0a7 */ { kKeyNone },		// VK_BROWSER_FORWARD
 	/* 0x0a8 */ { kKeyNone },		// VK_BROWSER_REFRESH
@@ -457,7 +457,7 @@ const KeyID				CMSWindowsKeyState::s_virtualKey[] =
 	/* 0x1a2 */ { kKeyControl_L },	// VK_LCONTROL
 	/* 0x1a3 */ { kKeyControl_R },	// VK_RCONTROL
 	/* 0x1a4 */ { kKeyAlt_L },		// VK_LMENU
-	/* 0x1a5 */ { kKeyAltGr },		// VK_RMENU
+	/* 0x1a5 */ { kKeyAlt_R },		// VK_RMENU
 	/* 0x1a6 */ { kKeyWWWBack },	// VK_BROWSER_BACK
 	/* 0x1a7 */ { kKeyWWWForward },	// VK_BROWSER_FORWARD
 	/* 0x1a8 */ { kKeyWWWRefresh },	// VK_BROWSER_REFRESH
@@ -578,7 +578,10 @@ CMSWindowsKeyState::CMSWindowsKeyState(CMSWindowsDesks* desks,
 	m_desks(desks),
 	m_keyLayout(GetKeyboardLayout(0)),
 	m_fixTimer(NULL),
-	m_anyAltGr(true)
+	m_lastDown(0),
+	m_useSavedModifiers(false),
+	m_savedModifiers(0),
+	m_originalSavedModifiers(0)
 {
 	// look up symbol that's available on winNT family but not win95
 	HMODULE userModule = GetModuleHandle("user32.dll");
@@ -598,6 +601,7 @@ CMSWindowsKeyState::disable()
 		EVENTQUEUE->deleteTimer(m_fixTimer);
 		m_fixTimer = NULL;
 	}
+	m_lastDown = 0;
 }
 
 KeyButton
@@ -612,11 +616,48 @@ CMSWindowsKeyState::setKeyLayout(HKL keyLayout)
 	m_keyLayout = keyLayout;
 }
 
+bool
+CMSWindowsKeyState::testAutoRepeat(bool press, bool isRepeat, KeyButton button)
+{
+	if (!isRepeat) {
+		isRepeat = (press && m_lastDown != 0 && button == m_lastDown);
+	}
+	if (press) {
+		m_lastDown = button;
+	}
+	else {
+		m_lastDown = 0;
+	}
+	return isRepeat;
+}
+
+void
+CMSWindowsKeyState::saveModifiers()
+{
+	m_savedModifiers         = getActiveModifiers();
+	m_originalSavedModifiers = m_savedModifiers;
+}
+
+void
+CMSWindowsKeyState::useSavedModifiers(bool enable)
+{
+	if (enable != m_useSavedModifiers) {
+		m_useSavedModifiers = enable;
+		if (!m_useSavedModifiers) {
+			// transfer any modifier state changes to CKeyState's state
+			KeyModifierMask mask = m_originalSavedModifiers ^ m_savedModifiers;
+			getActiveModifiersRValue() =
+				(getActiveModifiers() & ~mask) | (m_savedModifiers & mask);
+		}
+	}
+}
+
 KeyID
 CMSWindowsKeyState::mapKeyFromEvent(WPARAM charAndVirtKey,
 				LPARAM info, KeyModifierMask* maskOut) const
 {
-	static const KeyModifierMask s_altGr = KeyModifierControl | KeyModifierAlt;
+	static const KeyModifierMask s_controlAlt =
+		KeyModifierControl | KeyModifierAlt;
 
 	// extract character, virtual key, and if we didn't use AltGr
 	char c       = (char)((charAndVirtKey & 0xff00u) >> 8);
@@ -652,12 +693,12 @@ CMSWindowsKeyState::mapKeyFromEvent(WPARAM charAndVirtKey,
 	// set modifier mask
 	if (maskOut != NULL) {
 		KeyModifierMask active = getActiveModifiers();
-		if (m_anyAltGr && !noAltGr && (active & s_altGr) == s_altGr) {
-			active |=  KeyModifierAltGr;
-			active &= ~s_altGr;
-		}
-		else {
-			active &= ~KeyModifierAltGr;
+		if (!noAltGr && (active & s_controlAlt) == s_controlAlt) {
+			// if !noAltGr then we're only interested in matching the
+			// key, not the AltGr.  AltGr is down (i.e. control and alt
+			// are down) but we don't want the client to have to match
+			// that so we clear it.
+			active &= ~s_controlAlt;
 		}
 		*maskOut = active;
 	}
@@ -703,41 +744,8 @@ CMSWindowsKeyState::sendKeyEvent(void* target,
 							SInt32 count, KeyButton button)
 {
 	if (press || isAutoRepeat) {
-		// if AltGr is required for this key then make sure
-		// the ctrl and alt keys are *not* down on the
-		// client.  windows simulates AltGr with ctrl and
-		// alt for some inexplicable reason and clients
-		// will get confused if they see mode switch and
-		// ctrl and alt.  we'll also need to put ctrl and
-		// alt back the way they were after we simulate
-		// the key.
-		bool ctrlL = isKeyDown(virtualKeyToButton(VK_LCONTROL));
-		bool ctrlR = isKeyDown(virtualKeyToButton(VK_RCONTROL));
-		bool altL  = isKeyDown(virtualKeyToButton(VK_LMENU));
-		if ((mask & KeyModifierAltGr) != 0) {
-			KeyModifierMask mask2 = (mask &
-								~(KeyModifierControl |
-								KeyModifierAlt |
-								KeyModifierAltGr));
-			if (ctrlL) {
-				CKeyState::sendKeyEvent(target, false, false,
-							kKeyControl_L, mask2, 1,
-							virtualKeyToButton(VK_LCONTROL));
-			}
-			if (ctrlR) {
-				CKeyState::sendKeyEvent(target, false, false,
-							kKeyControl_R, mask2, 1,
-							virtualKeyToButton(VK_RCONTROL));
-			}
-			if (altL) {
-				CKeyState::sendKeyEvent(target, false, false,
-							kKeyAlt_L, mask2, 1,
-							virtualKeyToButton(VK_LMENU));
-			}
-		}
-
 		// send key
-		if (press) {
+		if (press && !isAutoRepeat) {
 			CKeyState::sendKeyEvent(target, true, false,
 							key, mask, 1, button);
 			if (count > 0) {
@@ -747,32 +755,6 @@ CMSWindowsKeyState::sendKeyEvent(void* target,
 		if (count >= 1) {
 			CKeyState::sendKeyEvent(target, true, true,
 							key, mask, count, button);
-		}
-
-		// restore ctrl and alt state
-		if ((mask & KeyModifierAltGr) != 0) {
-			KeyModifierMask mask2 = (mask &
-								~(KeyModifierControl |
-								KeyModifierAlt |
-								KeyModifierAltGr));
-			if (ctrlL) {
-				CKeyState::sendKeyEvent(target, true, false,
-							kKeyControl_L, mask2, 1,
-							virtualKeyToButton(VK_LCONTROL));
-				mask2 |= KeyModifierControl;
-			}
-			if (ctrlR) {
-				CKeyState::sendKeyEvent(target, true, false,
-							kKeyControl_R, mask2, 1,
-							virtualKeyToButton(VK_RCONTROL));
-				mask2 |= KeyModifierControl;
-			}
-			if (altL) {
-				CKeyState::sendKeyEvent(target, true, false,
-							kKeyAlt_L, mask2, 1,
-							virtualKeyToButton(VK_LMENU));
-				mask2 |= KeyModifierAlt;
-			}
 		}
 	}
 	else {
@@ -785,36 +767,13 @@ void
 CMSWindowsKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask,
 				KeyButton button)
 {
-	// reserve right alt for AltGr
-	if (m_anyAltGr && id == kKeyAlt_R) {
-		id = kKeyAlt_L;
-	}
-
-	// if we need AltGr then press the left control
-	bool altGr = ((mask & KeyModifierAltGr) != 0) &&
-					!(id >= kKeyShift_L && id <= kKeyHyper_R);
-	if (altGr) {
-		m_desks->fakeKeyEvent(m_virtualKeyToButton[VK_LCONTROL],
-								VK_LCONTROL, true, false);
-	}
-
 	CKeyState::fakeKeyDown(id, mask, button);
-
-	// if we pressed left control for AltGr then release it
-	if (altGr) {
-		m_desks->fakeKeyEvent(m_virtualKeyToButton[VK_LCONTROL],
-								VK_LCONTROL, false, false);
-	}
 }
 
 void
 CMSWindowsKeyState::fakeKeyRepeat(KeyID id, KeyModifierMask mask,
 				SInt32 count, KeyButton button)
 {
-	// reserve right alt for AltGr
-	if (m_anyAltGr && id == kKeyAlt_R) {
-		id = kKeyAlt_L;
-	}
 	CKeyState::fakeKeyRepeat(id, mask, count, button);
 }
 
@@ -934,13 +893,6 @@ CMSWindowsKeyState::getKeyMap(CKeyMap& keyMap)
 	memset(m_virtualKeyToButton, 0, sizeof(m_virtualKeyToButton));
 	m_keyToVKMap.clear();
 
-	// decide if we need the AltGr key or not
-	// XXX -- should check the keyboard layouts to decide this
-	// XXX -- the synergy hook DLL may get ctrl+alt key events for the
-	// right alt key;  it or this object should suppress the ctrl events
-	// that are as a result of the right alt key.
-	m_anyAltGr = true;
-
 	CKeyMap::KeyItem item;
 	SInt32 numGroups = (SInt32)m_groups.size();
 	for (SInt32 g = 0; g < numGroups; ++g) {
@@ -1049,20 +1001,7 @@ CMSWindowsKeyState::getKeyMap(CKeyMap& keyMap)
 			// get the button
 			KeyButton button = static_cast<KeyButton>(MapVirtualKey(i, 0));
 			if (button == 0) {
-				// unmapped
-				if (!m_is95Family) {
-					continue;
-				}
-
-				// the 95 family doesn't map handed virtual keys to
-				// buttons but we need at least VK_RMENU to synthesize
-				// AltGr.
-				if (i == VK_RMENU) {
-					button = static_cast<KeyButton>(MapVirtualKey(VK_MENU, 0));
-				}
-				if (button == 0) {
-					continue;
-				}
+				continue;
 			}
 
 			// deal with certain virtual keys specially
@@ -1151,7 +1090,8 @@ CMSWindowsKeyState::getKeyMap(CKeyMap& keyMap)
 					static const Modifier modifiers[] = {
 						{ VK_SHIFT,   VK_SHIFT,   0x80u, KeyModifierShift    },
 						{ VK_CAPITAL, VK_CAPITAL, 0x01u, KeyModifierCapsLock },
-						{ VK_CONTROL, VK_MENU,    0x80u, KeyModifierAltGr    }
+						{ VK_CONTROL, VK_MENU,    0x80u, KeyModifierControl |
+														 KeyModifierAlt      }
 					};
 					static const size_t s_numModifiers =
 						sizeof(modifiers) / sizeof(modifiers[0]);
@@ -1292,6 +1232,17 @@ CMSWindowsKeyState::fakeKey(const Keystroke& keystroke)
 	}
 }
 
+KeyModifierMask&
+CMSWindowsKeyState::getActiveModifiersRValue()
+{
+	if (m_useSavedModifiers) {
+		return m_savedModifiers;
+	}
+	else {
+		return CKeyState::getActiveModifiersRValue();
+	}
+}
+
 bool
 CMSWindowsKeyState::getGroups(GroupList& groups) const
 {
@@ -1406,11 +1357,8 @@ CMSWindowsKeyState::handleFixKeys(const CEvent&, void*)
 }
 
 KeyID
-CMSWindowsKeyState::getKeyID(UINT virtualKey, KeyButton button) const
+CMSWindowsKeyState::getKeyID(UINT virtualKey, KeyButton button)
 {
-	if (!m_anyAltGr && virtualKey == VK_RMENU) {
-		return kKeyAlt_R;
-	}
 	if ((button & 0x100u) != 0) {
 		virtualKey += 0x100u;
 	}

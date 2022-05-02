@@ -42,6 +42,8 @@ public:
 
 		static bool isDefault(const char* screens);
 		static bool contains(const char* screens, const CString& name);
+		static bool equal(const CKeyInfo*, const CKeyInfo*);
+		static void split(const char* screens, std::set<CString>&);
 
 	public:
 		KeyID			m_key;

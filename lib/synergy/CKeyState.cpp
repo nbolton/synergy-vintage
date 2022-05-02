@@ -541,8 +541,8 @@ CKeyState::fakeKeyDown(KeyID id, KeyModifierMask mask, KeyButton serverID)
 	Keystrokes keys;
 	ModifierToKeys oldActiveModifiers = m_activeModifiers;
 	const CKeyMap::KeyItem* keyItem =
-		m_keyMap.mapKey(keys, id, pollActiveGroup(),
-								m_activeModifiers, m_mask, mask, false);
+		m_keyMap.mapKey(keys, id, pollActiveGroup(), m_activeModifiers,
+								getActiveModifiersRValue(), mask, false);
 	if (keyItem == NULL) {
 		return;
 	}
@@ -577,8 +577,8 @@ CKeyState::fakeKeyRepeat(
 	Keystrokes keys;
 	ModifierToKeys oldActiveModifiers = m_activeModifiers;
 	const CKeyMap::KeyItem* keyItem =
-		m_keyMap.mapKey(keys, id, pollActiveGroup(),
-								m_activeModifiers, m_mask, mask, true);
+		m_keyMap.mapKey(keys, id, pollActiveGroup(), m_activeModifiers,
+								getActiveModifiersRValue(), mask, true);
 	if (keyItem == NULL) {
 		return;
 	}
@@ -685,6 +685,12 @@ CKeyState::isKeyDown(KeyButton button) const
 
 KeyModifierMask
 CKeyState::getActiveModifiers() const
+{
+	return m_mask;
+}
+
+KeyModifierMask&
+CKeyState::getActiveModifiersRValue()
 {
 	return m_mask;
 }

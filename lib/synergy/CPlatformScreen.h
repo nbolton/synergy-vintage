@@ -41,6 +41,8 @@ public:
 	virtual UInt32		registerHotKey(KeyID key,
 							KeyModifierMask mask) = 0;
 	virtual void		unregisterHotKey(UInt32 id) = 0;
+	virtual void		fakeInputBegin() = 0;
+	virtual void		fakeInputEnd() = 0;
 	virtual SInt32		getJumpZoneSize() const = 0;
 	virtual bool		isAnyMouseButtonDown() const = 0;
 	virtual void		getCursorCenter(SInt32& x, SInt32& y) const = 0;

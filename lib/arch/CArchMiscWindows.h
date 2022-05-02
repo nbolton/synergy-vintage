@@ -56,6 +56,18 @@ public:
 	*/
 	static bool			isWindowsModern();
 
+	//! Set the application icons
+	/*!
+	Set the application icons.
+	*/
+	static void			setIcons(HICON largeIcon, HICON smallIcon);
+
+	//! Get the application icons
+	/*!
+	Get the application icons.
+	*/
+	static void			getIcons(HICON& largeIcon, HICON& smallIcon);
+
 	//! Run the daemon
 	/*!
 	Delegates to CArchDaemonWindows.
@@ -172,6 +184,8 @@ private:
 	static CDialogs*	s_dialogs;
 	static DWORD		s_busyState;
 	static STES_t		s_stes;
+	static HICON		s_largeIcon;
+	static HICON		s_smallIcon;
 };
 
 #endif

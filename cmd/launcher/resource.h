@@ -59,6 +59,11 @@
 #define IDS_AUTOSTART_SAVE_FAILED       54
 #define IDS_LOAD_FAILED                 55
 #define IDS_CONFIG_CHANGED              56
+#define IDS_LOCK_MODE_OFF               57
+#define IDS_LOCK_MODE_ON                58
+#define IDS_LOCK_MODE_TOGGLE            59
+#define IDS_ALL_SCREENS                 60
+#define IDS_ACTIVE_SCREEN               61
 #define IDD_MAIN                        101
 #define IDD_ADD                         102
 #define IDD_WAIT                        103
@@ -68,6 +73,10 @@
 #define IDD_GLOBAL_OPTIONS              107
 #define IDD_SCREENS_LINKS               110
 #define IDD_INFO                        111
+#define IDD_HOTKEY_OPTIONS              112
+#define IDD_HOTKEY_CONDITION            113
+#define IDD_HOTKEY_ACTION               114
+#define IDD_HOTKEY_SCREENS              115
 #define IDC_MAIN_CLIENT_RADIO           1000
 #define IDC_MAIN_SERVER_RADIO           1001
 #define IDC_MAIN_CLIENT_SERVER_NAME_LABEL 1002
@@ -79,6 +88,7 @@
 #define IDC_MAIN_AUTOSTART              1008
 #define IDC_MAIN_TEST                   1009
 #define IDC_MAIN_SAVE                   1010
+#define IDC_MAIN_HOTKEYS                1010
 #define IDC_MAIN_DEBUG                  1011
 #define IDC_ADD_SCREEN_NAME_EDIT        1020
 #define IDC_ADD_ALIASES_EDIT            1021
@@ -130,18 +140,44 @@
 #define IDC_INFO_VERSION                1073
 #define IDC_MAIN_INFO                   1074
 #define IDC_INFO_HOSTNAME               1076
+#define IDC_HOTKEY_HOTKEYS              1076
 #define IDC_INFO_IP_ADDRESS             1077
+#define IDC_HOTKEY_ADD_HOTKEY           1077
 #define IDC_INFO_USER_CONFIG            1078
+#define IDC_HOTKEY_REMOVE_HOTKEY        1078
 #define IDC_INFO_SYS_CONFIG             1079
+#define IDC_HOTKEY_EDIT_HOTKEY          1079
+#define IDC_HOTKEY_ACTIONS              1080
+#define IDC_HOTKEY_CONDITION_HOTKEY     1080
+#define IDC_HOTKEY_ACTION_DOWNUP        1081
+#define IDC_HOTKEY_ADD_ACTION           1082
+#define IDC_HOTKEY_ACTION_DOWN          1082
+#define IDC_HOTKEY_REMOVE_ACTION        1083
+#define IDC_HOTKEY_ACTION_UP            1083
+#define IDC_HOTKEY_EDIT_ACTION          1084
+#define IDC_HOTKEY_ACTION_HOTKEY        1085
+#define IDC_HOTKEY_ACTION_SWITCH_TO_LIST 1086
+#define IDC_HOTKEY_ACTION_SWITCH_TO     1087
+#define IDC_HOTKEY_ACTION_SWITCH_IN     1088
+#define IDC_HOTKEY_ACTION_LOCK          1089
+#define IDC_HOTKEY_ACTION_SWITCH_IN_LIST 1090
+#define IDC_HOTKEY_ACTION_LOCK_LIST     1091
+#define IDC_HOTKEY_ACTION_ON_ACTIVATE   1092
+#define IDC_HOTKEY_ACTION_ON_DEACTIVATE 1093
+#define IDC_HOTKEY_ACTION_SCREENS       1094
+#define IDC_HOTKEY_SCREENS_SRC          1095
+#define IDC_HOTKEY_SCREENS_DST          1096
+#define IDC_HOTKEY_SCREENS_ADD          1097
+#define IDC_HOTKEY_SCREENS_REMOVE       1098
 
 // Next default values for new objects
 // 
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_NO_MFC                     1
-#define _APS_NEXT_RESOURCE_VALUE        112
+#define _APS_NEXT_RESOURCE_VALUE        116
 #define _APS_NEXT_COMMAND_VALUE         40001
-#define _APS_NEXT_CONTROL_VALUE         1076
+#define _APS_NEXT_CONTROL_VALUE         1098
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif

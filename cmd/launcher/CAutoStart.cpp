@@ -21,10 +21,10 @@
 #include "LaunchUtil.h"
 #include "resource.h"
 
-#define CLIENT_DAEMON_NAME "Synergy Client"
-#define SERVER_DAEMON_NAME "Synergy Server"
-#define CLIENT_DAEMON_INFO "Uses a shared mouse and keyboard."
-#define SERVER_DAEMON_INFO "Shares this system's mouse and keyboard with others."
+static const char* CLIENT_DAEMON_NAME = "Synergy Client";
+static const char* SERVER_DAEMON_NAME = "Synergy Server";
+static const char* CLIENT_DAEMON_INFO = "Uses a shared mouse and keyboard.";
+static const char* SERVER_DAEMON_INFO = "Shares this system's mouse and keyboard with others.";
 
 //
 // CAutoStartOutputter
@@ -40,6 +40,7 @@ public:
 	// ILogOutputter overrides
 	virtual void		open(const char*) { }
 	virtual void		close() { }
+	virtual void		show(bool) { }
 	virtual bool		write(ELevel level, const char* message);
 	virtual const char*	getNewline() const { return ""; }
 
@@ -138,6 +139,43 @@ CAutoStart::uninstallDaemons(bool client)
 		catch (...) {
 		}
 	}
+}
+
+bool
+CAutoStart::startDaemon()
+{
+	const char* name = NULL;
+	if (ARCH->isDaemonInstalled(CLIENT_DAEMON_NAME, true)) {
+		name = CLIENT_DAEMON_NAME;
+	}
+	else if (ARCH->isDaemonInstalled(SERVER_DAEMON_NAME, true)) {
+		name = SERVER_DAEMON_NAME;
+	}
+	if (name == NULL) {
+		return false;
+	}
+
+	// open service manager
+	SC_HANDLE mgr = OpenSCManager(NULL, NULL, GENERIC_READ);
+	if (mgr == NULL) {
+		return false;
+	}
+
+	// open the service
+	SC_HANDLE service = OpenService(mgr, name, SERVICE_START);
+	if (service == NULL) {
+		CloseServiceHandle(mgr);
+		return false;
+	}
+
+	// start the service
+	BOOL okay = StartService(service, 0, NULL);
+
+	// clean up
+	CloseServiceHandle(service);
+	CloseServiceHandle(mgr);
+
+	return (okay != 0);
 }
 
 bool

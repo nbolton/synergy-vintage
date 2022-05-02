@@ -19,6 +19,7 @@
 #include "CMSWindowsKeyState.h"
 #include "CMSWindowsScreenSaver.h"
 #include "CClipboard.h"
+#include "CKeyMap.h"
 #include "XScreen.h"
 #include "CLock.h"
 #include "CThread.h"
@@ -294,6 +295,10 @@ CMSWindowsScreen::leave()
 		// all messages prior to now are invalid
 		nextMark();
 
+		// remember the modifier state.  this is the modifier state
+		// reflected in the internal keyboard state.
+		m_keyState->saveModifiers();
+
 		// capture events
 		m_setMode(kHOOK_RELAY_EVENTS);
 	}
@@ -533,11 +538,11 @@ CMSWindowsScreen::registerHotKey(KeyID key, KeyModifierMask mask)
 	else {
 		m_oldHotKeyIDs.push_back(id);
 		m_hotKeys.erase(id);
-		LOG((CLOG_WARN "failed to register hotkey id=%04x mask=%04x", key, mask));
+		LOG((CLOG_WARN "failed to register hotkey %s (id=%04x mask=%04x)", CKeyMap::formatKey(key, mask).c_str(), key, mask));
 		return 0;
 	}
 	
-	LOG((CLOG_DEBUG "registered hotkey id=%04x mask=%04x as id=%d", key, mask, id));
+	LOG((CLOG_DEBUG "registered hotkey %s (id=%04x mask=%04x) as id=%d", CKeyMap::formatKey(key, mask).c_str(), key, mask, id));
 	return id;
 }
 
@@ -569,6 +574,28 @@ CMSWindowsScreen::unregisterHotKey(UInt32 id)
 	m_hotKeyToIDMap.erase(i->second);
 	m_hotKeys.erase(i);
 	m_oldHotKeyIDs.push_back(id);
+}
+
+void
+CMSWindowsScreen::fakeInputBegin()
+{
+	assert(m_isPrimary);
+
+	if (!m_isOnScreen) {
+		m_keyState->useSavedModifiers(true);
+	}
+	m_desks->fakeInputBegin();
+}
+
+void
+CMSWindowsScreen::fakeInputEnd()
+{
+	assert(m_isPrimary);
+
+	m_desks->fakeInputEnd();
+	if (!m_isOnScreen) {
+		m_keyState->useSavedModifiers(false);
+	}
 }
 
 SInt32
@@ -1014,6 +1041,11 @@ CMSWindowsScreen::onKey(WPARAM wParam, LPARAM lParam)
 	bool wasDown             = isKeyDown(button);
 	KeyModifierMask oldState = pollActiveModifiers();
 
+	// check for autorepeat
+	if (m_keyState->testAutoRepeat(down, (lParam & 0x40000000u) == 1, button)) {
+		lParam |= 0x40000000u;
+	}
+
 	// if the button is zero then guess what the button should be.
 	// these are badly synthesized key events and logitech software
 	// that maps mouse buttons to keys is known to do this.
@@ -1127,7 +1159,7 @@ CMSWindowsScreen::onKey(WPARAM wParam, LPARAM lParam)
 			// do it
 			m_keyState->sendKeyEvent(getEventTarget(),
 							((lParam & 0x80000000u) == 0),
-							((lParam & 0x40000000u) == 1),
+							((lParam & 0x40000000u) != 0),
 							key, mask, (SInt32)(lParam & 0xffff), button);
 		}
 		else {

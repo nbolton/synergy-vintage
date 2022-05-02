@@ -47,6 +47,13 @@ public:
 	*/
 	static void			uninstallDaemons(bool client);
 
+	//! Starts an installed daemon
+	/*!
+	Returns \c true iff a daemon was started.  This will only start daemons
+	installed for all users.
+	*/
+	static bool			startDaemon();
+
 	//@}
 	//! @name accessors
 	//@{

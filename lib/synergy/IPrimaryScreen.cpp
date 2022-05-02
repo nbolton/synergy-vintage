@@ -27,6 +27,8 @@ CEvent::Type		IPrimaryScreen::s_ssActivatedEvent     = CEvent::kUnknown;
 CEvent::Type		IPrimaryScreen::s_ssDeactivatedEvent   = CEvent::kUnknown;
 CEvent::Type		IPrimaryScreen::s_hotKeyDownEvent      = CEvent::kUnknown;
 CEvent::Type		IPrimaryScreen::s_hotKeyUpEvent        = CEvent::kUnknown;
+CEvent::Type		IPrimaryScreen::s_fakeInputBegin       = CEvent::kUnknown;
+CEvent::Type		IPrimaryScreen::s_fakeInputEnd         = CEvent::kUnknown;
 
 CEvent::Type
 IPrimaryScreen::getButtonDownEvent()
@@ -91,6 +93,20 @@ IPrimaryScreen::getHotKeyUpEvent()
 							"IPrimaryScreen::hotKeyUp");
 }
 
+CEvent::Type
+IPrimaryScreen::getFakeInputBeginEvent()
+{
+	return CEvent::registerTypeOnce(s_fakeInputBegin,
+							"IPrimaryScreen::fakeInputBegin");
+}
+
+CEvent::Type
+IPrimaryScreen::getFakeInputEndEvent()
+{
+	return CEvent::registerTypeOnce(s_fakeInputEnd,
+							"IPrimaryScreen::fakeInputEnd");
+}
+
 
 //
 // IPrimaryScreen::CButtonInfo
@@ -112,6 +128,12 @@ IPrimaryScreen::CButtonInfo::alloc(const CButtonInfo& x)
 	info->m_button = x.m_button;
 	info->m_mask   = x.m_mask;
 	return info;
+}
+
+bool
+IPrimaryScreen::CButtonInfo::equal(const CButtonInfo* a, const CButtonInfo* b)
+{
+	return (a->m_button == b->m_button && a->m_mask == b->m_mask);
 }
 
 

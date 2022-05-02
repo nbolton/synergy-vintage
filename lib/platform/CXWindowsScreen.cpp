@@ -19,6 +19,7 @@
 #include "CXWindowsScreenSaver.h"
 #include "CXWindowsUtil.h"
 #include "CClipboard.h"
+#include "CKeyMap.h"
 #include "XScreen.h"
 #include "CLog.h"
 #include "CStopwatch.h"
@@ -220,16 +221,16 @@ CXWindowsScreen::enter()
 		XUnsetICFocus(m_ic);
 	}
 
-	// unmap the hider/grab window.  this also ungrabs the mouse and
-	// keyboard if they're grabbed.
-	XUnmapWindow(m_display, m_window);
-
 	// set the input focus to what it had been when we took it
 	if (m_lastFocus != None) {
 		// the window may not exist anymore so ignore errors
 		CXWindowsUtil::CErrorLock lock(m_display);
 		XSetInputFocus(m_display, m_lastFocus, m_lastFocusRevert, CurrentTime);
 	}
+
+	// unmap the hider/grab window.  this also ungrabs the mouse and
+	// keyboard if they're grabbed.
+	XUnmapWindow(m_display, m_window);
 
 /* maybe call this if entering for the screensaver
 	// set keyboard focus to root window.  the screensaver should then
@@ -660,11 +661,11 @@ CXWindowsScreen::registerHotKey(KeyID key, KeyModifierMask mask)
 
 		m_oldHotKeyIDs.push_back(id);
 		m_hotKeys.erase(id);
-		LOG((CLOG_WARN "failed to register hotkey id=%04x mask=%04x", key, mask));
+		LOG((CLOG_WARN "failed to register hotkey %s (id=%04x mask=%04x)", CKeyMap::formatKey(key, mask).c_str(), key, mask));
 		return 0;
 	}
 	
-	LOG((CLOG_DEBUG "registered hotkey id=%04x mask=%04x as id=%d", key, mask, id));
+	LOG((CLOG_DEBUG "registered hotkey %s (id=%04x mask=%04x) as id=%d", CKeyMap::formatKey(key, mask).c_str(), key, mask, id));
 	return id;
 }
 
@@ -695,6 +696,18 @@ CXWindowsScreen::unregisterHotKey(UInt32 id)
 	// discard hot key from map and record old id for reuse
 	m_hotKeys.erase(i);
 	m_oldHotKeyIDs.push_back(id);
+}
+
+void
+CXWindowsScreen::fakeInputBegin()
+{
+	// FIXME -- not implemented
+}
+
+void
+CXWindowsScreen::fakeInputEnd()
+{
+	// FIXME -- not implemented
 }
 
 SInt32
