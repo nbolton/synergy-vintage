@@ -1,0 +1,229 @@
+// !$*UTF8*$!
+{
+	0190A09D282021C5009D69F3 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 4CD034900650B6F100525ED1 /* COSXClipboardAnyTextConverter.h */;
+		name = "";
+		rLen = 1;
+		rLoc = 541;
+		rType = 0;
+		vrLen = 1056;
+		vrLoc = 0;
+	};
+	01BB4DD5281FFF9200C72EA8 /* PBXTextBookmark */ = {
+		isa = PBXTextBookmark;
+		fRef = 4CD034900650B6F100525ED1 /* COSXClipboardAnyTextConverter.h */;
+		name = "COSXClipboardAnyTextConverter.h: 1";
+		rLen = 0;
+		rLoc = 0;
+		rType = 0;
+		vrLen = 1056;
+		vrLoc = 0;
+	};
+	01FF0DC927ADE1800048BBC9 /* synergyc */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 0;
+		activeArgIndices = (
+			YES,
+			YES,
+			YES,
+		);
+		argumentStrings = (
+			"-f",
+			"-d DEBUG",
+			Gateway,
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		dylibVariantSuffix = "";
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = synergyc;
+		sourceDirectories = (
+		);
+	};
+	01FF0DCA27ADE1800048BBC9 /* synergys */ = {
+		isa = PBXExecutable;
+		activeArgIndex = 2147483647;
+		activeArgIndices = (
+		);
+		argumentStrings = (
+		);
+		autoAttachOnCrash = 1;
+		configStateDict = {
+		};
+		customDataFormattersEnabled = 1;
+		debuggerPlugin = GDBDebugging;
+		disassemblyDisplayState = 0;
+		enableDebugStr = 1;
+		environmentEntries = (
+		);
+		executableSystemSymbolLevel = 0;
+		executableUserSymbolLevel = 0;
+		libgmallocEnabled = 0;
+		name = synergys;
+		sourceDirectories = (
+		);
+	};
+	01FF0DDA27ADE1AE0048BBC9 /* Source Control */ = {
+		isa = PBXSourceControlManager;
+		fallbackIsa = XCSourceControlManager;
+		isSCMEnabled = 0;
+		scmConfiguration = {
+		};
+		scmType = "";
+	};
+	01FF0DDB27ADE1AE0048BBC9 /* Code sense */ = {
+		isa = PBXCodeSenseManager;
+		indexTemplatePath = "";
+	};
+	01FF0DDC27ADE1AE0048BBC9 /* XCBreakpointsBucket */ = {
+		isa = XCBreakpointsBucket;
+		name = "Project Breakpoints";
+		objects = (
+		);
+	};
+	08FB7793FE84155DC02AAC07 /* Project object */ = {
+		activeBuildConfigurationName = Deployment;
+		activeExecutable = 01FF0DC927ADE1800048BBC9 /* synergyc */;
+		activeTarget = 4CD033E80650965F00525ED1 /* ALL */;
+		breakpointsGroup = 01FF0DDC27ADE1AE0048BBC9 /* XCBreakpointsBucket */;
+		codeSenseManager = 01FF0DDB27ADE1AE0048BBC9 /* Code sense */;
+		executables = (
+			01FF0DC927ADE1800048BBC9 /* synergyc */,
+			01FF0DCA27ADE1800048BBC9 /* synergys */,
+		);
+		perUserDictionary = {
+			PBXConfiguration.PBXFileTableDataSource3.PBXFileTableDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					453,
+					20,
+					48,
+					43,
+					43,
+					20,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+					PBXFileDataSource_Target_ColumnID,
+				);
+			};
+			PBXConfiguration.PBXTargetDataSource.PBXTargetDataSource = {
+				PBXFileTableDataSourceColumnSortingDirectionKey = "-1";
+				PBXFileTableDataSourceColumnSortingKey = PBXFileDataSource_Filename_ColumnID;
+				PBXFileTableDataSourceColumnWidthsKey = (
+					20,
+					200,
+					273,
+					20,
+					48,
+					43,
+					43,
+				);
+				PBXFileTableDataSourceColumnsKey = (
+					PBXFileDataSource_FiletypeID,
+					PBXFileDataSource_Filename_ColumnID,
+					PBXTargetDataSource_PrimaryAttribute,
+					PBXFileDataSource_Built_ColumnID,
+					PBXFileDataSource_ObjectSize_ColumnID,
+					PBXFileDataSource_Errors_ColumnID,
+					PBXFileDataSource_Warnings_ColumnID,
+				);
+			};
+			PBXPerProjectTemplateStateSaveDate = 673191710;
+			PBXWorkspaceStateSaveDate = 673191710;
+		};
+		perUserProjectItems = {
+			0190A09D282021C5009D69F3 /* PBXTextBookmark */ = 0190A09D282021C5009D69F3 /* PBXTextBookmark */;
+			01BB4DD5281FFF9200C72EA8 /* PBXTextBookmark */ = 01BB4DD5281FFF9200C72EA8 /* PBXTextBookmark */;
+		};
+		sourceControlManager = 01FF0DDA27ADE1AE0048BBC9 /* Source Control */;
+		userBuildSettings = {
+		};
+	};
+	4C537F0C064E286700D3815C /* synergys */ = {
+		activeExec = 0;
+		executables = (
+			01FF0DCA27ADE1800048BBC9 /* synergys */,
+		);
+	};
+	4C537F30064E29F800D3815C /* server */ = {
+		activeExec = 0;
+	};
+	4C5E868C0648C2ED003C637B /* common */ = {
+		activeExec = 0;
+	};
+	4C5E86920648C412003C637B /* CArch.cpp */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {711, 8960}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {711, 429}}";
+			sepNavWindowFrame = "{{15, 183}, {750, 558}}";
+		};
+	};
+	4CB43777063E406A00969041 /* client */ = {
+		activeExec = 0;
+	};
+	4CB437B4063E443800969041 /* arch */ = {
+		activeExec = 0;
+	};
+	4CB437D0063E44C200969041 /* base */ = {
+		activeExec = 0;
+	};
+	4CB43800063E45F200969041 /* mt */ = {
+		activeExec = 0;
+	};
+	4CB43823063E46AB00969041 /* io */ = {
+		activeExec = 0;
+	};
+	4CB43847063E475800969041 /* net */ = {
+		activeExec = 0;
+	};
+	4CB4386D063E47F800969041 /* synergy */ = {
+		activeExec = 0;
+	};
+	4CB438B0063E488600969041 /* platform */ = {
+		activeExec = 0;
+	};
+	4CB43913063E497700969041 /* synergyc */ = {
+		activeExec = 0;
+		executables = (
+			01FF0DC927ADE1800048BBC9 /* synergyc */,
+		);
+	};
+	4CD033E80650965F00525ED1 /* ALL */ = {
+		activeExec = 0;
+	};
+	4CD0348F0650B6F100525ED1 /* COSXClipboardAnyTextConverter.cpp */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {711, 1204}}";
+			sepNavSelRange = "{0, 0}";
+			sepNavVisRect = "{{0, 0}, {711, 429}}";
+			sepNavWindowFrame = "{{38, 162}, {750, 558}}";
+		};
+	};
+	4CD034900650B6F100525ED1 /* COSXClipboardAnyTextConverter.h */ = {
+		uiCtxt = {
+			sepNavIntBoundsRect = "{{0, 0}, {711, 742}}";
+			sepNavSelRange = "{541, 1}";
+			sepNavVisRect = "{{0, 0}, {711, 429}}";
+			sepNavWindowFrame = "{{15, 183}, {750, 558}}";
+		};
+	};
+}

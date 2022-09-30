@@ -12,9 +12,6 @@
 			buildConfigurationList = 68FBBB18089F06C20016DF44 /* Build configuration list for PBXAggregateTarget "ALL" */;
 			buildPhases = (
 			);
-			buildSettings = {
-				PRODUCT_NAME = ALL;
-			};
 			dependencies = (
 				4CD033EA0650968500525ED1 /* PBXTargetDependency */,
 				4CD033EC0650968500525ED1 /* PBXTargetDependency */,
@@ -387,40 +384,6 @@
 			);
 		};
 /* End PBXBuildRule section */
-
-/* Begin PBXBuildStyle section */
-		014CEA460018CE2711CA2923 /* Development */ = {
-			isa = PBXBuildStyle;
-			buildSettings = {
-				COPY_PHASE_STRIP = NO;
-				DEBUGGING_SYMBOLS = YES;
-				GCC_DYNAMIC_NO_PIC = NO;
-				GCC_ENABLE_FIX_AND_CONTINUE = YES;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
-				GCC_OPTIMIZATION_LEVEL = 0;
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				OPTIMIZATION_CFLAGS = "-O0";
-				SYMROOT = gen/debug;
-				WARNING_CFLAGS = "-Wall";
-				ZERO_LINK = NO;
-			};
-			name = Development;
-		};
-		014CEA470018CE2711CA2923 /* Deployment */ = {
-			isa = PBXBuildStyle;
-			buildSettings = {
-				COPY_PHASE_STRIP = YES;
-				GCC_ENABLE_FIX_AND_CONTINUE = NO;
-				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
-				GCC_OPTIMIZATION_LEVEL = s;
-				GCC_PREPROCESSOR_DEFINITIONS = NDEBUG;
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				SYMROOT = gen/build;
-				ZERO_LINK = NO;
-			};
-			name = Deployment;
-		};
-/* End PBXBuildStyle section */
 
 /* Begin PBXContainerItemProxy section */
 		4C537F19064E298800D3815C /* PBXContainerItemProxy */ = {
@@ -1438,20 +1401,6 @@
 			buildRules = (
 				68FBBB53089F08940016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-					lib/client,
-				);
-				PRODUCT_NAME = synergys;
-			};
 			dependencies = (
 				4C537F1A064E298800D3815C /* PBXTargetDependency */,
 				4C537F1C064E298800D3815C /* PBXTargetDependency */,
@@ -1478,20 +1427,6 @@
 			buildRules = (
 				68FBBB4D089F087F0016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = server;
-			};
 			dependencies = (
 			);
 			name = server;
@@ -1509,10 +1444,6 @@
 			buildRules = (
 				68FBBB37089F08160016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = common;
-			};
 			dependencies = (
 			);
 			name = common;
@@ -1530,20 +1461,6 @@
 			buildRules = (
 				68FBBB4A089F08750016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = client;
-			};
 			dependencies = (
 			);
 			name = client;
@@ -1561,11 +1478,6 @@
 			buildRules = (
 				68FBBB32089F07E40016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = lib/common;
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = arch;
-			};
 			dependencies = (
 			);
 			name = arch;
@@ -1583,14 +1495,6 @@
 			buildRules = (
 				68FBBB3A089F08200016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = base;
-			};
 			dependencies = (
 			);
 			name = base;
@@ -1608,15 +1512,6 @@
 			buildRules = (
 				68FBBB3D089F082E0016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = mt;
-			};
 			dependencies = (
 			);
 			name = mt;
@@ -1634,16 +1529,6 @@
 			buildRules = (
 				68FBBB3E089F084C0016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = io;
-			};
 			dependencies = (
 			);
 			name = io;
@@ -1661,17 +1546,6 @@
 			buildRules = (
 				68FBBB41089F08590016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = net;
-			};
 			dependencies = (
 			);
 			name = net;
@@ -1689,18 +1563,6 @@
 			buildRules = (
 				68FBBB44089F08620016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = synergy;
-			};
 			dependencies = (
 			);
 			name = synergy;
@@ -1718,18 +1580,6 @@
 			buildRules = (
 				68FBBB47089F086B0016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/synergy,
-				);
-				LIBRARY_STYLE = STATIC;
-				PRODUCT_NAME = platform;
-			};
 			dependencies = (
 			);
 			name = platform;
@@ -1748,20 +1598,6 @@
 			buildRules = (
 				68FBBB50089F08890016DF44 /* PBXBuildRule */,
 			);
-			buildSettings = {
-				HEADER_SEARCH_PATHS = (
-					lib/common,
-					lib/arch,
-					lib/base,
-					lib/mt,
-					lib/io,
-					lib/net,
-					lib/synergy,
-					lib/platform,
-					lib/client,
-				);
-				PRODUCT_NAME = synergyc;
-			};
 			dependencies = (
 				4CB43948063E4E1600969041 /* PBXTargetDependency */,
 				4C5E86900648C32E003C637B /* PBXTargetDependency */,
@@ -1784,14 +1620,6 @@
 		08FB7793FE84155DC02AAC07 /* Project object */ = {
 			isa = PBXProject;
 			buildConfigurationList = 68FBBB1C089F06C20016DF44 /* Build configuration list for PBXProject "synergy" */;
-			buildSettings = {
-				MACOSX_DEPLOYMENT_TARGET = 10.2;
-				SDKROOT = /Developer/SDKs/MacOSX10.2.8.sdk;
-			};
-			buildStyles = (
-				014CEA460018CE2711CA2923 /* Development */,
-				014CEA470018CE2711CA2923 /* Deployment */,
-			);
 			hasScannedForEncodings = 1;
 			mainGroup = 08FB7794FE84155DC02AAC07 /* synergy */;
 			projectDirPath = "";
@@ -2723,7 +2551,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				SDKROOT = /Developer/SDKs/MacOSX10.2.8.sdk;
+				SDKROOT = /Developer/SDKs/MacOSX10.3.9.sdk;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
 				SDKROOT_ppc = /Developer/SDKs/MacOSX10.2.8.sdk;
 			};
@@ -2741,7 +2569,7 @@
 				MACOSX_DEPLOYMENT_TARGET = 10.2;
 				MACOSX_DEPLOYMENT_TARGET_i386 = 10.4;
 				MACOSX_DEPLOYMENT_TARGET_ppc = 10.2;
-				SDKROOT = /Developer/SDKs/MacOSX10.2.8.sdk;
+				SDKROOT = /Developer/SDKs/MacOSX10.3.9.sdk;
 				SDKROOT_i386 = /Developer/SDKs/MacOSX10.4u.sdk;
 				SDKROOT_ppc = /Developer/SDKs/MacOSX10.2.8.sdk;
 			};
