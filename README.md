@@ -1,7 +1,20 @@
 # Synergy Vintage 🍷
 
+> [!TIP]
+> ### Update, 20 Nov 2024
+>
+> This is a hobby project of mine that I use for my vintage computer lab (comprised of vintage Windows, macOS, and Linux computers).
+> If you're looking for a version that works on the latest operating systems,
+> then modern [Synergy](https://symless.com/synergy) or [Deskflow](https://github.com/deskflow/deskflow) will be best.
+> 
+> My vintage computer lab has been in boxes while I'm reorganizing my garage (which is also full of boxes).
+> Once I have my vintage computer lab back up and running, I'll be doing some development on popular 2006 Linux distros,
+> Ubuntu 6.06 and Fedora Core 5.
+>
+> — [@nbolton](https://github.com/nbolton) (maintainer)
+
 For vintage computer enthusiasts, Synergy Vintage aims to keep the origins of 
-[Synergy](https://github.com/symless/synergy-core) alive. You can use Synergy 
+[Synergy](https://symless.com/synergy) alive. You can use Synergy 
 Vintage on operating systems available from 1995 to 2006; Windows (95, 98, ME, 
 2000, and XP), Mac OS X (Jaguar to Tiger), and Linux (e.g. Red Hat 7).
 
